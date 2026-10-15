@@ -8,8 +8,8 @@ Use TypeScript for code examples unless another language is requested.
 
 Read [docs/v1/README.md](docs/v1/README.md) before implementation. For a ticket,
 read its required documents and verify its dependencies are actually implemented;
-a planning document or reference project is not completion evidence. This repo
-currently contains planning documents and brand assets, not a runnable scaffold.
+a planning document or reference project is not completion evidence. Read the root
+README for implemented scripts and routes; later features remain ticketed.
 
 ## Locate the relevant contract
 
@@ -52,6 +52,12 @@ choices. Use pnpm and its lockfile after approval.
 - Dependency direction is app → routes → features → shared API/UI/utilities.
   Shared infrastructure must not import business features. Use feature exports
   rather than another feature's private internals.
+- Follow the backend's area-specific import convention: use named aliases across
+  directories and relative imports within the same directory. Frontend aliases
+  map to their matching `src` areas (`@app/*` → `src/app/*`, for example).
+  Define aliases in `tsconfig.json`; Vite reads them with `resolve.tsconfigPaths`.
+  Add area aliases as folders gain code. Generated route imports and tooling
+  bootstrap imports may remain relative. See README for the current mappings.
 - TanStack Query owns server data; Router owns URL filters/page/sort; React owns
   local interaction state. Do not duplicate server data into a global store.
 - Feature-local frontend Zod schemas mirror the public API. Never import NestJS,
@@ -82,3 +88,14 @@ to the change. Follow the seven-heading handoff and commit approval workflow in
 [agent-workflow.md](docs/v1/agent-workflow.md). After a full-stack change, start or
 reuse both local servers, verify reachability, report their URLs, and leave them
 running when possible. Report blockers instead of implying unrun checks passed.
+
+## Commit standard
+
+Match the backend's ticket-prefixed Conventional Commit format:
+`<type>(<scope>): <ticket-id> <description>`, for example
+`feat(scaffold): FE-V1-001 initialize the frontend application`.
+Choose the type from the actual change; keep each commit single-purpose.
+Before staging or committing, present each commit's exact message, files, and
+behavioral summary and obtain explicit final approval. Stage only approved
+files/hunks. Follow [agent-workflow.md](docs/v1/agent-workflow.md) for the full
+commit handoff and release/tag rules.

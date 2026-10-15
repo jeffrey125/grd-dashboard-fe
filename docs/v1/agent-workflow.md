@@ -69,19 +69,18 @@ For a requested code change modifying tracked files:
 1. Inspect the worktree and actual diff; separate requested and pre-existing edits.
 2. Partition the requested work into the smallest coherent, independently
    reviewable commits. Each commit has one purpose.
-3. Propose an exact Conventional Commit message for each commit, using
-   `<type>(<scope>): <description>` where scope helps. Report each commit's files
-   and behavioral summary.
-4. Ask for explicit final approval before any `git commit`. Approval to implement
+3. Propose an exact message for each commit using the backend-aligned format in
+   root AGENTS.md. Report each commit's files and behavioral summary.
+4. Ask for explicit final approval before staging or committing. Approval to implement
    or to write documents is not commit approval.
 5. After approval, stage only the intended files/hunks, commit in logical order,
    and report every resulting hash. Never sweep unrelated changes into staging.
 
 For an initial repository, apply the same careful commit proposal to new files.
 Do not infer permission to rename/push a branch, merge, or deploy from commit
-approval alone. The repository was on unborn `master` during planning; CI targets
-`main`, so branch naming must be handled deliberately during scaffold/repository
-setup rather than asserted as already done.
+approval alone. Planning commits now exist on `master`; the user selected
+`feature/dashboard-v1` for implementation. Future CI targets `main`; changing the
+default branch still requires a deliberate, authorized repository setup step.
 
 ## Semantic version tags
 
