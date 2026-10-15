@@ -1,8 +1,11 @@
 # Frontend v1 implementation tickets
 
-All 19 tickets are **Not started**. The brand files already present are inputs to
-FE-V1-003, not evidence that the frontend shell is implemented. Execute a ticket
-only after its prerequisites are implemented and verified, not merely documented.
+FE-V1-001 is **Implemented, locally verified, and committed**. See
+its [implementation summary](../implementation-summary/FE-V1-001-implementation-summary.md).
+The other 18 tickets remain **Not started** in this plan. Existing brand files
+are inputs to FE-V1-003, not evidence that the frontend shell is implemented.
+Execute a ticket only after its prerequisites are implemented and verified,
+not merely documented.
 
 Tickets follow the backend's Objective / Required reading / Scope / Acceptance
 criteria / Verification structure. Use a focused branch and reviewable commit

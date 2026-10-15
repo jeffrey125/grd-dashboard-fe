@@ -2,7 +2,9 @@
 
 ## Status
 
-Not started. Depends on Approved v1 plan.
+Implemented, locally verified, and committed on 2026-10-15.
+Depends on Approved v1 plan. Evidence:
+[implementation summary](../implementation-summary/FE-V1-001-implementation-summary.md).
 
 ## Target repository
 
@@ -21,11 +23,11 @@ Create a reproducible frontend foundation while preserving the planning document
 
 ## Scope
 
-- Inspect the empty application baseline and existing files. Use the approved React/TypeScript/Vite/pnpm approach with strict TypeScript and an @/ source alias.
+- Inspect the empty application baseline and existing files. Use the approved React/TypeScript/Vite/pnpm approach with strict TypeScript and backend-style area aliases, as selected by the user on 2026-10-15, superseding the original `@/` alias.
 - Select compatible stable runtime/tool versions, record engines/packageManager, create the pnpm lockfile, and enumerate direct dependencies. Reuse approved selections; seek explicit approval for any additional production package.
 - Set up app/providers/router composition and feature-local boundaries, including TanStack Router generation appropriate to Vite and a shared TanStack Query provider.
 - Add validated public API-origin configuration, a safe example environment file, ignore rules, and local development/build/preview scripts. Preserve default localhost:5173 and API localhost:3000.
-- Document actual startup commands and planned versus implemented routes. Inspect the unborn master/main situation and handle repository branch setup deliberately; do not commit or push without the required approval.
+- Document actual startup commands and planned versus implemented routes. Inspect the actual master/main state and handle repository branch setup deliberately; the user selected `feature/dashboard-v1`. Do not commit or push without the required approval.
 
 ## Acceptance criteria
 

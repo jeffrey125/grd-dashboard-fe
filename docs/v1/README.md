@@ -3,9 +3,11 @@
 ## Status and scope
 
 Approved through the planning interview on 2026-10-15. This milestone creates the
-plan, tickets, project agent instructions, and brand assets. It does not implement
-the dashboard or modify the backend. Every implementation ticket starts **Not
-started**; dependencies below describe work still required.
+plan, tickets, project agent instructions, and brand assets. That planning
+milestone did not implement the dashboard or modify the backend. FE-V1-001 is now
+implemented, locally verified, and committed on `feature/dashboard-v1`. See its
+[implementation summary](implementation-summary/FE-V1-001-implementation-summary.md)
+for evidence. The other 18 tickets remain **Not started** in this plan.
 
 Rebuild shipment-monitoring behavior against the new backend, use Tom's dashboard
 layout patterns, and apply GRD branding. The homepage is a separate operational
