@@ -1,0 +1,192 @@
+# Pages and interactions
+
+## Navigation and access
+
+| Route                        | Page / access                                                                                  |
+| ---------------------------- | ---------------------------------------------------------------------------------------------- |
+| `/login`                     | Sign-in, no public signup or emailed-reset promise.                                            |
+| `/change-password`           | Password replacement; required for restricted sessions, also available to authenticated users. |
+| `/`                          | Overview homepage; unrestricted Staff/Admin.                                                   |
+| `/shipments`                 | Shipment table; unrestricted Staff/Admin.                                                      |
+| `/shipments/new`             | Batch creation; unrestricted Staff/Admin.                                                      |
+| `/shipments/$shipmentId`     | Dedicated detail; `tab=overview` default or `tab=history`. Public UUID parameter.              |
+| `/admin/accounts`            | Account list; Admin.                                                                           |
+| `/admin/accounts/new`        | Create account; Admin.                                                                         |
+| `/admin/accounts/$accountId` | Account detail/edit, activation, password reset; Admin.                                        |
+| `/admin/carriers`            | Carrier list; Admin.                                                                           |
+| `/admin/carriers/$carrierId` | Carrier detail/settings; Admin.                                                                |
+
+`$...` denotes TanStack's file-route parameter, not a literal URL segment.
+Static `new` paths must never be parsed as UUIDs. Include authenticated not-found,
+forbidden, and safe error states. Preserve a safe internal destination after login;
+reject external redirects and loops to auth screens.
+
+Sidebar: Overview, Shipments, then Admin-only Accounts and Carriers. Create/detail
+pages use breadcrumbs and page-level navigation, not permanent sidebar entries.
+Show user identity, sign-out, theme control, and access to password change. A
+restricted account sees replacement/sign-out only. The logo links to `/` once the
+session is unrestricted. Layout follows Tom's desktop sidebar/mobile drawer pattern.
+
+## Overview homepage
+
+Summary cards: All, Active, Paused, Delivered, Needs attention. Cards link to the
+matching shipment tab. Counts exclude soft-deleted shipments, overlap as defined
+in the API contract, and are not computed from the current table page.
+
+Primary section: **Needs attention**, using the exact backend predicate. Explain
+failed lookup versus threshold pause without claiming a shipment is late. Show
+reference, carrier, reason, last known tracking status, and a link to detail.
+
+Secondary sections: **Upcoming deliveries** (today plus six days, known ETA only)
+and **Recent tracking changes** (app-recorded snapshots). Show at most 10 items per
+section. Link upcoming items/view-all to All shipments with the ETA range and
+`undeliveredOnly=true`; show the latter as a removable active-filter indicator.
+The backend applies this constraint before pagination. Recent changes link directly to the shipment history;
+there is no new global history page in v1.
+
+Display business timezone and last successful aggregate refresh. Loading, empty,
+error, and stale/reconnecting states remain distinct. Avoid inventing zeros on a
+failed request. Refresh silently; tracking-change audio/toasts do not run here.
+
+## Shipment list
+
+Default `/shipments` state: `tab=active`, page 1, 25 rows, `createdAt desc`.
+Tabs: **All shipments**, **Active**, **Paused**, **Delivered**, **Needs attention**.
+Respect explicit valid URL state on navigation/reload/back. Search and filters
+apply within the selected tab; filter/sort/tab changes reset page to 1. Include
+clear filters and empty-result guidance. Searches are debounced and cancelled when
+superseded. Invalid URL values are safely normalized or explained.
+
+Approved controls: reference/notes search, carrier, latest completed lookup
+outcome (including never checked), created date range, estimated-delivery range.
+Use the server's counts. Column sorting is limited to the API allowlist; don't
+suggest sorting on a field the server ignores. Never client-sort/filter only the
+loaded page while presenting it as a full-dataset result.
+
+Suggested default columns: reference/carrier, carrier status, monitoring state,
+estimated delivery, latest lookup, created time, notes preview, row actions.
+Detail shows full status text and pickup/delivery fields. Keep an explicit
+reference link, accessible action-menu buttons, and horizontal table scrolling
+on narrow screens. Row highlights include a textual/icon "Updated" indicator.
+
+Page header contains Add shipments, sound preference, and **Mark displayed changes
+as seen** when appropriate. Row menu offers detail, refresh, and permitted
+pause/resume; action availability follows backend rules. No refresh-all, bulk
+pause/delete, or scheduler start/stop. Editing notes/deletion belongs on detail.
+
+Live changes refetch affected pages/counts; an active row may leave Active when
+delivered/paused. Created-time ordering prevents updates from moving rows to the
+top just because tracking changed. Refetch must not activate the wrong row action
+or silently drop pending user input. Clamp an invalid page after deletions.
+
+## Create shipments
+
+Start with one row: carrier, literal tracking reference, optional notes. Add/remove
+rows up to 10, with stable row identity and accessible labels. Only enabled
+carriers may be selected, while stale eligibility is rechecked by the backend.
+Explain the atomic batch and duplicate rules. No CSV/import/export feature is
+implied by batch entry.
+
+Disable repeat submission while pending. Map 1-based backend row errors to the
+correct submitted row, retaining every value. Preserve leading zeros/case and
+turn blank optional notes into null/omission according to the contract.
+
+On 200 or 201 success, return to `/shipments` at Active/page 1/newest-first with
+creation filters cleared so newly inserted records are visible. Toast added and
+duplicate counts accurately, including all-duplicate success. Existing paused or
+delivered duplicates may not appear in Active: provide a duplicate-feedback action
+link to All shipments and explain that their previous state/notes were retained.
+Do not claim duplicates were added. On validation/connectivity errors, stay on
+the create page. Warn before discarding a dirty form through in-app navigation.
+
+## Shipment detail
+
+Header persists across tabs: reference, carrier, monitoring state/reason, valid
+verification link, refresh, valid pause/resume, and delete confirmation. Return
+to the originating list URL; direct links fall back to default `/shipments`.
+
+**Overview:** current carrier status/detail, pickup/estimated/actual delivery
+dates, snapshot-recorded time, last attempted/next-check times, latest completed
+lookup outcome, and latest run/explicitly requested run progress. Preserve known
+tracking values during failed lookup and label them separately. Unknown values
+use "Not available" or equivalent, never made-up dates/statuses.
+
+Editable notes have save/cancel, dirty-state protection, and null clearing. A
+server refresh must not overwrite an unsaved draft. Delete requires confirmation
+identifying the reference, then returns to the list; disclose removal from active
+views without promising a restore feature. Handle a concurrent delete with a
+clear missing/deleted screen and list link.
+
+**History:** paginated normalized snapshots, newest first. Label initial tracking
+separately from later changes and render readable status/date differences where
+available; don't invent the previous record at a pagination boundary. It is the
+application's observation history, not a full carrier event timeline. Distinguish
+never observed, empty page, loading, and failure. Store tab/page in the URL.
+
+## Admin pages
+
+**Accounts list:** name, email, role, active/replacement state, links to create and
+detail. The current backend list is unpaginated; account scale is not the 10,000-
+shipment requirement. Local account search is acceptable if clearly scoped.
+
+**Create account:** first/last name, email, role, issued password. Successful
+creation requires replacement at next sign-in. Explain out-of-band credential
+delivery; no email is sent by this UI/backend. Never put passwords in URLs,
+browser storage, telemetry, toasts, or logs.
+
+**Account detail:** edit supported fields; explicit confirmations for activation
+changes and password reset, and clear messaging for role changes. Disable
+self-deactivation/demotion, handle backend protection conflicts, and respond to
+session revocation. Reset uses an Admin-entered password, not a nonexistent
+email-reset endpoint. Show password feedback inline without echoing it elsewhere.
+
+**Carriers list/detail:** view code/name/active status and configured tracking
+settings. Edit only mutable supported fields; show carrier-specific fetch modes
+and interval caveats. Confirm disabling because it affects future tracking.
+No create/delete/restore action. Handle concurrent changes safely and invalidate
+carrier-dependent forms, lists, and details after saving.
+
+## Alerts, sound, and review state
+
+User-action confirmations/errors can toast on any page. Field errors also appear
+beside fields; auth/connectivity problems retain a persistent visible state.
+
+Tracking-change alerts run **only while the exact pathname is `/shipments`**,
+across every tab/page/filter. They are disabled on `/`, `/shipments/new`, and
+shipment detail/admin/auth routes. The data subscriptions remain live elsewhere.
+Debounce/coalesce bursts into a short summary and one sound, with a close control
+and a sensible maximum of visible toasts. A manual refresh is first "queued";
+do not report tracking success before the actual outcome is known. Deduplicate
+action/run feedback and tracking-change feedback rather than spamming both.
+
+Sound defaults off, persists by account/browser, and is activated by an explicit
+user gesture. Handle autoplay denial without repeated errors. Use an approved
+existing sound asset or ask before adding a sound library; the legacy asset's
+provenance must be checked before reuse.
+
+Track observed change revisions by shipment and account. An unseen revision stays
+highlighted across reloads until its detail is successfully displayed or the user
+marks displayed changes seen. Viewing a newer authoritative snapshot also reviews
+earlier observed revisions for that shipment. If a newer event arrives during detail fetch/save/
+acknowledgement, acknowledge only the displayed revision and earlier observations,
+never a later unseen revision. Do not clear
+off-page changes with a displayed-only action. Switching accounts must never
+display the prior account's marks or preference state.
+
+Initial loads and resyncs refresh quietly; the event stream has no historical
+replay guarantee. Highlights already observed persist, but offline/missed changes
+are not promised as alerts. History remains the place to inspect past observations.
+Deleted highlighted records are removed when their deletion is confirmed. Browser
+storage is bounded/versioned and may fall back to memory; persistence is not a
+shared/team acknowledgement or cross-device feature.
+
+## Dates and usability
+
+Use `America/New_York` for timestamps and business-day boundaries, with correct
+EST/EDT behavior. Date-only carrier values stay date-only; formatting must not
+turn a date into the previous day. Show timezone beside timestamp groups.
+
+Every page supports keyboard navigation, visible focus, labeled controls, readable
+light/dark contrast, responsive layout, reduced motion, and loading/empty/error
+states. Use confirmation dialogs for destructive or sensitive changes. Keep
+error messages safe; the UI must not expose raw provider or database diagnostics.
