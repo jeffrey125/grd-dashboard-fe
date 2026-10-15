@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('built app loads assets, supports deep links, and recovers with keyboard navigation', async ({
+test('built shell supports branding, navigation, themes, and keyboard recovery', async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -23,14 +23,29 @@ test('built app loads assets, supports deep links, and recovers with keyboard na
     await route.continue();
   });
 
+  await page.addInitScript(() => {
+    if (!localStorage.getItem('grd-theme-mode')) localStorage.setItem('grd-theme-mode', 'dark');
+  });
+
   const response = await page.goto('/');
   expect(response?.status()).toBe(200);
   await expect(page).toHaveTitle('GRD Dashboard');
-  await expect(page.getByRole('heading', { name: 'GRD Dashboard' })).toBeVisible();
-  const logo = page.getByRole('img', { name: 'Global Resources Direct' });
+  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('data-grd-color-scheme', 'dark');
+
+  const logo = page.locator('img[alt="Global Resources Direct"]:visible');
   await expect(logo).toBeVisible();
   await expect(logo).toHaveJSProperty('complete', true);
   expect(await logo.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  const logoRatio = await logo.evaluate(
+    (image: HTMLImageElement) =>
+      image.getBoundingClientRect().width / image.getBoundingClientRect().height,
+  );
+  const naturalLogoRatio = await logo.evaluate(
+    (image: HTMLImageElement) => image.naturalWidth / image.naturalHeight,
+  );
+  expect(Math.abs(logoRatio - naturalLogoRatio)).toBeLessThan(0.05);
+
   for (const asset of ['/favicon.svg', '/favicon.ico']) {
     const assetResponse = await page.request.get(asset);
     expect(assetResponse.ok()).toBe(true);
@@ -38,17 +53,56 @@ test('built app loads assets, supports deep links, and recovers with keyboard na
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 
+  if ((page.viewportSize()?.width ?? 0) < 768) {
+    const menuButton = page.getByRole('button', { name: 'Open navigation' });
+    await menuButton.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible();
+    await page.getByRole('link', { name: 'Shipments' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('button', { name: 'Open navigation' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+  } else {
+    await page.getByRole('link', { name: 'Shipments' }).click();
+  }
+  await expect(page.getByRole('heading', { name: 'Shipments' })).toBeVisible();
+  await expect(page.getByText(/contains no fixture or production shipment data/)).toBeVisible();
+
+  const themeButton = page.getByRole('button', { name: /Choose theme/ });
+  await themeButton.click();
+  await page.getByRole('menuitem', { name: 'Light' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-grd-color-scheme', 'light');
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-grd-color-scheme', 'light');
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const reducedTransition = await page
+    .getByRole('main')
+    .evaluate((element) => Number.parseFloat(getComputedStyle(element).transitionDuration));
+  expect(reducedTransition).toBeLessThanOrEqual(0.00001);
+
   const deepLink = await page.goto('/missing/nested?source=smoke');
   expect(deepLink?.status()).toBe(200);
   await expect(page.getByRole('heading', { name: 'Page not available' })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Page not available' })).toBeVisible();
   await page.keyboard.press('Tab');
+  await page.getByRole('link', { name: 'Return home' }).focus();
   await expect(page.getByRole('link', { name: 'Return home' })).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: 'GRD Dashboard' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
   await page.goBack();
   await expect(page.getByRole('heading', { name: 'Page not available' })).toBeVisible();
   expect(errors).toEqual([]);
   expect(unexpectedRequests).toEqual([]);
+});
+
+test('follows the system color scheme when no explicit preference exists', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  await expect(page.locator('html')).toHaveAttribute('data-grd-color-scheme', 'dark');
+  expect(await page.evaluate(() => localStorage.getItem('grd-theme-mode'))).toBeNull();
 });

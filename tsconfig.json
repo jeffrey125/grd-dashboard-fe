@@ -8,8 +8,11 @@
     "types": ["vite/client"],
     "paths": {
       "@app/*": ["./src/app/*"],
+      "@components/*": ["./src/components/*"],
+      "@features/*": ["./src/features/*"],
       "@routes/*": ["./src/routes/*"],
-      "@lib/*": ["./src/lib/*"]
+      "@lib/*": ["./src/lib/*"],
+      "@theme/*": ["./src/theme/*"]
     },
     "strict": true,
     "noUnusedLocals": true,

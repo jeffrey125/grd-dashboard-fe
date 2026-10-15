@@ -4,6 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="GRD shipment monitoring dashboard." />
+    <script>
+      (() => {
+        let savedPreference = null;
+        try {
+          savedPreference = localStorage.getItem('grd-theme-mode');
+        } catch {}
+        const preference =
+          savedPreference === 'light' || savedPreference === 'dark' ? savedPreference : 'system';
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const colorScheme = preference === 'system' ? (systemDark ? 'dark' : 'light') : preference;
+        document.documentElement.setAttribute('data-grd-color-scheme', colorScheme);
+      })();
+    </script>
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>GRD Dashboard</title>

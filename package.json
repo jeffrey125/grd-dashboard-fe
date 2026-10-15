@@ -27,6 +27,10 @@
     "ci": "pnpm format:check && pnpm lint && pnpm knip && pnpm test:coverage && pnpm test:e2e"
   },
   "dependencies": {
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
+    "@mui/icons-material": "9.5.0",
+    "@mui/material": "9.5.0",
     "@tanstack/react-query": "5.104.3",
     "@tanstack/react-router": "1.170.44",
     "react": "19.3.1",
