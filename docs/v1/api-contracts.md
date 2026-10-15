@@ -5,18 +5,21 @@
 **Implemented today:** the sibling backend's
 [`frontend-handoff.md`](../../../grd-dashboard-be/docs/v1/frontend-handoff.md) and
 [`auth-api.md`](../../../grd-dashboard-be/docs/v1/auth-api.md), checked against its
-controllers, schemas, entities, and repositories on 2026-10-15.
+controllers, schemas, entities, and repositories on 2026-10-16.
 
 **BE-V1-001 implemented locally:** current tracking/latest lookup/latest run and
 public snapshot UUIDs are committed and available after migration
 `1792281600000-TrackingReadProjection`. Deployment is pending. See the
 [backend implementation summary](../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-001-implementation-summary.md).
 
-**Proposed below:** new endpoint/event under BE-V1-004 and BE-V1-005.
-They are concrete targets for those tickets and must be verified against the
-resulting backend before frontend integration. Naming refinements must update
-this document, backend docs, and consumers together. No endpoint listed as
-proposed is available merely because this document exists.
+**Implemented locally through BE-V1-004:** Shipment tracking projection, search,
+history, and the operational overview endpoint. Deployment is pending.
+
+**Proposed below:** the new event under BE-V1-005. It is a concrete target for
+that ticket and must be verified against the resulting backend before frontend
+integration. Naming refinements must update this document, backend docs, and
+consumers together. No endpoint listed as proposed is available merely because
+this document exists.
 
 API base: `http://localhost:3000` locally, no `/api` prefix. Intended production
 origins remain `https://api.globalresourcesdirect.com` and
@@ -24,14 +27,15 @@ origins remain `https://api.globalresourcesdirect.com` and
 
 ## Implemented surface
 
-| Area      | Existing API / limits                                                                                                                                      |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth      | `POST /auth/sign-in`, `GET /auth/me`, `POST /auth/sign-out`, `POST /auth/change-password`. Profile responses and HttpOnly cookies, not tokens.             |
-| Accounts  | Admin GET list/detail, POST create, PATCH account, POST password under `/admin/accounts`. No account DELETE or emailed invitation/reset.                   |
-| Carriers  | GET `/carriers`, GET/PATCH `/carriers/:externalId`; PATCH Admin-only. No create/delete/restore.                                                            |
+| Area      | Existing API / limits                                                                                                                                                                                                                                                                           |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth      | `POST /auth/sign-in`, `GET /auth/me`, `POST /auth/sign-out`, `POST /auth/change-password`. Profile responses and HttpOnly cookies, not tokens.                                                                                                                                                  |
+| Accounts  | Admin GET list/detail, POST create, PATCH account, POST password under `/admin/accounts`. No account DELETE or emailed invitation/reset.                                                                                                                                                        |
+| Carriers  | GET `/carriers`, GET/PATCH `/carriers/:externalId`; PATCH Admin-only. No create/delete/restore.                                                                                                                                                                                                 |
 | Shipments | GET `/shipments/search` returns paginated/filterable rows and tab counts; GET `/shipments/:externalId/history` returns normalized snapshot history; legacy GET `/shipments` returns an unpaginated array; detail GET; bulk POST; notes-only PATCH; soft DELETE; per-shipment POST pause/resume. |
-| Refresh   | POST `/shipments/:externalId/refresh` → 202 run; GET `/tracking-runs/:externalId` → run/attempt outcomes. Current/latest lookup/run also appear on Shipment responses.                   |
-| SSE       | GET `/events`: `resync`, `shipment.changed`, `run.changed`, `heartbeat`; invalidation events, no replay.                                                   |
+| Dashboard | GET `/dashboard/overview` returns consistent state counts and bounded attention, upcoming-delivery, and recent-change panels.                                                                                                                                                                   |
+| Refresh   | POST `/shipments/:externalId/refresh` → 202 run; GET `/tracking-runs/:externalId` → run/attempt outcomes. Current/latest lookup/run also appear on Shipment responses.                                                                                                                          |
+| SSE       | GET `/events`: `resync`, `shipment.changed`, `run.changed`, `heartbeat`; invalidation events, no replay.                                                                                                                                                                                        |
 
 Existing Shipment JSON has `externalId`, Carrier summary, `trackingReference`,
 `notes`, `verificationUrl`, `monitoringStatus`, `monitoringReason`,
@@ -200,7 +204,7 @@ PostgreSQL statement for nondeleted Shipment existence, total and page items.
 Disposable PostgreSQL tests cover initial/changed/unchanged/failed observations,
 equal-time pagination, foreign ownership, empty history and deleted Shipments.
 
-## Proposed BE-V1-004: overview aggregates
+## Implemented BE-V1-004: overview aggregates
 
 Add **GET `/dashboard/overview`** with unrestricted Staff/Admin policy:
 
@@ -236,6 +240,13 @@ Cap each panel at 10 items and expose full totals where indicated. Counts refer
 to current monitoring state, not delivered-today or a performance KPI. Use one
 consistent read snapshot; specify cache behavior (`no-store` initially). No
 on-time-rate, transit-average, or carrier-ranking calculation is added.
+
+The backend implements this contract with one parameterized PostgreSQL statement
+and `Cache-Control: no-store`. The response reuses the public Shipment projection
+and search predicates. Disposable PostgreSQL verification covers New York DST
+boundaries, empty/null/disabled/deleted rows, drill-down parity, concurrent writes,
+panel ordering/caps, and a 10,000-Shipment plan. No schema migration or dependency
+was added.
 
 ## Proposed BE-V1-005: precise tracking-change signal
 

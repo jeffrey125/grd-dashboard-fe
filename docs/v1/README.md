@@ -37,9 +37,9 @@ BE-V1-001 now exposes normalized current tracking, latest completed lookup and
 latest associated run through Shipment responses after its migration. BE-V1-002
 now provides authenticated whole-dataset Shipment search, filters, stable offset
 pagination and overlapping tab counts. BE-V1-003 now provides paginated normalized
-tracking history. Overview aggregates and precise tracking-change events remain
-planned under BE-V1-004–005. Existing generic shipment events do not distinguish
-tracking changes from notes/scheduling updates.
+tracking history. BE-V1-004 now provides operational overview aggregates. Precise
+tracking-change events remain planned under BE-V1-005. Existing generic shipment
+events do not distinguish tracking changes from notes/scheduling updates.
 
 The API shapes in this plan's **proposed** sections are implementation targets,
 not a claim that those routes or fields already exist. Backend implementation
