@@ -3,6 +3,10 @@ dist/
 .tanstack/
 *.tsbuildinfo
 *.log
+coverage/
+playwright-report/
+test-results/
+.vitest/
 
 .env
 .env.*
