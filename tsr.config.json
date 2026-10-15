@@ -1,0 +1,7 @@
+{
+  "target": "react",
+  "routesDirectory": "./src/routes",
+  "generatedRouteTree": "./src/app/route-tree.gen.ts",
+  "quoteStyle": "single",
+  "semicolons": true
+}

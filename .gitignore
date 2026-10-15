@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.tanstack/
+*.tsbuildinfo
+*.log
+
+.env
+.env.*
+!.env.example
+
+# Local agent and credential directories are not application inputs.
+.agents/
+.aws/
+.codex/
