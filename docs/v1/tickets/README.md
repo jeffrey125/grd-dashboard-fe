@@ -10,6 +10,8 @@ BE-V1-003 is **Implemented and locally verified**; deployment is pending. See it
 [summary](../../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-003-implementation-summary.md).
 BE-V1-004 is **Implemented and locally verified**; deployment is pending. See its
 [summary](../../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-004-implementation-summary.md).
+BE-V1-005 is **Implemented and locally verified**; deployment is pending. See its
+[summary](../../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-005-implementation-summary.md).
 Other ticket statuses are recorded in their individual files. Existing brand files
 are inputs to FE-V1-003, not evidence that the frontend shell is implemented.
 Execute a ticket only after its prerequisites are implemented and verified,

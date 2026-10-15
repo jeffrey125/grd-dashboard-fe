@@ -10,7 +10,9 @@ implemented, locally verified, and committed on `feature/dashboard-v1`. See its
 for evidence. BE-V1-001 is implemented, locally verified, and committed in the
 backend repository; deployment is pending. See its
 [summary](../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-001-implementation-summary.md).
-The remaining ticket statuses are recorded in their individual files.
+BE-V1-002 through BE-V1-005 are also implemented and locally verified;
+deployment is pending. The remaining ticket statuses are recorded in their
+individual files.
 
 Rebuild shipment-monitoring behavior against the new backend, use Tom's dashboard
 layout patterns, and apply GRD branding. The homepage is a separate operational
@@ -38,8 +40,8 @@ latest associated run through Shipment responses after its migration. BE-V1-002
 now provides authenticated whole-dataset Shipment search, filters, stable offset
 pagination and overlapping tab counts. BE-V1-003 now provides paginated normalized
 tracking history. BE-V1-004 now provides operational overview aggregates. Precise
-tracking-change events remain planned under BE-V1-005. Existing generic shipment
-events do not distinguish tracking changes from notes/scheduling updates.
+tracking-change events are now available through BE-V1-005 alongside the existing
+generic Shipment invalidations.
 
 The API shapes in this plan's **proposed** sections are implementation targets,
 not a claim that those routes or fields already exist. Backend implementation

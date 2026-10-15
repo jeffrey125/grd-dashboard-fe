@@ -12,14 +12,10 @@ public snapshot UUIDs are committed and available after migration
 `1792281600000-TrackingReadProjection`. Deployment is pending. See the
 [backend implementation summary](../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-001-implementation-summary.md).
 
-**Implemented locally through BE-V1-004:** Shipment tracking projection, search,
-history, and the operational overview endpoint. Deployment is pending.
-
-**Proposed below:** the new event under BE-V1-005. It is a concrete target for
-that ticket and must be verified against the resulting backend before frontend
-integration. Naming refinements must update this document, backend docs, and
-consumers together. No endpoint listed as proposed is available merely because
-this document exists.
+**Implemented locally through BE-V1-005:** Shipment tracking projection, search,
+history, the operational overview endpoint, and the precise `tracking.changed`
+event. Deployment is pending. Naming refinements must update this document,
+backend docs, and consumers together.
 
 API base: `http://localhost:3000` locally, no `/api` prefix. Intended production
 origins remain `https://api.globalresourcesdirect.com` and
@@ -35,7 +31,7 @@ origins remain `https://api.globalresourcesdirect.com` and
 | Shipments | GET `/shipments/search` returns paginated/filterable rows and tab counts; GET `/shipments/:externalId/history` returns normalized snapshot history; legacy GET `/shipments` returns an unpaginated array; detail GET; bulk POST; notes-only PATCH; soft DELETE; per-shipment POST pause/resume. |
 | Dashboard | GET `/dashboard/overview` returns consistent state counts and bounded attention, upcoming-delivery, and recent-change panels.                                                                                                                                                                   |
 | Refresh   | POST `/shipments/:externalId/refresh` → 202 run; GET `/tracking-runs/:externalId` → run/attempt outcomes. Current/latest lookup/run also appear on Shipment responses.                                                                                                                          |
-| SSE       | GET `/events`: `resync`, `shipment.changed`, `run.changed`, `heartbeat`; invalidation events, no replay.                                                                                                                                                                                        |
+| SSE       | GET `/events`: `resync`, `shipment.changed`, `tracking.changed`, `run.changed`, `heartbeat`; invalidation events, no replay.                                                                                                                                                                    |
 
 Existing Shipment JSON has `externalId`, Carrier summary, `trackingReference`,
 `notes`, `verificationUrl`, `monitoringStatus`, `monitoringReason`,
@@ -248,9 +244,9 @@ boundaries, empty/null/disabled/deleted rows, drill-down parity, concurrent writ
 panel ordering/caps, and a 10,000-Shipment plan. No schema migration or dependency
 was added.
 
-## Proposed BE-V1-005: precise tracking-change signal
+## Implemented BE-V1-005: precise tracking-change signal
 
-Extend the existing authenticated SSE source with:
+The existing authenticated SSE source includes:
 
 ```ts
 type TrackingChangedEvent = {
@@ -261,17 +257,18 @@ type TrackingChangedEvent = {
 // Named event: tracking.changed
 ```
 
-Produce this transactionally only when the committed current snapshot pointer
+The backend produces this transactionally only when the committed current snapshot pointer
 changes to a new non-null snapshot, including first acquisition. Existing
 `shipment.changed` and `run.changed` remain compatible. Notes-only edits,
 scheduling changes, failed/not-found attempts, pause/resume, and successful
 unchanged checks do not independently emit `tracking.changed`.
 
-Use the established PostgreSQL notification path; rolled-back updates must not
-notify browsers. Update DB trigger/migration, runtime source validation/types,
-and controller serialization together: today's serializer only emits `externalId`.
-Keep payloads small, with no source data or user information. Validate IDs and
-dates. Both Staff and Admin receive the event under existing session checks.
+The implementation uses the established PostgreSQL notification path; rolled-back
+updates do not notify browsers. The additive migration, runtime source validation,
+types and controller serialization preserve UUIDs and canonicalize `observedAt`
+to UTC, for example `2026-10-16T00:00:00.000Z`. Payloads contain no source data,
+internal IDs or user information. Both Staff and Admin receive the event under
+existing session checks.
 
 This is a change signal, **not a replay log**. On reconnect, refresh data quietly;
 do not promise missed audio/toast replay. Snapshot IDs deduplicate observed changes

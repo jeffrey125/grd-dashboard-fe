@@ -2,7 +2,9 @@
 
 ## Status
 
-Not started. Depends on BE-V1-001.
+Implemented and locally verified in the backend repository. Deployment is pending.
+See the
+[implementation summary](../../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-005-implementation-summary.md).
 
 ## Target repository
 
