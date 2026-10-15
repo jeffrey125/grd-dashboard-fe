@@ -2,7 +2,8 @@
 
 React/TypeScript/Vite foundation for the GRD shipment-monitoring dashboard.
 FE-V1-001 supplies application composition, routing, a shared Query client, and
-validated public configuration. Business features remain in the
+validated public configuration. FE-V1-002 adds quality gates, isolated tests, staged
+checks, and GitHub Actions. Business features remain in the
 [v1 implementation tickets](docs/v1/tickets/README.md).
 
 ## Local development
@@ -37,17 +38,80 @@ rebuild it. Non-public environment files are ignored by Git.
 
 ## Commands
 
-| Command | Behavior |
+| Command | Exact script / behavior |
 | --- | --- |
-| `pnpm dev` | Vite development server at http://localhost:5173; regenerates routes as they change. |
-| `pnpm routes:generate` | Generate the typed route tree from `src/routes`. |
-| `pnpm typecheck` | Generate routes, then strictly check application and Vite configuration TypeScript. |
-| `pnpm build` | Typecheck and build static output into `dist/`. |
-| `pnpm preview` | Serve the existing build at http://localhost:4173 for local verification. |
+| `pnpm dev` | `vite` — development server at http://localhost:5173. |
+| `pnpm routes:generate` | `tsr generate` — regenerate the committed typed route tree. |
+| `pnpm typecheck` | `pnpm routes:generate && tsc --noEmit && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.e2e.json` — strict application, configuration, and browser-test checks. |
+| `pnpm build` | `pnpm typecheck && vite build` — static output in `dist/`. |
+| `pnpm preview` | `vite preview` — serve an existing build at http://localhost:4173. |
+| `pnpm format` | `biome format --write .` — format supported files. |
+| `pnpm format:check` | `biome format .` — read-only formatting gate. |
+| `pnpm lint` | `biome check --formatter-enabled=false .` — lint and import organization gate. |
+| `pnpm knip` | `knip` — unused files, exports, and dependencies. |
+| `pnpm test` | `vitest run` — unit/component tests once, never watch. |
+| `pnpm test:watch` | `vitest` — explicit interactive watch mode. |
+| `pnpm test:coverage` | `vitest run --coverage` — text, HTML, LCOV, and JSON summary in `coverage/`. |
+| `pnpm test:e2e` | `pnpm build && playwright test` — fresh production build and Chromium desktop/mobile smoke tests. |
+| `pnpm check` | `pnpm format:check && pnpm lint && pnpm typecheck && pnpm knip && pnpm test` — fast local gates. |
+| `pnpm run ci` | `pnpm format:check && pnpm lint && pnpm knip && pnpm test:coverage && pnpm test:e2e` — complete application gates; typechecking runs through the browser suite's build. |
+| `pnpm prepare` | `husky` — install local hooks; also runs after installation. |
 
-Preview requires `pnpm build` first. It is a local verification server, not a
-production hosting decision. Formatting/linting, unit/browser test scripts,
-hooks, and CI are assigned to FE-V1-002 and are not installed by this ticket.
+**Use `pnpm run ci`, not `pnpm ci`.** pnpm 12 reserves bare `ci` for clean
+installation; it does not execute this repository's quality script.
+
+Preview is a local verification server, not a production hosting choice. Install
+Chromium once before browser tests:
+
+```sh
+pnpm exec playwright install chromium
+pnpm test:e2e
+```
+
+On a supported Linux runner that also needs browser system libraries, use
+`pnpm exec playwright install --with-deps chromium`. Playwright owns a strict
+preview server at **http://127.0.0.1:4174** and stops it after the suite. It refuses
+to reuse an occupied port, avoiding stale builds or a developer's running server.
+Browser tests verify `/`, nested unknown URLs/reloads, keyboard recovery/back
+navigation, official assets, narrow layout, and absence of API requests/errors.
+
+## Quality scope and CI
+
+Biome handles JS/TS/JSX/TSX, JSON/JSONC, and CSS. It does not check Markdown,
+YAML, HTML, shell scripts, or SVG assets. The generated route tree is explicitly
+excluded from Biome; Knip's framework plugins discover Vite, Router, Vitest,
+Playwright, and hook configuration without a broad unused-code suppression.
+
+Vitest uses jsdom and accessible Testing Library queries. Each route test creates
+its own Query client and memory history; teardown unmounts React, cancels/clears
+queries, and destroys history. Shared setup clears browser storage, restores real
+timers, and resets mocks/environment/global stubs. jsdom's missing `scrollTo` is
+stubbed only in tests. Coverage includes untested application code, excludes only
+tests/setup, declarations, and the generated tree, and has **no percentage gate**.
+The initial line coverage is 60%; browser-tested entry/provider wiring is not
+instrumented by the unit coverage report.
+
+Husky's pre-commit hook runs `pnpm exec lint-staged`. Its only task is
+`biome check --write --no-errors-on-unmatched` on staged supported extensions.
+Only safe fixes are enabled. lint-staged's default backup and partial-staging
+protection remain enabled; no custom `git add` sweeps in other files. Full
+TypeScript/tests run through `pnpm check` or CI, outside the staged-file hook.
+
+[GitHub Actions](.github/workflows/ci.yml) runs on pull requests, pushes to `main`,
+and manual dispatch. It uses frozen/strict-peer installs, the pinned Node/pnpm
+versions, commit-pinned actions, read-only repository permissions, timeouts, and
+cancellation of obsolete PR runs. Quality runs `pnpm run ci`; a separate required
+workflow job scans all fetched Git history using checksum-pinned Gitleaks 8.30.1.
+Neither job is conditionally skipped for ordinary PR/main changes. Coverage and
+browser failure diagnostics have seven-day retention. No production secrets,
+backend checkout, publishing, or deployment jobs are used. Branch protection must
+be configured separately once a GitHub remote/default branch is selected.
+
+`pnpm test:e2e:backend` is **not implemented** and is not a passing placeholder.
+The current frontend has no API/auth integration. Real-backend tests remain
+separate future work; fixture/browser success does not establish backend parity.
+Fixtures must stay in tests and use Playwright interception when API behavior
+arrives. No temporary shipment dataset or local CRUD preview is included.
 
 ## Implemented and planned routes
 
@@ -112,7 +176,13 @@ approved or installed.
 | `@tanstack/router-plugin`, `@tanstack/router-cli` | Watch/build route generation and standalone generation before typechecking. |
 | `@types/node`, `@types/react`, `@types/react-dom` | Runtime-matched type declarations. |
 
-Axios, Tailwind/shadcn, forms, tables, toasts, and quality tooling are approved
+Quality tooling adds development-only `@biomejs/biome`, `vitest`,
+`@vitest/coverage-v8`, `@testing-library/react`, `@testing-library/dom`,
+`@testing-library/jest-dom`, `@testing-library/user-event`, `jsdom`,
+`@playwright/test`, `knip`, `husky`, and `lint-staged`. Exact versions are in
+`package.json`; engines/peers and fresh frozen installation were verified.
+
+Axios, Tailwind/shadcn, forms, tables, and toasts remain approved
 future-ticket choices, installed when used. No icon, font, state-store, alias,
 hosting, or backend-client helper package was added.
 

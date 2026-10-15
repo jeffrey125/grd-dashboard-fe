@@ -7,7 +7,10 @@ plan, tickets, project agent instructions, and brand assets. That planning
 milestone did not implement the dashboard or modify the backend. FE-V1-001 is now
 implemented, locally verified, and committed on `feature/dashboard-v1`. See its
 [implementation summary](implementation-summary/FE-V1-001-implementation-summary.md)
-for evidence. BE-V1-001 is implemented, locally verified, and committed in the
+for evidence. FE-V1-002 is implemented, locally verified, and committed; GitHub-hosted
+execution remains pending. See its
+[implementation summary](implementation-summary/FE-V1-002-implementation-summary.md).
+BE-V1-001 is implemented, locally verified, and committed in the
 backend repository; deployment is pending. See its
 [summary](../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-001-implementation-summary.md).
 BE-V1-002 through BE-V1-005 are also implemented and locally verified;

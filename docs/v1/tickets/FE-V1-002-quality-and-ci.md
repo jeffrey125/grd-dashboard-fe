@@ -2,7 +2,11 @@
 
 ## Status
 
-Not started. Depends on FE-V1-001.
+Implemented, locally verified, and committed on 2026-10-16.
+Depends on the implemented FE-V1-001 scaffold. See the
+[implementation summary](../implementation-summary/FE-V1-002-implementation-summary.md)
+for exact evidence. GitHub-hosted execution remains unverified because this
+repository has no remote configured.
 
 ## Target repository
 
@@ -42,6 +46,11 @@ Run each installed gate and the combined CI script locally where possible; valid
 ## Review notes and completion
 
 Do not copy Tom's Bun commands or its deployment jobs. Real backend CI access is not assumed; document the authorized checkout/fixture arrangement if added later.
+
+The completed interview retained tooling-only scope: no temporary frontend
+shipment data or local CRUD preview. Real-backend tests are deferred until
+frontend API/auth integration exists; there is no passing placeholder command.
+Use `pnpm run ci`: pnpm 12 reserves bare `pnpm ci` for dependency installation.
 
 Record exact implementation/verification evidence in this ticket's implementation
 summary. Follow the seven-heading handoff and explicit commit approval workflow.

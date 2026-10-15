@@ -2,20 +2,47 @@
 
 ## Quality gates
 
-FE-V1-001/002 will establish and document actual package scripts. Until then these
-are **target commands**, not commands that currently exist:
+FE-V1-001/002 now provide these commands. The root
+[README](../../README.md#commands) records their exact script contents.
 
-| Command                            | Purpose                                                            |
-| ---------------------------------- | ------------------------------------------------------------------ |
-| `pnpm install --frozen-lockfile`   | Reproducible install after a lockfile exists.                      |
-| `pnpm format:check` / `pnpm lint`  | Biome checks for supported application/config files.               |
-| `pnpm typecheck`                   | Route generation where needed and strict TypeScript.               |
-| `pnpm knip`                        | Unused code/dependencies with Vite/router/test entries configured. |
-| `pnpm test` / `pnpm test:coverage` | Vitest unit/component suite, with a compatible coverage provider.  |
-| `pnpm build`                       | Vite production artifact.                                          |
-| `pnpm test:e2e`                    | Deterministic Playwright suite.                                    |
-| `pnpm test:e2e:backend`            | Opt-in real local backend integration suite.                       |
-| `pnpm check` / `pnpm ci`           | Local/CI aggregate gates defined by FE-V1-002.                     |
+| Command | Purpose |
+| --- | --- |
+| `pnpm install --frozen-lockfile --strict-peer-dependencies` | Reproducible install with peer/engine checks. |
+| `pnpm format:check` / `pnpm lint` | Biome formatting, lint, and import organization for supported source/config files. |
+| `pnpm typecheck` | Generate routes; strictly check app, tooling, and browser-test TypeScript. |
+| `pnpm knip` | Unused code/dependencies using Vite, Router, and test integrations. |
+| `pnpm test` / `pnpm test:coverage` | Run Vitest once; optional V8 coverage reports without a percentage threshold. |
+| `pnpm build` | Typecheck and create a Vite production artifact. |
+| `pnpm test:e2e` | Build and run isolated desktop/mobile Chromium smoke tests. |
+| `pnpm check` | Format, lint, types, Knip, and unit/component tests. |
+| `pnpm run ci` | Format, lint, Knip, coverage, then build/types/browser smoke. |
+
+`pnpm ci` is pnpm 12's clean-install command, so **`pnpm run ci` is required**
+to invoke the quality script. Gitleaks runs as a separate GitHub Actions job;
+local `pnpm run ci` does not install/run the secret scanner. With the pinned
+Gitleaks 8.30.1 binary installed, the matching local command is
+`gitleaks git --redact --no-banner --log-opts="--all" .`.
+
+`pnpm test:e2e:backend` remains a future command until frontend API/auth integration
+exists. No empty or always-passing backend suite is installed. BE-V1-001–005 being
+implemented does not mean the frontend is wired to them.
+
+Biome excludes the generated route tree and supports JS/TS, JSON/JSONC, and CSS;
+Markdown/YAML/HTML/shell/assets are outside that formatter/linter gate. Workflow
+syntax was separately checked with actionlint. Knip's installed framework plugins
+recognize route imports and test/config entries without blanket ignores.
+
+Vitest teardown unmounts the DOM, restores mocks/stubs/timers, clears storage, and
+route tests cancel/clear their per-test Query clients and destroy memory history.
+Coverage includes untested application modules; only test/setup, declarations,
+and generated routes are excluded. Initial unit line coverage is 60%, with the
+entry/provider wiring covered by browser smoke rather than unit instrumentation.
+
+Playwright starts a fresh production preview on strict port 4174 and refuses to
+reuse an existing server. `pnpm exec playwright install chromium` installs its
+browser locally; CI uses `--with-deps` on Ubuntu 24.04. Both desktop and 375px-wide
+projects check the current homepage, assets, direct nested not-found URLs,
+reload/keyboard/back navigation, overflow, and unexpected API/network failures.
 
 Use React Testing Library with jsdom and accessible queries for behavior, not
 implementation snapshots. Test important boundaries and races rather than writing
@@ -83,5 +110,7 @@ accidental live carrier calls. Record process/start instructions and blockers.
 
 Every handoff names the exact checks run, results, and checks not run. Required
 checks that cannot run leave a verification limitation; a passing fixture-only
-suite does not claim backend parity. This planning milestone has no application
-test, typecheck, lint, build, or server command to run yet.
+suite does not claim backend parity. FE-V1-002 local evidence is in its
+[implementation summary](implementation-summary/FE-V1-002-implementation-summary.md).
+GitHub-hosted execution remains unverified until this repository has a remote and
+the workflow is run there; local actionlint checks are not a hosted Actions run.
