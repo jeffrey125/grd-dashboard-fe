@@ -12,7 +12,7 @@ public snapshot UUIDs are committed and available after migration
 `1792281600000-TrackingReadProjection`. Deployment is pending. See the
 [backend implementation summary](../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-001-implementation-summary.md).
 
-**Proposed below:** new endpoints/event under BE-V1-003 through BE-V1-005.
+**Proposed below:** new endpoint/event under BE-V1-004 and BE-V1-005.
 They are concrete targets for those tickets and must be verified against the
 resulting backend before frontend integration. Naming refinements must update
 this document, backend docs, and consumers together. No endpoint listed as
@@ -29,7 +29,7 @@ origins remain `https://api.globalresourcesdirect.com` and
 | Auth      | `POST /auth/sign-in`, `GET /auth/me`, `POST /auth/sign-out`, `POST /auth/change-password`. Profile responses and HttpOnly cookies, not tokens.             |
 | Accounts  | Admin GET list/detail, POST create, PATCH account, POST password under `/admin/accounts`. No account DELETE or emailed invitation/reset.                   |
 | Carriers  | GET `/carriers`, GET/PATCH `/carriers/:externalId`; PATCH Admin-only. No create/delete/restore.                                                            |
-| Shipments | GET `/shipments/search` returns paginated/filterable rows and tab counts; legacy GET `/shipments` returns an unpaginated array; detail GET; bulk POST; notes-only PATCH; soft DELETE; per-shipment POST pause/resume. |
+| Shipments | GET `/shipments/search` returns paginated/filterable rows and tab counts; GET `/shipments/:externalId/history` returns normalized snapshot history; legacy GET `/shipments` returns an unpaginated array; detail GET; bulk POST; notes-only PATCH; soft DELETE; per-shipment POST pause/resume. |
 | Refresh   | POST `/shipments/:externalId/refresh` → 202 run; GET `/tracking-runs/:externalId` → run/attempt outcomes. Current/latest lookup/run also appear on Shipment responses.                   |
 | SSE       | GET `/events`: `resync`, `shipment.changed`, `run.changed`, `heartbeat`; invalidation events, no replay.                                                   |
 
@@ -183,7 +183,7 @@ total, and tab counts come from one PostgreSQL statement snapshot. A disposable
 PostgreSQL 18.3 plan check with 10,000 Shipments did not justify a new index or
 migration; exact evidence is recorded in the backend implementation summary.
 
-## Proposed BE-V1-003: shipment history
+## Implemented BE-V1-003: shipment history
 
 Add **GET `/shipments/:externalId/history?page=1&pageSize=25`** →
 `{ items: TrackingSnapshot[], page, pageSize, total }`, newest `observedAt` first
@@ -194,6 +194,11 @@ History consists of app-recorded normalized snapshots, including the initial
 observation. Unchanged successful checks do not create fake history entries.
 This is not a carrier scan feed, lookup-attempt log, note audit, or source-data
 diagnostic endpoint. Preserve known snapshots when a later lookup fails.
+
+The backend implements this response with strict page validation and one
+PostgreSQL statement for nondeleted Shipment existence, total and page items.
+Disposable PostgreSQL tests cover initial/changed/unchanged/failed observations,
+equal-time pagination, foreign ownership, empty history and deleted Shipments.
 
 ## Proposed BE-V1-004: overview aggregates
 
