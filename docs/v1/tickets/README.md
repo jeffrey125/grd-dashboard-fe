@@ -5,6 +5,9 @@ its [implementation summary](../implementation-summary/FE-V1-001-implementation-
 FE-V1-002 is **Implemented, locally verified, and committed**; GitHub-hosted
 execution remains pending. See its
 [implementation summary](../implementation-summary/FE-V1-002-implementation-summary.md).
+FE-V1-003 is **Implemented and locally verified**; its commit remains pending
+explicit approval. See its
+[summary](../implementation-summary/FE-V1-003-implementation-summary.md).
 BE-V1-001 is **Implemented, locally verified, and committed**; deployment is
 pending. See its [summary](../../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-001-implementation-summary.md).
 BE-V1-002 is **Implemented and locally verified**; deployment is pending. See its
@@ -16,7 +19,7 @@ BE-V1-004 is **Implemented and locally verified**; deployment is pending. See it
 BE-V1-005 is **Implemented and locally verified**; deployment is pending. See its
 [summary](../../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-005-implementation-summary.md).
 Other ticket statuses are recorded in their individual files. Existing brand files
-are inputs to FE-V1-003, not evidence that the frontend shell is implemented.
+were inputs to FE-V1-003; its implementation evidence is recorded separately.
 Execute a ticket only after its prerequisites are implemented and verified,
 not merely documented.
 
@@ -40,7 +43,7 @@ scope per ticket where practical. This plan does not require parallel agents.
 | ------------------------------------------------ | ---------------------------- | ------------------------------------------------------------------------------------ |
 | [FE-V1-001](FE-V1-001-scaffold.md)               | Approved plan                | React/TypeScript/Vite/pnpm scaffold and feature boundaries.                          |
 | [FE-V1-002](FE-V1-002-quality-and-ci.md)         | FE-V1-001                    | Quality tooling, hooks, CI, secret scan, smoke-test foundation.                      |
-| [FE-V1-003](FE-V1-003-branded-shell.md)          | FE-V1-002                    | GRD shell, official assets, theme modes, responsive navigation, Sonner host.         |
+| [FE-V1-003](FE-V1-003-branded-shell.md)          | FE-V1-002                    | GRD shell, official assets, theme modes, responsive navigation, MUI notification host. |
 | [FE-V1-004](FE-V1-004-api-and-auth.md)           | FE-V1-003, existing auth API | Axios/session infrastructure, sign-in, replacement, role guards, teardown.           |
 | [FE-V1-005](FE-V1-005-live-synchronization.md)   | FE-V1-004                    | Single SSE lifecycle and race-safe cache invalidation.                               |
 | [FE-V1-006](FE-V1-006-shipment-list.md)          | FE-V1-005, BE-V1-002         | Active-default tabbed list, server queries, URL state, quick row actions.            |

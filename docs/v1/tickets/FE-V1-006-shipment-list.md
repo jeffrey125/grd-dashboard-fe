@@ -22,7 +22,7 @@ Deliver a responsive shipment workspace with server-owned queries and reliable q
 
 ## Scope
 
-- Build /shipments using TanStack Table and shadcn presentation; use the implemented paginated endpoint, not the legacy array endpoint.
+- Replace FE-V1-003's temporary `/shipments` page with MUI X Data Grid Community; use the implemented paginated endpoint, not the legacy array endpoint. Keep simultaneous filters in external MUI controls and URL state rather than relying on Pro-only built-in multi-filtering.
 - Implement All/Active/Paused/Delivered/Needs attention tabs and server counts, default Active, page size controls, and createdAt desc with stable server ties.
 - Store tab/search/carrier/outcome/date ranges/page/sort in validated Router URL state. Support the overview's undelivered-only drill-down with a visible removable filter indicator.
 - Debounce search, cancel obsolete requests, reset page for changed filters/sort/tab, and clamp pages after deletion/state changes.

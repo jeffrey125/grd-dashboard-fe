@@ -47,8 +47,9 @@ choices. Use pnpm and its lockfile after approval.
 ## Architecture boundaries
 
 - Keep routes thin; feature folders own business UI, API calls, schemas, and tests.
-- Shared UI primitives live in `src/components/ui`; shell components live in
-  `src/components/layout`. Check the shadcn catalog first, then compose primitives.
+- Import Material UI primitives directly instead of adding shallow local wrappers.
+  Behavior-rich shared modules live in `src/components` (`layout` for the shell,
+  `feedback` for notifications); theme infrastructure lives in `src/theme`.
 - Dependency direction is app → routes → features → shared API/UI/utilities.
   Shared infrastructure must not import business features. Use feature exports
   rather than another feature's private internals.

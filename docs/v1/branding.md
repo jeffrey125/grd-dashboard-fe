@@ -31,7 +31,7 @@ Values verified in the site's rendered styles and `css/styles_less.css?v=1`:
 | Pale blue       | `#EFFBFF`     | Subtle tinted surfaces                      |
 | Light gray      | `#F0F1F3`     | Neutral surface reference                   |
 
-Translate these into semantic shadcn CSS tokens; do not assign brand colors to
+Translate these into semantic Material UI palette tokens; do not assign brand colors to
 every status. Failed, paused, delivered, and active need distinct accessible
 labels/icons as well as color. Verify actual foreground/background contrast for
 both themes; gold is not a default white-text button background.

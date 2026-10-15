@@ -28,12 +28,13 @@
 | -------------------- | --------------------------------------------------------------------------------- |
 | Foundation           | React + TypeScript + Vite; separate frontend with static build output.            |
 | Package manager      | pnpm, consistent with the backend.                                                |
-| UI                   | Tailwind CSS + shadcn/ui using Radix primitives, matching Tom's approach.         |
+| UI                   | Material UI + Emotion, themed to GRD while retaining Tom's compact shell pattern. |
 | Routing              | TanStack Router; typed routes and URL-owned list state.                           |
 | Server state         | TanStack Query; requests, caching, mutations, invalidation.                       |
-| Tables               | TanStack Table with backend sorting/filtering/pagination and shadcn presentation. |
+| Tables               | MUI X Data Grid Community with external URL-owned filters and server offset pagination. |
 | HTTP                 | Axios, explicitly selected over native fetch; credentialed requests.              |
-| Toasts               | Sonner, matching Tom; action feedback and grouped tracking notifications.         |
+| Notifications        | Shared MUI Snackbar/Alert queue for action and grouped tracking feedback.          |
+| Icons                | Material Icons through `@mui/icons-material`; use direct imports.                  |
 | Forms                | React Hook Form + Zod + `@hookform/resolvers`.                                    |
 | Validation boundary  | Separate frontend schemas aligned with the backend; no shared package initially.  |
 | Formatting/lint      | Biome.                                                                            |
@@ -48,11 +49,12 @@ versions at scaffolding, inspect peer/engine requirements, pin the runtime and
 package-manager versions, and commit the lockfile. Do not copy Tom's versions or
 its `latest` dependency declarations without checking compatibility.
 
-Supporting shadcn packages and test adapters must be enumerated in the scaffold
-dependency review. Their necessity does not silently authorize unrelated packages.
-No Zustand, charting library, Better Auth browser client, date library, font npm
-package, or icon npm package has been independently approved. Ask before adding
-one; an existing approved choice does not need another confirmation.
+The user replaced the earlier Tailwind/shadcn/Radix/Sonner/Lucide and TanStack
+Table plan during the FE-V1-003 implementation interview on 2026-10-16. Material
+UI core, Emotion, Material Icons, and MUI X Data Grid Community are the approved
+replacements. MUI X Pro/Premium is not approved; advanced commercial features
+require a separate dependency and license decision. No Zustand, charting library,
+Better Auth browser client, date library, or font npm package is approved.
 
 ## Implementation defaults within the approved scope
 
@@ -64,6 +66,9 @@ record any material behavior change and obtain direction if it changes user inte
   `Intl.DateTimeFormat` for timestamp presentation. These platform mechanisms
   require integration code, not a new state/SSE/date package.
 - List/history pages default to 25 rows, with 25/50/100 options; the server caps at 100. Overview lists show at most 10 items and link to the full filtered list.
+- Shipment list filtering remains in explicit MUI controls and TanStack Router URL
+  state rather than MUI X's built-in filter panel. The Data Grid receives already
+  filtered server pages; this keeps simultaneous v1 filters within the Community tier.
 - Upcoming deliveries means today through the next six calendar days in the
   business timezone; no assumed ETA when a carrier omits it.
 - Use an additive paginated search endpoint and preserve the existing array-returning

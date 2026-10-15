@@ -9,15 +9,16 @@ src/
   app/                 # Providers, router, runtime configuration, session composition
   routes/              # Thin route guards and page composition
   features/
-    auth/              # Sign-in, password replacement, session lifecycle
-    overview/          # Server aggregates and attention/delivery/change panels
-    shipments/         # List, create, details, tracking history, commands
+    auth/              # Pages, sign-in, password replacement, session lifecycle
+    overview/          # Page, server aggregates, attention/delivery/change panels
+    shipments/         # Pages, list, create, details, tracking history, commands
     tracking-updates/   # Event-to-cache coordination, route alerts, review state
     accounts/          # Admin account management
     carriers/          # Carrier reads and Admin settings
   components/
-    ui/                # shadcn/Radix primitives
     layout/            # Shell, sidebar, page header, theme controls
+    feedback/          # Shared notification queue and host
+  theme/               # GRD Material UI theme and mode persistence
   api/                 # Axios transport and normalized application errors
   lib/                 # Generic dates, storage, configuration helpers
 public/
@@ -32,6 +33,12 @@ with the feature. Create subfolders only as needed; do not scaffold empty layers
 Lower-level `api`, `lib`, and shared components do not import feature internals.
 The app layer coordinates session teardown and cross-feature event invalidation
 through explicit exports/callbacks to avoid circular dependencies.
+
+Page implementations live under `src/features/<feature>/pages`; route files only
+validate route state and compose exported feature pages. Import Material UI
+primitives directly. Add a shared module only when it hides meaningful behavior
+behind a small interface, such as the shell or notification queue; do not create
+pass-through wrappers for ordinary MUI controls.
 
 ## State ownership
 

@@ -33,9 +33,10 @@ resolved here). Inspected `package.json`, `AGENTS.md`, `src/components/layout/ap
 `src/components/ui/sonner.tsx`, `src/components/layout/brand-logo.tsx`,
 `playwright.config.ts`, `biome.json`, `knip.json`, and `.github/workflows/ci-cd.yml`.
 
-Reuse: feature-based boundaries, thin route composition, shared primitives,
-sidebar/mobile drawer, theme controls, role-aware navigation, Sonner presentation,
-behavior tests, deterministic quality gates, and secret scanning.
+Reuse: feature-based boundaries, thin route composition, sidebar/mobile drawer,
+theme controls, role-aware navigation, behavior tests, deterministic quality gates,
+and secret scanning. The user later selected Material UI for GRD's implementation;
+Tom remains layout evidence rather than a dependency source.
 
 Adapt: Bun tooling to approved Vite/pnpm/Vitest; replace Hotel Rates Direct assets,
 domains, feature names, and auth assumptions. Omit Tom's GHCR, Docker delivery,
@@ -67,8 +68,12 @@ the actual asset and its provenance; no audio asset was copied by this milestone
 ## Library references consulted
 
 - [Vite setup](https://vite.dev/guide/) and [static builds](https://vite.dev/guide/build).
-- [shadcn installation](https://ui.shadcn.com/docs/installation),
-  [Sonner](https://sonner.emilkowal.ski/), and
+- [Material UI installation](https://mui.com/material-ui/getting-started/installation/),
+  [theming](https://mui.com/material-ui/customization/theming/),
+  [dark mode](https://mui.com/material-ui/customization/dark-mode/), and
+  [MUI X licensing](https://mui.com/x/introduction/licensing/), plus
+  [shadcn](https://ui.shadcn.com/docs) comparison evidence used before the user
+  selected Material UI, and
   [React Hook Form resolvers](https://github.com/react-hook-form/resolvers).
 - [TanStack Router URL state](https://tanstack.com/router/latest/docs/guide/search-params),
   [Query pagination](https://tanstack.com/query/latest/docs/framework/react/guides/paginated-queries),
@@ -78,8 +83,7 @@ the actual asset and its provenance; no audio asset was copied by this milestone
   [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/),
   [Playwright](https://playwright.dev/docs/intro), and [Biome](https://biomejs.dev/).
 
-Current shadcn navigation offers multiple primitive implementations and its old
-Sonner documentation URL redirects to a different Toast page. Preserve the explicit
-Radix + Sonner choices; do not accidentally adopt Base UI or another toast system
-by following an unqualified latest CLI/default link. Check the actual generated
-imports and compatible setup at implementation time.
+Material UI core and Material Icons use the open-source package line. MUI X Data
+Grid Community is approved for the shipment list; Pro/Premium-only features and
+licenses are excluded unless separately approved. GRD uses an application-owned
+MUI Snackbar/Alert queue rather than Sonner.

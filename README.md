@@ -115,16 +115,16 @@ arrives. No temporary shipment dataset or local CRUD preview is included.
 
 ## Implemented and planned routes
 
-Only `/` is implemented, as a clearly labeled placeholder homepage without
-shipment data or authentication. Unknown paths render a not-found page with a
-working link home. The official logo, SVG favicon, and ICO fallback are reused
-without modifying their source assets.
+`/` now renders the responsive branded application shell and an honest overview
+placeholder without shipment data or authentication. `/shipments` is a temporary
+shell-only placeholder that FE-V1-006 must replace. Unknown paths render a
+shell-integrated not-found page with a working link home. The official logo, SVG
+favicon, and ICO fallback are reused without modifying their source assets.
 
-The authenticated operational overview, `/login`, `/change-password`,
-`/shipments`, shipment creation/details/history, and account/carrier
+The authenticated operational overview, `/login`, `/change-password`, shipment
+data/actions, shipment creation/details/history, and account/carrier
 administration remain planned. The full route contract is in
-[ui-spec.md](docs/v1/ui-spec.md); none of these business routes is implemented by
-the placeholder. The branded shell and theme controls belong to FE-V1-003.
+[ui-spec.md](docs/v1/ui-spec.md); neither placeholder fabricates business data.
 
 ## Source boundaries and import aliases
 
@@ -141,8 +141,11 @@ within a directory** convention, adapted to the frontend layout:
 | Alias | Directory |
 | --- | --- |
 | `@app/*` | `src/app/*` |
+| `@components/*` | `src/components/*` |
+| `@features/*` | `src/features/*` |
 | `@routes/*` | `src/routes/*` |
 | `@lib/*` | `src/lib/*` |
+| `@theme/*` | `src/theme/*` |
 
 TypeScript paths are the single mapping source; Vite's built-in
 `resolve.tsconfigPaths` reads them. Add `@features/*`, `@components/*`, `@api/*`,
@@ -171,6 +174,8 @@ approved or installed.
 | --- | --- |
 | `react`, `react-dom` | Browser UI and mounting. |
 | `@tanstack/react-router`, `@tanstack/react-query` | Typed routes and a shared server-state provider. |
+| `@mui/material`, `@emotion/react`, `@emotion/styled` | Material UI components, responsive layout, CSS-variable themes, and styling engine. |
+| `@mui/icons-material` | Material icons used by the shell and shared controls. |
 | `zod` | Validate the public API origin. |
 | `vite`, `@vitejs/plugin-react`, `typescript` | Development/build tooling and strict typechecking. |
 | `@tanstack/router-plugin`, `@tanstack/router-cli` | Watch/build route generation and standalone generation before typechecking. |
@@ -182,9 +187,11 @@ Quality tooling adds development-only `@biomejs/biome`, `vitest`,
 `@playwright/test`, `knip`, `husky`, and `lint-staged`. Exact versions are in
 `package.json`; engines/peers and fresh frozen installation were verified.
 
-Axios, Tailwind/shadcn, forms, tables, and toasts remain approved
-future-ticket choices, installed when used. No icon, font, state-store, alias,
-hosting, or backend-client helper package was added.
+Material UI replaces the superseded Tailwind/shadcn/Radix/Sonner plan. The shared
+notification module uses MUI Snackbar/Alert. MUI X Data Grid Community is approved
+for FE-V1-006 but remains uninstalled until that ticket uses it. Axios and form
+packages remain approved future-ticket choices, installed when used. No font,
+state-store, hosting, or backend-client helper package was added.
 
 Implementation uses the user-selected `feature/dashboard-v1` branch from the
 existing `master` history. A future switch of the default branch to `main` remains

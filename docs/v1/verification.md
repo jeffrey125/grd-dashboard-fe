@@ -46,8 +46,8 @@ reload/keyboard/back navigation, overflow, and unexpected API/network failures.
 
 Use React Testing Library with jsdom and accessible queries for behavior, not
 implementation snapshots. Test important boundaries and races rather than writing
-tests that merely repeat trivial implementation. Generated shadcn primitives need
-integration coverage where customized, not a copied exhaustive upstream suite.
+tests that merely repeat trivial implementation. Material UI itself does not need
+duplicated upstream tests; test the customized theme and shared behavioral modules.
 
 Use Playwright network interception for deterministic browser fixtures unless
 another mocking package is explicitly approved. Those fixtures never enter the
