@@ -2,13 +2,14 @@
 
 ## Status
 
-Not started. Depends on BE-V1-001.
+Implemented and locally verified in the backend repository. Deployment is
+pending. Depends on BE-V1-001.
 
 ## Target repository
 
-`/home/jeff/apps/grd-dashboard/grd-dashboard-be`. Read its AGENTS.md, README, and
-applicable module instructions before implementation. This ticket lives in the
-frontend planning repository; no backend code was changed when it was written.
+`/home/jeff/apps/grd-dashboard/grd-dashboard-be`. The implementation and exact
+verification evidence are recorded in its
+[`BE-V1-002` summary](../../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-002-implementation-summary.md).
 
 ## Objective
 
@@ -50,3 +51,6 @@ Only public allowlisted fields may drive SQL ordering. Internal tie-breaker IDs 
 Follow the backend's handoff/commit instructions. Record implementation and exact
 verification evidence in a ticket summary, and update this plan's API contract and
 status only when the backend change is actually available. Deployment is deferred.
+
+Implemented with the existing TypeORM/PostgreSQL stack and no new dependency.
+The 10,000-row plan used existing indexes; no schema migration was justified.

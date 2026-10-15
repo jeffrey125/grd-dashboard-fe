@@ -12,7 +12,7 @@ public snapshot UUIDs are committed and available after migration
 `1792281600000-TrackingReadProjection`. Deployment is pending. See the
 [backend implementation summary](../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-001-implementation-summary.md).
 
-**Proposed below:** new endpoints/event under BE-V1-002 through BE-V1-005.
+**Proposed below:** new endpoints/event under BE-V1-003 through BE-V1-005.
 They are concrete targets for those tickets and must be verified against the
 resulting backend before frontend integration. Naming refinements must update
 this document, backend docs, and consumers together. No endpoint listed as
@@ -29,7 +29,7 @@ origins remain `https://api.globalresourcesdirect.com` and
 | Auth      | `POST /auth/sign-in`, `GET /auth/me`, `POST /auth/sign-out`, `POST /auth/change-password`. Profile responses and HttpOnly cookies, not tokens.             |
 | Accounts  | Admin GET list/detail, POST create, PATCH account, POST password under `/admin/accounts`. No account DELETE or emailed invitation/reset.                   |
 | Carriers  | GET `/carriers`, GET/PATCH `/carriers/:externalId`; PATCH Admin-only. No create/delete/restore.                                                            |
-| Shipments | GET `/shipments` returns an unpaginated array, newest created first; detail GET; bulk POST; notes-only PATCH; soft DELETE; per-shipment POST pause/resume. |
+| Shipments | GET `/shipments/search` returns paginated/filterable rows and tab counts; legacy GET `/shipments` returns an unpaginated array; detail GET; bulk POST; notes-only PATCH; soft DELETE; per-shipment POST pause/resume. |
 | Refresh   | POST `/shipments/:externalId/refresh` → 202 run; GET `/tracking-runs/:externalId` → run/attempt outcomes. Current/latest lookup/run also appear on Shipment responses.                   |
 | SSE       | GET `/events`: `resync`, `shipment.changed`, `run.changed`, `heartbeat`; invalidation events, no replay.                                                   |
 
@@ -126,7 +126,7 @@ authorization. A 1,000-Shipment fixture is projected in one SQL statement; batch
 response records share one projection query. Exact commands/results are recorded
 in the linked backend summary. This status does not claim production deployment.
 
-## Proposed BE-V1-002: paginated shipment queries
+## Implemented BE-V1-002: paginated shipment queries
 
 Add **GET `/shipments/search`** and register the static route ahead of the UUID
 detail route. Preserve existing GET `/shipments` as an array for compatibility;
@@ -177,6 +177,11 @@ and page items must use a consistent read snapshot so concurrent worker updates
 do not produce contradictory counts within a response. Out-of-range pages return
 empty items with the true total; UI may navigate to the last valid page. Offset
 pagination does not promise a frozen dataset across separate live requests.
+
+The backend implements the response and validation described above. Items,
+total, and tab counts come from one PostgreSQL statement snapshot. A disposable
+PostgreSQL 18.3 plan check with 10,000 Shipments did not justify a new index or
+migration; exact evidence is recorded in the backend implementation summary.
 
 ## Proposed BE-V1-003: shipment history
 
