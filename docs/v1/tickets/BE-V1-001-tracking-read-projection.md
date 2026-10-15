@@ -2,7 +2,12 @@
 
 ## Status
 
-Not started. Depends on Existing backend v1 implementation; no new frontend implementation dependency.
+Implemented, locally verified, and committed in the backend repository. Deployment
+is pending. Depends on the existing backend v1 implementation; no frontend feature
+was implemented.
+
+See the [backend implementation summary](../../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-001-implementation-summary.md)
+for changed files, exact verification, migration/rollback notes and review results.
 
 ## Target repository
 

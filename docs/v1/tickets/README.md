@@ -2,7 +2,9 @@
 
 FE-V1-001 is **Implemented, locally verified, and committed**. See
 its [implementation summary](../implementation-summary/FE-V1-001-implementation-summary.md).
-The other 18 tickets remain **Not started** in this plan. Existing brand files
+BE-V1-001 is **Implemented, locally verified, and committed**; deployment is
+pending. See its [summary](../../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-001-implementation-summary.md).
+Other ticket statuses are recorded in their individual files. Existing brand files
 are inputs to FE-V1-003, not evidence that the frontend shell is implemented.
 Execute a ticket only after its prerequisites are implemented and verified,
 not merely documented.

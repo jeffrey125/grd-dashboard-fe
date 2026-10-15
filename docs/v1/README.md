@@ -7,7 +7,10 @@ plan, tickets, project agent instructions, and brand assets. That planning
 milestone did not implement the dashboard or modify the backend. FE-V1-001 is now
 implemented, locally verified, and committed on `feature/dashboard-v1`. See its
 [implementation summary](implementation-summary/FE-V1-001-implementation-summary.md)
-for evidence. The other 18 tickets remain **Not started** in this plan.
+for evidence. BE-V1-001 is implemented, locally verified, and committed in the
+backend repository; deployment is pending. See its
+[summary](../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-001-implementation-summary.md).
+The remaining ticket statuses are recorded in their individual files.
 
 Rebuild shipment-monitoring behavior against the new backend, use Tom's dashboard
 layout patterns, and apply GRD branding. The homepage is a separate operational
@@ -30,10 +33,11 @@ ticket is implemented; do not create empty summaries as completion evidence.
 
 ## Backend dependencies
 
-The current API does not expose normalized tracking snapshots, history, latest
-lookup by shipment, paginated shipment queries, or dashboard aggregates. Its
-generic shipment events do not distinguish tracking changes from notes/scheduling
-updates. Five backend prerequisite tickets address these gaps in the sibling repo.
+BE-V1-001 now exposes normalized current tracking, latest completed lookup and
+latest associated run through Shipment responses after its migration. History,
+paginated queries, overview aggregates and precise tracking-change events remain
+planned under BE-V1-002–005. Existing generic shipment events do not distinguish
+tracking changes from notes/scheduling updates.
 
 The API shapes in this plan's **proposed** sections are implementation targets,
 not a claim that those routes or fields already exist. Backend implementation

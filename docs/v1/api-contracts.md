@@ -7,7 +7,12 @@
 [`auth-api.md`](../../../grd-dashboard-be/docs/v1/auth-api.md), checked against its
 controllers, schemas, entities, and repositories on 2026-10-15.
 
-**Proposed below:** new fields/endpoints/event under BE-V1-001 through BE-V1-005.
+**BE-V1-001 implemented locally:** current tracking/latest lookup/latest run and
+public snapshot UUIDs are committed and available after migration
+`1792281600000-TrackingReadProjection`. Deployment is pending. See the
+[backend implementation summary](../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-001-implementation-summary.md).
+
+**Proposed below:** new endpoints/event under BE-V1-002 through BE-V1-005.
 They are concrete targets for those tickets and must be verified against the
 resulting backend before frontend integration. Naming refinements must update
 this document, backend docs, and consumers together. No endpoint listed as
@@ -25,13 +30,14 @@ origins remain `https://api.globalresourcesdirect.com` and
 | Accounts  | Admin GET list/detail, POST create, PATCH account, POST password under `/admin/accounts`. No account DELETE or emailed invitation/reset.                   |
 | Carriers  | GET `/carriers`, GET/PATCH `/carriers/:externalId`; PATCH Admin-only. No create/delete/restore.                                                            |
 | Shipments | GET `/shipments` returns an unpaginated array, newest created first; detail GET; bulk POST; notes-only PATCH; soft DELETE; per-shipment POST pause/resume. |
-| Refresh   | POST `/shipments/:externalId/refresh` → 202 run; GET `/tracking-runs/:externalId` → run/attempt outcomes. No current lookup by shipment.                   |
+| Refresh   | POST `/shipments/:externalId/refresh` → 202 run; GET `/tracking-runs/:externalId` → run/attempt outcomes. Current/latest lookup/run also appear on Shipment responses.                   |
 | SSE       | GET `/events`: `resync`, `shipment.changed`, `run.changed`, `heartbeat`; invalidation events, no replay.                                                   |
 
 Existing Shipment JSON has `externalId`, Carrier summary, `trackingReference`,
 `notes`, `verificationUrl`, `monitoringStatus`, `monitoringReason`,
 `lastAttemptedAt`, `nextCheckAt`, `consecutiveNotFoundCount`, `createdAt`, and
-`updatedAt`. It does **not** currently contain any proposed tracking projection.
+`updatedAt`. It also contains the implemented `currentTracking`, `latestLookup`, and
+`latestRun` projection below.
 
 ## Existing invariants to preserve
 
@@ -62,11 +68,11 @@ Existing Shipment JSON has `externalId`, Carrier summary, `trackingReference`,
   Origin, 404 missing/deleted, 409 state conflict, 429 throttled, 5xx generic
   failure. Not every error uses the row-error shape. No automatic mutation retries.
 
-## Proposed BE-V1-001: current tracking and lookup projection
+## Implemented locally BE-V1-001: current tracking and lookup projection
 
-Add these fields consistently to Shipment read and mutation responses, including
-inserted/duplicate records. Keep every existing field and the legacy GET array
-shape. Nulls are explicit and meaningful.
+These fields are returned consistently from Shipment list/detail, notes,
+pause/resume and inserted/duplicate records. Every existing field and the legacy
+GET array shape are preserved. Nulls are explicit and meaningful.
 
 ```ts
 type TrackingSnapshot = {
@@ -106,10 +112,19 @@ assumed latest timestamp. Failed/not-found/skipped checks preserve known trackin
 details according to existing backend behavior. `observedAt` is not "last checked":
 unchanged successful checks may reuse the snapshot. Label all timestamps accurately.
 
-Add a migration to give existing/new snapshots stable public UUIDs with uniqueness
-and non-null constraints; retain existing internal keys/FKs and immutable snapshot
-semantics. This is a public identity addition, not a rewrite of tracking data.
-Do not expose actor IDs, lock versions, raw source data, credentials, or internal IDs.
+Migration `1792281600000-TrackingReadProjection` assigns existing/new snapshots
+stable unique non-null public UUIDs while retaining internal keys/FKs and immutable
+snapshot semantics. It also indexes completed-attempt selection. Apply it before
+starting the updated API. Rollback removes the public UUIDs; reapplication creates
+new identities. Public responses exclude actor IDs, lock versions, source data,
+credentials, diagnostic messages and internal IDs. `latestRun.attemptCount` counts
+all attempts in the associated run.
+
+Local verification covers empty/populated migration, immutability, unchanged and
+unsuccessful checks, pending runs, deterministic ties, response consistency and
+authorization. A 1,000-Shipment fixture is projected in one SQL statement; batch
+response records share one projection query. Exact commands/results are recorded
+in the linked backend summary. This status does not claim production deployment.
 
 ## Proposed BE-V1-002: paginated shipment queries
 
