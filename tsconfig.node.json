@@ -5,5 +5,5 @@
     "lib": ["ES2023"],
     "types": ["node"]
   },
-  "include": ["*.config.ts", "src/lib/public-config.ts"]
+  "include": ["*.config.ts", "scripts/**/*.ts", "src/lib/public-config.ts", "test/**/*.ts"]
 }

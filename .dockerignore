@@ -1,0 +1,29 @@
+# Allowlist only reproducible frontend build inputs. Environment files, Git
+# history, reports, dependencies and sibling backend source never enter the image.
+**
+!Dockerfile
+!Caddyfile
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!index.html
+!tsconfig.json
+!tsconfig.node.json
+!tsconfig.e2e.json
+!tsr.config.json
+!vite.config.ts
+!vitest.config.ts
+!playwright.config.ts
+!playwright.backend.config.ts
+!src/
+!src/**
+!public/
+!public/**
+!e2e/
+!e2e/**
+!e2e-backend/
+!e2e-backend/**
+!scripts/
+!scripts/**
+!test/
+!test/**

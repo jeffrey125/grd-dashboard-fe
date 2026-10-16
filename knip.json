@@ -5,6 +5,7 @@
     "e2e/**/*.ts",
     "*.config.{ts,mjs}",
     "e2e-backend/**/*.ts",
-    "scripts/**/*.mjs"
+    "scripts/**/*.{mjs,ts}",
+    "test/**/*.ts"
   ]
 }

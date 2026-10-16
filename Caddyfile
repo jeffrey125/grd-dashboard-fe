@@ -1,0 +1,32 @@
+{
+	default_sni {$GRD_LAN_IP}
+	skip_install_trust
+}
+
+https://{$GRD_LAN_IP} {
+	tls internal
+
+	header {
+		-Server
+		Referrer-Policy "same-origin"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+	}
+
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	handle /api/v1/* {
+		reverse_proxy 127.0.0.1:3000 {
+			flush_interval -1
+		}
+	}
+
+	handle {
+		root * /srv
+		encode zstd gzip
+		try_files {path} /index.html
+		file_server
+	}
+}

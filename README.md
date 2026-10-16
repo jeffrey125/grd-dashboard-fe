@@ -15,7 +15,8 @@ silent live updates and one-minute visible-page polling.
 FE-V1-011 adds tracking-change alerts, optional sound and persistent review highlights.
 FE-V1-012 adds Admin-only account list/create/detail pages, profile editing and
 confirmed access/password actions. FE-V1-013 adds Admin carrier settings with protected
-drafts, conflict choices, disable confirmation and dependent-data refresh. Upcoming
+drafts, conflict choices, disable confirmation and dependent-data refresh. FE-V1-014
+adds the locally verified LAN container release path and complete acceptance command. Upcoming
 deliveries is restored with its matching filtered shipment destination. Later features remain in the
 [v1 implementation tickets](docs/v1/tickets/README.md).
 
@@ -71,6 +72,10 @@ rebuild it. Non-public environment files are ignored by Git.
 | `pnpm test:watch` | `vitest` — explicit interactive watch mode. |
 | `pnpm test:coverage` | `vitest run --coverage` — text, HTML, LCOV, and JSON summary in `coverage/`. |
 | `pnpm test:e2e` | `pnpm build && playwright test` — fresh production build and Chromium desktop/mobile smoke tests. |
+| `pnpm test:e2e:backend` | Build both repositories and run the browser suite against a disposable PostgreSQL database and real API. |
+| `pnpm test:container` | Build disposable application images and verify fresh-database migration, same-origin HTTPS, isolation, and runtime contents. |
+| `pnpm test:acceptance` | Run frontend CI, real-backend browser acceptance, and the disposable LAN container lifecycle. |
+| `pnpm env:lan --release YYYYMMDD-NN` | Create a mode-600 `.env.lan` from the sibling backend environment with new database/auth secrets. |
 | `pnpm check` | `pnpm format:check && pnpm lint && pnpm typecheck && pnpm knip && pnpm test` — fast local gates. |
 | `pnpm run ci` | `pnpm format:check && pnpm lint && pnpm knip && pnpm test:coverage && pnpm test:e2e` — complete application gates; typechecking runs through the browser suite's build. |
 | `pnpm prepare` | `husky` — install local hooks; also runs after installation. |
@@ -163,6 +168,22 @@ pnpm build
 This targeted suite supports the API port override; older backend suites still
 assume port 3000. Ports 4175/4176 must be free. The final build restores the normal
 API origin. Each run creates and removes its own PostgreSQL database and API.
+
+## LAN container deployment
+
+The approved homeserver deployment is documented in
+[docs/v1/lan-deployment.md](docs/v1/lan-deployment.md). It builds immutable frontend
+and backend images locally, transfers an image archive plus the Compose and mode-600
+environment files to `/home/jeff/app/grd-dashboard` on `debian-vm`, and serves the
+SPA and API from one Caddy-managed HTTPS origin at **https://192.168.100.83**.
+PostgreSQL is private to the Compose network and the API's port 3000 is not published.
+
+The worker is an explicit Compose profile and is intentionally absent from the
+first start. Bootstrap the first Admin, verify carrier settings, and only then
+start exactly one worker. Caddy uses its internal CA, so each client must trust the
+exported root certificate before the IP origin is warning-free. This is a LAN-only,
+manual archive deployment; registry publishing, CI deployment and public hosting
+remain deferred.
 
 ## Implemented and planned routes
 
@@ -379,5 +400,6 @@ Implementation uses the user-selected `feature/dashboard-v1` branch from the
 existing `master` history. A future switch of the default branch to `main` remains
 pending. See [AGENTS.md](AGENTS.md) and
 [agent-workflow.md](docs/v1/agent-workflow.md) for commit approval and release rules.
-Hosting, publishing, and deployment remain deferred. Local auth integration
+Public hosting, registry publishing, and automated deployment remain deferred. The
+approved manual LAN deployment is documented separately. Local auth integration
 evidence is recorded in the FE-V1-004 implementation summary.

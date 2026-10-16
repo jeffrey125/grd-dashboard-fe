@@ -23,9 +23,12 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "pnpm build && playwright test",
+    "env:lan": "node scripts/prepare-lan-env.ts",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm knip && pnpm test",
     "ci": "pnpm format:check && pnpm lint && pnpm knip && pnpm test:coverage && pnpm test:e2e",
-    "test:e2e:backend": "pnpm --dir ../grd-dashboard-be build && pnpm build && playwright test --config playwright.backend.config.ts"
+    "test:e2e:backend": "pnpm --dir ../grd-dashboard-be build && pnpm build && playwright test --config playwright.backend.config.ts",
+    "test:container": "node --test test/container/runtime.test.ts",
+    "test:acceptance": "pnpm run ci && pnpm test:e2e:backend && pnpm test:container"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
