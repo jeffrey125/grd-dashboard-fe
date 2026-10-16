@@ -10,11 +10,23 @@
 
 import { Route as rootRouteImport } from './../routes/__root';
 import { Route as IndexRouteImport } from './../routes/index';
+import { Route as ChangePasswordRouteImport } from './../routes/change-password';
+import { Route as LoginRouteImport } from './../routes/login';
 import { Route as ShipmentsRouteImport } from './../routes/shipments';
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ChangePasswordRoute = ChangePasswordRouteImport.update({
+  id: '/change-password',
+  path: '/change-password',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any);
 const ShipmentsRoute = ShipmentsRouteImport.update({
@@ -25,27 +37,35 @@ const ShipmentsRoute = ShipmentsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
+  '/change-password': typeof ChangePasswordRoute;
+  '/login': typeof LoginRoute;
   '/shipments': typeof ShipmentsRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
+  '/change-password': typeof ChangePasswordRoute;
+  '/login': typeof LoginRoute;
   '/shipments': typeof ShipmentsRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   '/': typeof IndexRoute;
+  '/change-password': typeof ChangePasswordRoute;
+  '/login': typeof LoginRoute;
   '/shipments': typeof ShipmentsRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: '/' | '/shipments';
+  fullPaths: '/' | '/change-password' | '/login' | '/shipments';
   fileRoutesByTo: FileRoutesByTo;
-  to: '/' | '/shipments';
-  id: '__root__' | '/' | '/shipments';
+  to: '/' | '/change-password' | '/login' | '/shipments';
+  id: '__root__' | '/' | '/change-password' | '/login' | '/shipments';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
+  ChangePasswordRoute: typeof ChangePasswordRoute;
+  LoginRoute: typeof LoginRoute;
   ShipmentsRoute: typeof ShipmentsRoute;
 }
 
@@ -56,6 +76,20 @@ declare module '@tanstack/react-router' {
       path: '/';
       fullPath: '/';
       preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/change-password': {
+      id: '/change-password';
+      path: '/change-password';
+      fullPath: '/change-password';
+      preLoaderRoute: typeof ChangePasswordRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/login': {
+      id: '/login';
+      path: '/login';
+      fullPath: '/login';
+      preLoaderRoute: typeof LoginRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/shipments': {
@@ -70,6 +104,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ChangePasswordRoute: ChangePasswordRoute,
+  LoginRoute: LoginRoute,
   ShipmentsRoute: ShipmentsRoute,
 };
 export const routeTree = rootRouteImport

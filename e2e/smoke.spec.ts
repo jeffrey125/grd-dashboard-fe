@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { accountFixture } from '@test/auth-fixture';
 
 test('built shell supports branding, navigation, themes, and keyboard recovery', async ({
   page,
@@ -12,6 +13,10 @@ test('built shell supports branding, navigation, themes, and keyboard recovery',
   page.on('requestfailed', (request) => errors.push(`Request failed: ${request.url()}`));
   await page.route('**/*', async (route) => {
     const request = route.request();
+    if (request.url() === 'http://localhost:3000/auth/me') {
+      await route.fulfill({ json: accountFixture });
+      return;
+    }
     if (
       new URL(request.url()).origin !== 'http://127.0.0.1:4174' ||
       ['fetch', 'xhr', 'eventsource'].includes(request.resourceType())
@@ -100,6 +105,7 @@ test('built shell supports branding, navigation, themes, and keyboard recovery',
 });
 
 test('follows the system color scheme when no explicit preference exists', async ({ page }) => {
+  await page.route('**/auth/me', (route) => route.fulfill({ json: accountFixture }));
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/', { waitUntil: 'domcontentloaded' });
 

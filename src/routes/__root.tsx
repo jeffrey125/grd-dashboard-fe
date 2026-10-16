@@ -1,5 +1,5 @@
-import { AppShell } from '@components/layout/app-shell';
 import { PageHeader } from '@components/layout/page-header';
+import { SessionBoundary } from '@features/auth';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
@@ -13,9 +13,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootLayout() {
   return (
-    <AppShell>
+    <SessionBoundary>
       <Outlet />
-    </AppShell>
+    </SessionBoundary>
   );
 }
 

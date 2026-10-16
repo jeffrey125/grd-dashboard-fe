@@ -1,5 +1,5 @@
 import { parsePublicConfig } from '@lib/public-config';
 
-parsePublicConfig({
+export const config = parsePublicConfig({
   VITE_API_ORIGIN: import.meta.env.VITE_API_ORIGIN,
 });

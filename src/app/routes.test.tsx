@@ -1,9 +1,13 @@
+import { ApiClient } from '@api/api';
 import { NotificationProvider } from '@components/feedback/notification-provider';
+import { Session, SessionProvider } from '@features/auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router';
+import { accountFixture } from '@test/auth-fixture';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GrdThemeProvider } from '@theme/theme-provider';
+import { enforceOptions } from 'broadcast-channel';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 
 import { routeTree } from './route-tree.gen';
@@ -25,6 +29,16 @@ afterEach(async () => {
 
 async function renderRoute(path: string) {
   history.replace(path);
+  enforceOptions({ type: 'simulate' });
+  const client = new ApiClient('http://localhost:3000');
+  client.http.defaults.adapter = async (config) => ({
+    data: accountFixture,
+    status: 200,
+    statusText: '',
+    headers: {},
+    config,
+  });
+  const session = new Session(client, queryClient);
   const router = createRouter({
     routeTree,
     history,
@@ -36,7 +50,9 @@ async function renderRoute(path: string) {
     <GrdThemeProvider>
       <NotificationProvider>
         <QueryClientProvider client={queryClient}>
-          <RouterProvider router={router} />
+          <SessionProvider session={session}>
+            <RouterProvider router={router} />
+          </SessionProvider>
         </QueryClientProvider>
       </NotificationProvider>
     </GrdThemeProvider>,
@@ -57,7 +73,7 @@ it('shows an honest branded overview without shipment records', async () => {
 it('navigates to the temporary shipment page without fixture data', async () => {
   const user = userEvent.setup();
   await renderRoute('/');
-  const shipmentsLink = screen.getAllByRole('link', { name: 'Shipments' }).at(0);
+  const shipmentsLink = (await screen.findAllByRole('link', { name: 'Shipments' })).at(0);
   expect(shipmentsLink).toBeDefined();
   if (!shipmentsLink) throw new Error('The Shipments navigation link is missing.');
   await user.click(shipmentsLink);
