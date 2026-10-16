@@ -48,7 +48,8 @@ and heartbeat-driven revocation without a page reload through both direct API
 access and the Vite proxy. All fixtures use the disposable database and disabled
 worker; they do not call real carriers. Positive tracking payload validation and
 query/404/fetch-race behavior use deterministic registered query consumers; the
-actual shipment/detail/carrier UI does not exist until its later feature tickets.
+shipment-list UI now exists in FE-V1-006; detail and carrier administration UI
+remain in their later tickets.
 
 Biome excludes the generated route tree and supports JS/TS, JSON/JSONC, and CSS;
 Markdown/YAML/HTML/shell/assets are outside that formatter/linter gate. Workflow
@@ -137,3 +138,24 @@ suite does not claim backend parity. FE-V1-002 local evidence is in its
 [implementation summary](implementation-summary/FE-V1-002-implementation-summary.md).
 GitHub-hosted execution remains unverified until this repository has a remote and
 the workflow is run there; local actionlint checks are not a hosted Actions run.
+
+## FE-V1-006 shipment-list verification
+
+The list suite covers defaults, page/search/sort URLs, placeholder destinations
+and return navigation, blocked invalid dates, explicit Apply, stale/error and
+previous-page states, request cancellation, page clamping, eligibility, conflicts,
+and a row disappearing while its menu is open on desktop and 375px Chromium.
+
+The isolated backend harness seeds 1,000 shipments through a test-only fixture
+module: 800 Active, 100 manually paused, 50 threshold paused, 50 Delivered, and
+two active shipments with failed lookups. All have tied creation timestamps and
+known ETA. The browser suite verifies stable pagination, off-page notes search,
+overlapping counts, carrier/outcome/date/undelivered combinations, and row actions
+through both direct API access and the Vite proxy. Its dedicated employee account
+avoids exhausting the auth suite's per-email login allowance. No worker or real
+carrier calls are involved. See the FE-V1-006 implementation summary for results.
+
+The FE-V1-006 follow-up covers calendar selection and malformed-date correction,
+explicit clearing, touch dialogs, date-only preservation in Los Angeles, and
+Day.js leap-year/early-year/DST boundaries. Mobile scenarios exercise cards,
+shared commands, sorting/page controls, long text and resizing back to the grid.

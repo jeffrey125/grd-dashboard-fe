@@ -5,7 +5,9 @@ FE-V1-001 supplies application composition, routing, a shared Query client, and
 validated public configuration. FE-V1-002 adds quality gates, isolated tests, staged
 checks, and GitHub Actions. FE-V1-003 supplies the branded shell; FE-V1-004 adds
 real cookie-session authentication, password replacement, role guards, and cross-tab
-session isolation. Shipment and administration features remain in the
+session isolation. FE-V1-005 supplies live synchronization; FE-V1-006 supplies the
+server-paginated shipment list, Apply filters, URL validation and quick row actions.
+Creation, detail and administration features remain in the
 [v1 implementation tickets](docs/v1/tickets/README.md).
 
 ## Local development
@@ -130,6 +132,10 @@ in one terminal, and run `pnpm dev` in another. The test-only accounts are
 `frontend-admin@example.test` / `admin fixture password`,
 `frontend-staff@example.test` / `staff fixture password`, and
 `frontend-restricted@example.test` / `issued fixture password`.
+The harness also seeds 1,000 deterministic shipment records (800 Active, 150
+Paused, 50 Delivered; 52 overlapping Needs attention) and a dedicated
+`frontend-shipments@example.test` / `shipments fixture password` account for
+shipment browser checks. The worker remains disabled; no carrier requests occur.
 These literals work only in the disposable fixture database. Stop the harness with
 Ctrl-C to remove that database. A new harness run creates fresh fixtures.
 
@@ -141,7 +147,18 @@ requires re-login. Safe internal return URLs retain query parameters. Restricted
 accounts see password replacement and sign-out only.
 
 Unrestricted Staff/Admin sessions see the branded shell at `/` and `/shipments`.
-Both pages remain honest placeholders until their data tickets. Staff direct links
+The overview remains a placeholder. `/shipments` now queries the real paginated
+endpoint, defaults to Active/newest created first, and supports five shipment views,
+server counts, 25/50/100-row pages, reference/notes search, carrier/outcome/date filters
+and allowlisted sorting. Carrier/outcome/date edits require Apply filters; invalid
+URL filters pause results until corrected or explicitly cleared. Desktop row menus
+expose refresh and valid pause/resume; mobile cards stack those actions as full-width
+touch-friendly buttons. Desktop results include Pickup and Delivery date columns;
+mobile uses a full-width Shipment view selector and cards with the same dates,
+sorting, and pagination.
+The Delivery label is the carrier's current estimated-delivery date. `/shipments/new`
+and UUID detail routes are labeled
+placeholders with Back to results until FE-V1-007/008. Staff direct links
 to `/admin` and descendants show a forbidden state; Admin links currently lead to
 an authenticated not-found screen until administration tickets are implemented.
 Unknown protected paths remain authenticated and offer a return-home link.
@@ -173,8 +190,8 @@ coalesces events over 100 ms and retains a trailing refresh during an existing
 request. Inactive caches are invalidated; confirmed shipment 404s clear retained
 detail/history data. Carrier-dependent targets opt into age-aware focus refreshes
 and explicit post-edit invalidation. See [the registration contract](docs/v1/architecture.md#implemented-live-registration-boundary-fe-v1-005).
-The current overview/shipment pages remain placeholders; their queries and UI
-arrive in subsequent tickets. Tracking highlights/audio/toasts remain FE-V1-011.
+Shipment queries register with the live coordinator, including carrier-dependent
+refreshes; the overview remains a placeholder. Tracking highlights/audio/toasts remain FE-V1-011.
 
 ## Source boundaries and import aliases
 
@@ -240,8 +257,13 @@ Quality tooling adds development-only `@biomejs/biome`, `vitest`,
 `package.json`; engines/peers and fresh frozen installation were verified.
 
 Material UI replaces the superseded Tailwind/shadcn/Radix/Sonner plan. The shared
-notification module uses MUI Snackbar/Alert. MUI X Data Grid Community is approved
-for FE-V1-006 but remains uninstalled until that ticket uses it. FE-V1-004 installs
+notification module uses MUI Snackbar/Alert. MUI X Data Grid Community 9.15.0 is installed for FE-V1-006, with server
+pagination/sorting and external filters. Below 900px, a full-width selector replaces
+the desktop tabs and the list uses MUI cards with the same server pagination and
+sorting plus stacked full-width action buttons. MUI X Date Pickers Community
+9.15.0 and Day.js 1.11.23 provide calendar filters. Day.js is the approved choice
+for future date work; business timestamps use America/New_York and date-only
+values remain unshifted YYYY-MM-DD strings. FE-V1-004 installs
 Axios 1.20.0, React Hook Form 7.90.0, resolvers 5.9.1, and the additionally approved
 broadcast-channel 7.4.0. The follow-up adds the user-selected Better Auth 1.7.7
 client, matching the installed backend. Zod remains the feature schema boundary.

@@ -38,6 +38,7 @@
 | Auth client | Better Auth 1.7.7, explicitly selected in the FE-V1-004 follow-up; an `api.ts` adapter preserves the existing backend facade. |
 | Development proxy | Vite built-in `/api/v1` proxy, forwarded unchanged; built assets use the configured API origin plus `/api/v1`. |
 | Cross-tab sessions   | `broadcast-channel`, explicitly approved during FE-V1-004; signal invalidation only, never synchronize credentials or cached records. |
+| Dates                | Day.js for new date parsing, formatting and arithmetic; MUI X Date Pickers Community with AdapterDayjs for calendar inputs. |
 | Forms                | React Hook Form + Zod + `@hookform/resolvers`.                                    |
 | Validation boundary  | Separate frontend schemas aligned with the backend; no shared package initially.  |
 | Formatting/lint      | Biome.                                                                            |
@@ -56,7 +57,9 @@ The user replaced the earlier Tailwind/shadcn/Radix/Sonner/Lucide and TanStack
 Table plan during the FE-V1-003 implementation interview on 2026-10-16. Material
 UI core, Emotion, Material Icons, and MUI X Data Grid Community are the approved
 replacements. MUI X Pro/Premium is not approved; advanced commercial features
-require a separate dependency and license decision. No Zustand, charting library, date library, or font npm package is approved.
+require a separate dependency and license decision. No Zustand, charting library, or font npm package is approved.
+The user approved MUI X Date Pickers Community and Day.js on 2026-10-16, and
+requested Day.js for future date work. This supersedes the earlier date-library exclusion.
 The user subsequently approved the Better Auth client and Vite development proxy
 on 2026-10-16; this supersedes the original browser-client exclusion. The final
 route decision uses the Nest global `/api/v1` prefix for every backend endpoint,
@@ -70,8 +73,10 @@ An implementer may refine them with evidence without expanding product scope;
 record any material behavior change and obtain direction if it changes user intent.
 
 - Use native EventSource for SSE, React state/context for local preferences, and
-  `Intl.DateTimeFormat` for timestamp presentation. These platform mechanisms
-  require integration code, not a new state/SSE/date package.
+  Day.js for new date handling. Use its UTC/timezone plugins for business timestamps
+  in `America/New_York`; keep calendar dates as `YYYY-MM-DD` without timezone
+  conversion. Validate calendar input before parsing to reject silent rollover.
+  Existing unrelated date code can migrate when touched; no wholesale migration is required.
 - List/history pages default to 25 rows, with 25/50/100 options; the server caps at 100. Overview lists show at most 10 items and link to the full filtered list.
 - Shipment list filtering remains in explicit MUI controls and TanStack Router URL
   state rather than MUI X's built-in filter panel. The Data Grid receives already
@@ -127,3 +132,25 @@ one pending follow-up per target during an in-flight fetch. Carrier-dependent
 active queries refresh on visible focus when their last successful fetch is at
 least 30 seconds old; reconnect and local edits bypass that threshold. This
 focus policy does not bound how long externally edited carrier data can be stale.
+
+## FE-V1-006 interview decisions
+
+Approved on 2026-10-16: implement the tabbed list using MUI X Data Grid Community
+9.15.0, with installed MUI, TanStack Router/Query, Axios, React Hook Form and Zod.
+Carrier, lookup outcome and date filters require **Apply filters**; reference/notes
+search remains debounced. Invalid bookmarked URL values remain editable and block
+shipment requests until staff correct or explicitly clear them. Valid filters are
+not silently dropped. Draft filters survive live refreshes and search changes.
+
+Creation and detail remain FE-V1-007/008. Their routes now provide clearly labeled
+placeholders and a validated return link retaining the originating list URL.
+No mark-seen, highlights, tracking-change toasts or sound is added in this ticket.
+
+Use TanStack Router's scalar search parsing/serialization helpers to preserve
+literal tracking references, including long numbers, and readable pagination URLs.
+The follow-up uses MUI X Date Pickers Community 9.15.0 and Day.js 1.11.23.
+Invalid raw URL dates remain in visible error text until explicitly replaced or
+cleared; calendar selection remains a draft until Apply filters.
+The user also requested a mobile card view. Below the MUI `md` breakpoint (900px),
+use installed MUI Cards with the same server pages, URL sorting and shared row
+actions; desktop retains the Data Grid. No further dependency is required.

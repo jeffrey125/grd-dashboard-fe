@@ -55,7 +55,14 @@ Tabs: **All shipments**, **Active**, **Paused**, **Delivered**, **Needs attentio
 Respect explicit valid URL state on navigation/reload/back. Search and filters
 apply within the selected tab; filter/sort/tab changes reset page to 1. Include
 clear filters and empty-result guidance. Searches are debounced and cancelled when
-superseded. Invalid URL values are safely normalized or explained.
+superseded. Invalid URL values remain visible and block shipment requests until
+staff correct or explicitly clear them. Do not silently remove invalid filters.
+Date fields use MUI calendar pickers backed by Day.js. Preserve malformed URL
+values in visible error text until staff choose a valid date or explicitly clear
+the field. Date-only strings never undergo timezone conversion.
+Carrier, outcome and date controls apply together through **Apply filters** with
+inline validation. Search remains independently debounced; unapplied filter drafts
+survive search changes and live refreshes. Clear filters also discards drafts.
 
 Approved controls: reference/notes search, carrier, latest completed lookup
 outcome (including never checked), created date range, estimated-delivery range.
@@ -64,10 +71,15 @@ suggest sorting on a field the server ignores. Never client-sort/filter only the
 loaded page while presenting it as a full-dataset result.
 
 Suggested default columns: reference/carrier, carrier status, monitoring state,
-estimated delivery, latest lookup, created time, notes preview, row actions.
+pickup, delivery, latest lookup, created time, notes preview, row actions. The
+list's concise Delivery label displays the carrier's estimated-delivery date;
+actual delivery remains a separate detail/history value.
 Detail shows full status text and pickup/delivery fields. Keep an explicit
-reference link, accessible action-menu buttons, and horizontal table scrolling
-on narrow screens. Row highlights include a textual/icon "Updated" indicator.
+reference link and accessible action-menu buttons in the desktop table. Below
+900px, replace the tab strip with a full-width Shipment view selector and present
+shipment cards with labeled details, wrapping reference/notes, stacked full-width
+action buttons, explicit sort controls and server pagination; desktop retains the
+tabs and table. Row highlights include a textual/icon "Updated" indicator.
 
 Page header contains Add shipments, sound preference, and **Mark displayed changes
 as seen** when appropriate. Row menu offers detail, refresh, and permitted

@@ -123,7 +123,10 @@ Targets are `shipments` (list/count variants), `overview`, `carriers`, or
 for the existing placeholder pages. FE-V1-006–013 must register their actual queries.
 
 Generic and precise shipment events refresh shipment lists, overview and matching
-detail/history queries; run events refresh the matching explicit run. Resync
+detail/history queries; run events refresh the matching explicit run and shipment
+list queries that display latest-run state (FE-V1-006). Run events contain no
+shipment IDs, so the coordinator invalidates all list variants and refetches only
+active consumers, preserving its existing coalescing and in-flight follow-up rules. Resync
 refreshes every registered target, including carriers and displayed explicit runs.
 Inactive cached queries are invalidated without background fetching. Use ordinary
 enabled Query queries; `staleTime: 'static'` intentionally prevents refetch and
@@ -168,3 +171,14 @@ deep links and credentialed same-site HTTPS API access.
 Keep the build a Vite static artifact. `vite preview` is for verification, not a
 selected production server. Docker delivery, reverse proxies, registry pushes,
 production environment syncing, and hosting-specific runtime config are deferred.
+
+## Dates and responsive shipment results
+
+Use approved Day.js for new date handling. `src/lib/dates.ts` validates date-only
+values before parsing and formats business timestamps using UTC/timezone plugins.
+MUI X Date Pickers use AdapterDayjs; form/URL/API state remains plain calendar
+strings. Do not serialize calendar dates through UTC timestamps.
+
+Shipment results share queries, URL state and row-command behavior across the
+desktop Data Grid and MUI cards below 900px. The breakpoint changes presentation,
+not pagination/filter ownership or action eligibility.

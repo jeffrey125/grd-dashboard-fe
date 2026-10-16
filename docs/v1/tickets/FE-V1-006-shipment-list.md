@@ -2,7 +2,9 @@
 
 ## Status
 
-Not started. Depends on FE-V1-005 and BE-V1-002.
+Implemented and locally verified on 2026-10-16; commit pending explicit approval.
+FE-V1-005 and BE-V1-002 were verified in source and against the real local API.
+See the [implementation summary](../implementation-summary/FE-V1-006-implementation-summary.md).
 
 ## Target repository
 
@@ -34,7 +36,7 @@ Deliver a responsive shipment workspace with server-owned queries and reliable q
 - Filters/sort operate across all matching records before pagination. Tab counts reflect non-tab filters and do not imply mutually exclusive Attention.
 - Row controls follow manual versus threshold pause, completed, disabled-carrier, and queued/coalesced-run rules; stale 409s refetch and show safe feedback.
 - Live updates keep current sort and correct counts, handle rows leaving a tab, and do not target the wrong row action.
-- Loading, empty, error, stale, and previous-page placeholder states are distinguishable; mobile scrolling and keyboard actions work.
+- Loading, empty, error, stale, and previous-page placeholder states are distinguishable; mobile cards, sorting/pagination and keyboard actions work.
 
 ## Verification
 
@@ -47,3 +49,19 @@ Mark/sound controls are added by FE-V1-011. Notes/deletion stay on detail; no bu
 Record exact implementation/verification evidence in this ticket's implementation
 summary. Follow the seven-heading handoff and explicit commit approval workflow.
 Keep hosting, publishing, and deployment deferred.
+
+## Interview refinements
+
+Carrier/outcome/date filters require Apply filters. Invalid URL values stay visible
+and block shipment requests until staff correct or explicitly clear them. Creation
+and detail links open labeled placeholders retaining the list return URL; full
+creation/detail remain FE-V1-007/008. MUI X Data Grid Community 9.15.0 is installed.
+
+Approved follow-up: use MUI X Date Pickers with Day.js for all four date filters,
+retain invalid URL values until correction, and use Day.js for future date work.
+Render MUI shipment cards below 900px with the same data, URL state and commands;
+replace the tab strip with a full-width Shipment view selector and show card commands
+as stacked full-width touch-friendly buttons instead of an overflow menu.
+Add Pickup and Delivery date fields to desktop/mobile results; Delivery is the
+concise label for the carrier's estimated-delivery date. Give generated SVG/ICO
+favicons an opaque white background while preserving official source assets.
