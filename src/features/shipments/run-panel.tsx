@@ -35,7 +35,10 @@ export function RunPanel({
   const terminal = !activeRun(current);
   // A missed shipment event must not leave the lookup projection behind a finished run.
   useEffect(() => {
-    if (terminal) void queries.invalidateQueries({ queryKey: ['shipment', shipmentId] });
+    if (terminal) {
+      void queries.invalidateQueries({ queryKey: ['shipment', shipmentId] });
+      void queries.invalidateQueries({ queryKey: ['history', shipmentId] });
+    }
   }, [terminal, queries, shipmentId]);
   const attempt = query.data?.attempts.find((value) => value.shipmentExternalId === shipmentId);
   return (

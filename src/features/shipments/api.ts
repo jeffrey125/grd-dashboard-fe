@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { type CreateShipmentInput, shipmentValidationError } from './create-schema';
 import {
   carrierSchema,
+  historyResponseSchema,
   runSchema,
   runStatusSchema,
   searchResponseSchema,
@@ -31,6 +32,28 @@ export async function getCarriers(client: ApiClient, signal: AbortSignal) {
 }
 export async function getShipment(client: ApiClient, id: string, signal: AbortSignal) {
   return parse(shipmentSchema, await client.request({ url: `/shipments/${id}`, signal }));
+}
+export async function getShipmentHistory(
+  client: ApiClient,
+  id: string,
+  page: number,
+  pageSize: number,
+  signal: AbortSignal,
+) {
+  const response = parse(
+    historyResponseSchema,
+    await client.request({ url: `/shipments/${id}/history`, params: { page, pageSize }, signal }),
+  );
+  // Never label another page's items with the requested URL's pagination state.
+  if (
+    response.page !== page ||
+    response.pageSize !== pageSize ||
+    response.items.length !==
+      Math.max(0, Math.min(pageSize, response.total - (page - 1) * pageSize)) ||
+    new Set(response.items.map((item) => item.externalId)).size !== response.items.length
+  )
+    throw new ApiError(0, 'The server returned an unexpected history page. Try again.');
+  return response;
 }
 export async function saveShipmentNotes(client: ApiClient, id: string, notes: string | null) {
   return parse(

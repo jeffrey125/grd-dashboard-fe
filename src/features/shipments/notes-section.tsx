@@ -70,6 +70,7 @@ export function NotesSection({
   useEffect(() => {
     onDirty(dirty);
   }, [dirty, onDirty]);
+  useEffect(() => () => onDirty(false), [onDirty]);
   useEffect(() => {
     if (!dirty && !pending) {
       reset({ notes: shipment.notes ?? '' });

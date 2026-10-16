@@ -33,6 +33,22 @@ export const carrierSchema = z.object({
   name: z.string(),
   isActive: z.boolean(),
 });
+const trackingSnapshotSchema = z.object({
+  externalId: z.uuidv4(),
+  carrierStatus: z.string().nullable(),
+  carrierStatusDetail: z.string().nullable(),
+  pickedUpOn: date,
+  estimatedDeliveryOn: date,
+  deliveredOn: date,
+  observedAt: timestamp,
+});
+export type TrackingSnapshot = z.infer<typeof trackingSnapshotSchema>;
+export const historyResponseSchema = z.object({
+  items: z.array(trackingSnapshotSchema),
+  page: z.number().int().positive().safe(),
+  pageSize: z.union([z.literal(25), z.literal(50), z.literal(100)]),
+  total: z.number().int().nonnegative().safe(),
+});
 export const shipmentSchema = z.object({
   externalId: z.uuidv4(),
   carrier: carrierSchema,
@@ -46,17 +62,7 @@ export const shipmentSchema = z.object({
   consecutiveNotFoundCount: z.number().int().nonnegative(),
   createdAt: timestamp,
   updatedAt: timestamp,
-  currentTracking: z
-    .object({
-      externalId: z.uuidv4(),
-      carrierStatus: z.string().nullable(),
-      carrierStatusDetail: z.string().nullable(),
-      pickedUpOn: date,
-      estimatedDeliveryOn: date,
-      deliveredOn: date,
-      observedAt: timestamp,
-    })
-    .nullable(),
+  currentTracking: trackingSnapshotSchema.nullable(),
   latestLookup: z
     .object({
       runExternalId: z.uuidv4(),

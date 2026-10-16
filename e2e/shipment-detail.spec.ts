@@ -127,7 +127,7 @@ test('direct links show separate truthful states, safe links, dates and responsi
   await expect(tracking.getByText('2026-10-20', { exact: true })).toBeVisible();
   await expect(tracking.getByText('Latest lookup failed.', { exact: false })).toBeVisible();
   await expect(page.getByText('PRIVATE_DIAGNOSTIC')).toHaveCount(0);
-  await expect(page.getByRole('tab', { name: 'History' })).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: 'History' })).toBeVisible();
   const verify = page.getByRole('link', { name: 'Verify with carrier' });
   await expect(verify).toHaveAttribute('rel', 'noopener noreferrer');
   await expect(verify).toHaveAttribute('target', '_blank');
