@@ -25,9 +25,12 @@ Make / an actionable operational homepage using backend aggregates, led by probl
 
 ## Scope
 
-- Render four summary cards from server counts followed by Needs attention; omit Upcoming deliveries and Recent tracking changes.
+- Render four summary cards from server counts followed by Needs attention and Upcoming deliveries; omit Recent tracking changes.
 - Use the backend's asOf, timezone, bounded attention items, and totals; avoid deriving aggregates from loaded shipment pages.
 - Link cards and the Needs attention view-all action to matching shipment views.
+- Upcoming restoration approved on 2026-10-17: five earliest undelivered shipments
+  due today through day +6 in New York, with a matching View all filtered destination.
+  See the [restoration summary](../implementation-summary/FE-V1-010-upcoming-restoration.md).
 - Show clear distinction between failed tracking and late delivery, current completed count and daily delivery metrics.
 - Refresh silently through shared live synchronization, with honest loading/empty/error/stale states in both themes and responsive layouts.
 

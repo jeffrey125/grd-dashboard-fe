@@ -10,6 +10,9 @@ import { changeSearch, type SearchState, searchErrors } from './search-state';
 
 const filterLabels = {
   carrierExternalId: 'Carrier',
+  estimatedDeliveryFrom: 'Delivery from (YYYY-MM-DD)',
+  estimatedDeliveryTo: 'Delivery through (YYYY-MM-DD)',
+  undeliveredOnly: 'Delivery state',
 };
 export function SearchBox({
   value,
@@ -113,6 +116,31 @@ export function ShipmentFilters({
               {carrier.isActive ? '' : ' (disabled)'}
             </option>
           ))}
+        </TextField>
+        {(['estimatedDeliveryFrom', 'estimatedDeliveryTo'] as const).map((key) => (
+          <TextField
+            key={key}
+            label={filterLabels[key]}
+            {...form.register(key)}
+            error={!!errors[key]}
+            helperText={errors[key] ?? 'Carrier calendar date, e.g. 2026-10-17.'}
+          />
+        ))}
+        <TextField
+          label="Delivery state"
+          select
+          {...form.register('undeliveredOnly')}
+          defaultValue={raw.undeliveredOnly ?? ''}
+          slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+          error={!!errors.undeliveredOnly}
+          helperText={errors.undeliveredOnly}
+        >
+          <option value="">Any</option>
+          <option value="true">Undelivered only</option>
+          <option value="false">Include delivered</option>
+          {raw.undeliveredOnly && !['true', 'false'].includes(raw.undeliveredOnly) && (
+            <option value={raw.undeliveredOnly}>{raw.undeliveredOnly} (invalid)</option>
+          )}
         </TextField>
         {extra.map((key) => (
           <Stack key={key} spacing={1}>

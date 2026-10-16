@@ -4,7 +4,7 @@ import { useSession } from '@features/auth';
 import { getOverview } from '@features/overview/api';
 import type { Shipment } from '@features/shipments/contracts';
 import { liveQuery } from '@features/tracking-updates';
-import { businessTimestamp } from '@lib/dates';
+import { businessTimestamp, parseCalendarDate } from '@lib/dates';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -148,6 +148,74 @@ export function OverviewPage() {
               ))}
               <RouterLink to="/shipments" search={{ tab: 'attention' }}>
                 View all needing attention
+              </RouterLink>
+            </Stack>
+          </Paper>
+          <Paper
+            component="section"
+            aria-labelledby="upcoming-title"
+            variant="outlined"
+            sx={{ p: { xs: 2, md: 3 } }}
+          >
+            <Stack spacing={2}>
+              <Typography id="upcoming-title" component="h2" variant="h5">
+                Upcoming deliveries
+              </Typography>
+              <Typography color="text.secondary">
+                Undelivered shipments with estimated delivery from{' '}
+                {parseCalendarDate(data.upcomingWindow.from).format('MMM D, YYYY')} through{' '}
+                {parseCalendarDate(data.upcomingWindow.to).format('MMM D, YYYY')} (New York).
+                Estimates may change.
+              </Typography>
+              <Typography variant="body2">
+                Showing {data.upcomingDeliveries.items.length} of {data.upcomingDeliveries.total}
+              </Typography>
+              {!data.upcomingDeliveries.total && (
+                <Typography>No upcoming deliveries in this date range.</Typography>
+              )}
+              {data.upcomingDeliveries.items.map((row) => (
+                <Box
+                  component="article"
+                  key={row.externalId}
+                  sx={{ borderBottom: 1, borderColor: 'divider', pb: 2 }}
+                >
+                  <RouterLink
+                    to="/shipments/$shipmentId"
+                    params={{ shipmentId: row.externalId }}
+                    search={{ returnTo: '/' }}
+                  >
+                    {row.trackingReference}
+                  </RouterLink>
+                  <Typography variant="body2">
+                    {row.carrier.name}
+                    {row.carrier.isActive ? '' : ' (disabled)'}
+                  </Typography>
+                  <Typography>
+                    Estimated delivery:{' '}
+                    {row.currentTracking?.estimatedDeliveryOn
+                      ? parseCalendarDate(row.currentTracking.estimatedDeliveryOn).format(
+                          'MMM D, YYYY',
+                        )
+                      : 'Not available'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Last known carrier status:{' '}
+                    {row.currentTracking?.carrierStatus ?? 'Not available'}
+                  </Typography>
+                </Box>
+              ))}
+              <RouterLink
+                to="/shipments"
+                search={{
+                  tab: 'all',
+                  estimatedDeliveryFrom: data.upcomingWindow.from,
+                  estimatedDeliveryTo: data.upcomingWindow.to,
+                  undeliveredOnly: 'true',
+                  sortBy: 'estimatedDeliveryOn',
+                  sortDirection: 'asc',
+                }}
+              >
+                View all upcoming deliveries
               </RouterLink>
             </Stack>
           </Paper>

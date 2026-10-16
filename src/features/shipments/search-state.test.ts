@@ -18,9 +18,10 @@ describe('shipment URL contract', () => {
     { lookupOutcome: 'failed' },
     { createdFrom: '2026-10-20' },
     { createdTo: '2026-10-20' },
-    { estimatedDeliveryFrom: '2026-10-20' },
-    { estimatedDeliveryTo: '2026-10-20' },
-    { undeliveredOnly: 'true' },
+    { estimatedDeliveryFrom: '2026-02-30' },
+    { estimatedDeliveryTo: '0000-10-20' },
+    { undeliveredOnly: 'yes' },
+    { estimatedDeliveryFrom: '2026-10-21', estimatedDeliveryTo: '2026-10-20' },
     { page: '0' },
     { page: '9007199254740991', pageSize: '100' },
     { pageSize: '10' },
@@ -36,6 +37,17 @@ describe('shipment URL contract', () => {
     expect(Object.keys(searchErrors(raw)).length).toBeGreaterThan(0);
   });
   it('resets page for changed filters and retains it for pagination', () => {
+    expect(
+      searchSchema.parse({
+        estimatedDeliveryFrom: '2026-10-17',
+        estimatedDeliveryTo: '2026-10-23',
+        undeliveredOnly: 'true',
+      }),
+    ).toMatchObject({
+      estimatedDeliveryFrom: '2026-10-17',
+      estimatedDeliveryTo: '2026-10-23',
+      undeliveredOnly: true,
+    });
     expect(changeSearch({ tab: 'attention', page: '9', q: '001' }, { q: '' })).toEqual({
       tab: 'attention',
       page: '1',

@@ -40,7 +40,29 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
           data.attention.items.map((row) => row.externalId),
         );
     }
-    await expect(page.getByRole('region', { name: 'Upcoming deliveries' })).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Upcoming deliveries' })).toBeVisible();
+    const upcomingSearch = new URLSearchParams({
+      tab: 'all',
+      estimatedDeliveryFrom: data.upcomingWindow.from,
+      estimatedDeliveryTo: data.upcomingWindow.to,
+      undeliveredOnly: 'true',
+      sortBy: 'estimatedDeliveryOn',
+      sortDirection: 'asc',
+      pageSize: '100',
+    });
+    const upcomingResult = await context.request.get(`${api}/shipments/search?${upcomingSearch}`);
+    expect(upcomingResult.ok()).toBe(true);
+    const upcomingData = searchResponseSchema.parse(await upcomingResult.json());
+    expect(upcomingData.total).toBe(data.upcomingDeliveries.total);
+    await page.getByRole('link', { name: 'View all upcoming deliveries' }).click();
+    await expect(page.getByLabel('Delivery from (YYYY-MM-DD)', { exact: true })).toHaveValue(
+      data.upcomingWindow.from,
+    );
+    await expect(page.getByLabel('Delivery through (YYYY-MM-DD)', { exact: true })).toHaveValue(
+      data.upcomingWindow.to,
+    );
+    await expect(page.getByLabel('Delivery state', { exact: true })).toHaveValue('true');
+    await expect(page.getByText('Results are paused.', { exact: false })).toHaveCount(0);
     await expect(page.getByRole('region', { name: 'Recent tracking changes' })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,

@@ -13,7 +13,8 @@ frontend planning repository; no backend code was changed when it was written.
 
 ## Objective
 
-Supply accurate overview counts and a bounded Needs attention panel without loading every shipment into the browser.
+Supply accurate overview counts and bounded Needs attention/Upcoming deliveries
+panels without loading every shipment into the browser.
 
 ## Required reading
 
@@ -28,6 +29,8 @@ Supply accurate overview counts and a bounded Needs attention panel without load
 - Implement proposed GET /dashboard/overview with unrestricted Staff/Admin authorization and explicit safe projection.
 - Share predicates with shipment search for counts and attention; use a consistent database snapshot across cards and panels.
 - Return up to 5 attention rows with the full attention total, timezone, and asOf.
+- The 2026-10-17 restoration adds five upcoming rows, a full total, New York
+  today-through-day-6 window and matching ETA/undelivered search filters.
 - Document aggregate meaning, null handling, ordering, and cache behavior; keep performance analytics deferred.
 
 ## Acceptance criteria
@@ -42,7 +45,7 @@ Run PostgreSQL aggregate and HTTP policy tests, empty/all-null/disabled/deleted 
 
 ## Review notes and completion
 
-No charting dependency, KPI definition, upcoming-delivery panel, recent-change panel, or analytics endpoint is required.
+No charting dependency, KPI definition, recent-change panel, or analytics endpoint is required.
 
 Follow the backend's handoff/commit instructions. Record implementation and exact
 verification evidence in a ticket summary, and update this plan's API contract and

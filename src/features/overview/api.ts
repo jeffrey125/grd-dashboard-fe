@@ -1,5 +1,6 @@
 import { type ApiClient, ApiError } from '@api/api';
 import { shipmentSchema } from '@features/shipments/contracts';
+import { parseCalendarDate } from '@lib/dates';
 import { z } from 'zod';
 
 const count = z.number().int().nonnegative().safe();
@@ -16,11 +17,25 @@ export const overviewSchema = z
       attention: count,
     }),
     attention: panel,
+    upcomingWindow: z
+      .object({ from: z.iso.date(), to: z.iso.date() })
+      .refine(
+        (window) => parseCalendarDate(window.from).add(6, 'day').format('YYYY-MM-DD') === window.to,
+      ),
+    upcomingDeliveries: panel,
   })
   .refine(
     (data) =>
       data.attention.total === data.counts.attention &&
-      data.attention.items.length === Math.min(5, data.attention.total),
+      data.attention.items.length === Math.min(5, data.attention.total) &&
+      data.upcomingDeliveries.items.length === Math.min(5, data.upcomingDeliveries.total) &&
+      data.upcomingDeliveries.items.every(
+        (row) =>
+          row.monitoringStatus !== 'completed' &&
+          !!row.currentTracking?.estimatedDeliveryOn &&
+          row.currentTracking.estimatedDeliveryOn >= data.upcomingWindow.from &&
+          row.currentTracking.estimatedDeliveryOn <= data.upcomingWindow.to,
+      ),
   );
 export type Overview = z.infer<typeof overviewSchema>;
 

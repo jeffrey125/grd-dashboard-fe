@@ -172,7 +172,9 @@ accounts see password replacement and sign-out only.
 Unrestricted Staff/Admin sessions see the branded shell at `/` and `/shipments`.
 The overview uses `/dashboard/overview` for four summary cards and a bounded Needs
 attention panel.
-Counts and date windows come from the server. Upcoming view-all applies the server
+Upcoming deliveries follows Needs attention, showing the five earliest undelivered
+shipments due from New York today through the next six days, with carrier, estimated
+delivery date and last known status. Counts and date windows come from the server. Upcoming view-all applies the server
 ETA range and undelivered filter. Detail/history links return to Overview when
 opened there. Failed refreshes retain known data with a persistent warning and
 Retry; the last successful server timestamp remains visible. The page refreshes

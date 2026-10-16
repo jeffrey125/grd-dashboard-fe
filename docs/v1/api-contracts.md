@@ -146,6 +146,8 @@ the new frontend uses the new route for its list.
 | `tab`                                          | `all`, `active` (default), `paused`, `delivered`, `attention`                                                                         |
 | `q`                                            | Optional trimmed literal case-insensitive substring of reference or notes; max 255 code units; wildcard characters treated literally. |
 | `carrierExternalId`                            | Optional carrier UUIDv4; one carrier initially.                                                                                       |
+| `estimatedDeliveryFrom`, `estimatedDeliveryTo` | Optional inclusive ISO calendar-date bounds on current ETA; valid nonzero years, ordered from ≤ through. |
+| `undeliveredOnly` | Optional `true`/`false`; true excludes completed shipments, including when tab is All. |
 | `page`, `pageSize`                             | Positive page, default 1; page sizes 25/50/100, default 25, cap 100.                                                                  |
 | `sortBy`, `sortDirection`                      | Default `createdAt`, `desc`; allowlisted `createdAt`, `trackingReference`, `estimatedDeliveryOn`; `asc`/`desc`.                       |
 
@@ -223,6 +225,8 @@ type OverviewResponse = {
     attention: number;
   };
   attention: { total: number; items: ShipmentWithTracking[] };
+  upcomingWindow: { from: string; to: string }; // New York today through day +6.
+  upcomingDeliveries: { total: number; items: ShipmentWithTracking[] };
 };
 ```
 
@@ -232,6 +236,13 @@ retaining its full total. Counts refer
 to current monitoring state, not delivered-today or a performance KPI. Use one
 consistent read snapshot; specify cache behavior (`no-store` initially). No
 on-time-rate, transit-average, or carrier-ranking calculation is added.
+
+Upcoming deliveries uses the same statement snapshot: non-completed, nondeleted
+shipments whose current ETA is within `upcomingWindow`, inclusive. Disabled carriers
+remain included; null ETAs are excluded. Return at most five rows, earliest ETA,
+then creation/id ascending, plus a full total. View all uses the matching search
+date bounds and `undeliveredOnly=true`; search's equal-ETA tie-breaker is id, so
+membership and totals agree without promising identical tie ordering.
 
 The backend implements this contract with one parameterized PostgreSQL statement
 and `Cache-Control: no-store`. The response reuses the public Shipment projection

@@ -41,6 +41,13 @@ a link to detail.
 Show at most 5 Needs attention items. Reference links open detail and return to
 Overview; the view-all link opens the Needs attention shipment view.
 
+Upcoming deliveries follows Needs attention. Show at most five undelivered
+shipments with current ETA from New York today through day +6 inclusive, ordered
+by earliest ETA. The server supplies the date window, total and rows. Show reference,
+carrier, estimated delivery and last known carrier status; estimates are not promises.
+Reference links return to Overview. View all opens All shipments with that exact
+date window, undelivered-only, and delivery ascending. Recent changes remains omitted.
+
 Display business timezone and last successful aggregate refresh. Loading, empty,
 error, and stale/reconnecting states remain distinct. Avoid inventing zeros on a
 failed request. Refresh silently; tracking-change audio/toasts do not run here.
@@ -62,7 +69,9 @@ Carrier applies through **Apply filters** with inline validation. Search remains
 independently debounced; unapplied filter drafts
 survive search changes and live refreshes. Clear filters also discards drafts.
 
-Approved controls: reference/notes search and carrier.
+Approved controls: reference/notes search, carrier, estimated-delivery from/through
+calendar dates and undelivered-only. Date/state controls use explicit Apply and
+preserve invalid URL values until corrected or cleared.
 Use the server's counts. Column sorting is limited to the API allowlist; don't
 suggest sorting on a field the server ignores. Never client-sort/filter only the
 loaded page while presenting it as a full-dataset result.

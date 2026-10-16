@@ -6,6 +6,8 @@ export const emptyOverview: Overview = {
   timezone: 'America/New_York',
   counts: { all: 0, active: 0, paused: 0, delivered: 0, attention: 0 },
   attention: { total: 0, items: [] },
+  upcomingWindow: { from: '2026-10-16', to: '2026-10-22' },
+  upcomingDeliveries: { total: 0, items: [] },
 };
 export function overviewFixture(): Overview {
   const row = shipmentFixture(1, {
@@ -35,5 +37,6 @@ export function overviewFixture(): Overview {
     ...emptyOverview,
     counts: { all: 1200, active: 1100, paused: 80, delivered: 20, attention: 1 },
     attention: { total: 1, items: [row] },
+    upcomingDeliveries: { total: 1, items: [row] },
   };
 }

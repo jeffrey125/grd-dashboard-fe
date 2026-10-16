@@ -48,7 +48,23 @@ test('server counts, problem-first layout, keyboard drill-downs, return navigati
   await expect(attention).toContainText('Latest tracking lookup failed');
   await expect(attention).toContainText('Monitoring paused after repeated not-found results');
   await expect(attention).toContainText('Last known carrier status: In transit');
-  await expect(page.getByRole('region', { name: 'Upcoming deliveries' })).toHaveCount(0);
+  const upcoming = page.getByRole('region', { name: 'Upcoming deliveries' });
+  await expect(upcoming).toContainText('Oct 20, 2026');
+  await expect(upcoming).toContainText('Showing 1 of 1');
+  const upcomingLink = new URL(
+    (await upcoming
+      .getByRole('link', { name: 'View all upcoming deliveries' })
+      .getAttribute('href')) ?? '',
+    'http://fixture',
+  );
+  expect(Object.fromEntries(upcomingLink.searchParams)).toMatchObject({
+    tab: 'all',
+    estimatedDeliveryFrom: '2026-10-16',
+    estimatedDeliveryTo: '2026-10-22',
+    undeliveredOnly: 'true',
+    sortBy: 'estimatedDeliveryOn',
+    sortDirection: 'asc',
+  });
   await expect(page.getByRole('region', { name: 'Recent tracking changes' })).toHaveCount(0);
   await expect(page.getByText('PRIVATE_DIAGNOSTIC')).toHaveCount(0);
   for (const [name, tab] of [
@@ -99,7 +115,9 @@ test('loading, initial error, retry and genuine empty data stay distinct', async
   await page.getByRole('button', { name: 'Retry' }).click();
   await expect(page.getByRole('link', { name: 'All shipments: 0' })).toBeVisible();
   await expect(page.getByText('No shipments need attention.')).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Upcoming deliveries' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Upcoming deliveries' })).toContainText(
+    'No upcoming deliveries',
+  );
   await expect(page.getByRole('region', { name: 'Recent tracking changes' })).toHaveCount(0);
 });
 

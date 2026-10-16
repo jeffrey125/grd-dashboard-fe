@@ -40,6 +40,11 @@ export const searchSchema = z
         .refine((value) => !value.includes('\0'), 'Remove null characters.'),
     ),
     carrierExternalId: optionalText(z.uuidv4()),
+    estimatedDeliveryFrom: optionalText(z.iso.date().refine((value) => !value.startsWith('0000'))),
+    estimatedDeliveryTo: optionalText(z.iso.date().refine((value) => !value.startsWith('0000'))),
+    undeliveredOnly: optionalText(z.enum(['true', 'false'])).transform((value) =>
+      value === undefined ? undefined : value === 'true',
+    ),
     page: integer.default(1),
     pageSize: z.enum(['25', '50', '100']).default('25').transform(Number),
     sortBy: z.preprocess(
@@ -49,6 +54,16 @@ export const searchSchema = z
     sortDirection: z.enum(['asc', 'desc']).default('desc'),
   })
   .superRefine((value, context) => {
+    if (
+      value.estimatedDeliveryFrom &&
+      value.estimatedDeliveryTo &&
+      value.estimatedDeliveryFrom > value.estimatedDeliveryTo
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['estimatedDeliveryTo'],
+        message: 'End date must not precede start date.',
+      });
     if (!Number.isSafeInteger((value.page - 1) * value.pageSize))
       context.addIssue({ code: 'custom', path: ['page'], message: 'Page is too large.' });
   });
