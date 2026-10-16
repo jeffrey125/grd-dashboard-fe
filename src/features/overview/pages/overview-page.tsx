@@ -1,7 +1,7 @@
 import { safeError } from '@api/api';
 import { PageHeader } from '@components/layout/page-header';
 import { useSession } from '@features/auth';
-import { getOverview, upcomingSearch } from '@features/overview/api';
+import { getOverview } from '@features/overview/api';
 import type { Shipment } from '@features/shipments/contracts';
 import { liveQuery } from '@features/tracking-updates';
 import { businessTimestamp } from '@lib/dates';
@@ -22,7 +22,6 @@ const SummaryLink = createLink(CardActionArea);
 const labels = {
   all: 'All shipments',
   active: 'Active',
-  paused: 'Paused',
   delivered: 'Delivered',
   attention: 'Needs attention',
 };
@@ -31,8 +30,9 @@ function attentionReason(row: Shipment) {
   return [
     row.latestLookup?.outcome === 'failed' && 'Latest tracking lookup failed',
     row.monitoringStatus === 'paused' &&
-      row.monitoringReason === 'not_found_threshold' &&
-      'Monitoring paused after repeated not-found results',
+      (row.monitoringReason === 'not_found_threshold'
+        ? 'Monitoring paused after repeated not-found results'
+        : 'Monitoring paused manually'),
   ]
     .filter(Boolean)
     .join(' · ');
@@ -81,7 +81,7 @@ export function OverviewPage() {
               gap: 2,
               gridTemplateColumns: {
                 xs: 'repeat(2, minmax(0, 1fr))',
-                md: 'repeat(5, minmax(0, 1fr))',
+                md: 'repeat(4, minmax(0, 1fr))',
               },
             }}
           >
@@ -104,8 +104,9 @@ export function OverviewPage() {
             ))}
           </Box>
           <Typography variant="caption" color="text.secondary">
-            Current shipment totals. Needs attention overlaps other views. Delivered is the current
-            completed count, not deliveries today.
+            Active, Delivered, and Needs attention total All shipments. Needs attention includes
+            paused shipments and failed lookups. Delivered is the current completed count, not
+            deliveries today.
           </Typography>
           <Paper
             component="section"
@@ -118,7 +119,7 @@ export function OverviewPage() {
                 Needs attention
               </Typography>
               <Typography color="text.secondary">
-                Tracking problems, not a claim of late delivery.
+                Paused monitoring and tracking problems, not a claim of late delivery.
               </Typography>
               <Typography variant="body2">
                 Showing {data.attention.items.length} of {data.attention.total}
@@ -150,104 +151,6 @@ export function OverviewPage() {
               </RouterLink>
             </Stack>
           </Paper>
-          <Box
-            sx={{
-              display: 'grid',
-              gap: 3,
-              gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'repeat(2, minmax(0, 1fr))' },
-              alignItems: 'start',
-            }}
-          >
-            <Paper
-              component="section"
-              aria-labelledby="upcoming-title"
-              variant="outlined"
-              sx={{ p: { xs: 2, md: 3 } }}
-            >
-              <Stack spacing={2}>
-                <Typography id="upcoming-title" component="h2" variant="h5">
-                  Upcoming deliveries
-                </Typography>
-                <Typography color="text.secondary">
-                  {data.upcomingWindow.from} through {data.upcomingWindow.to} · {data.timezone}.
-                  Undelivered shipments with a known ETA.
-                </Typography>
-                <Typography variant="body2">
-                  Showing {data.upcomingDeliveries.items.length} of {data.upcomingDeliveries.total}
-                </Typography>
-                {!data.upcomingDeliveries.total && (
-                  <Typography>No known deliveries in this window.</Typography>
-                )}
-                {data.upcomingDeliveries.items.map((row) => (
-                  <Box
-                    component="article"
-                    key={row.externalId}
-                    sx={{ borderBottom: 1, borderColor: 'divider', pb: 2 }}
-                  >
-                    <RouterLink
-                      to="/shipments/$shipmentId"
-                      params={{ shipmentId: row.externalId }}
-                      search={{ returnTo: '/' }}
-                    >
-                      {row.trackingReference}
-                    </RouterLink>
-                    <Typography variant="body2">{row.carrier.name}</Typography>
-                    <Typography>
-                      Estimated delivery:{' '}
-                      {row.currentTracking?.estimatedDeliveryOn ?? 'Not available'}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Carrier status: {row.currentTracking?.carrierStatus ?? 'Not available'}
-                    </Typography>
-                  </Box>
-                ))}
-                <RouterLink to="/shipments" search={upcomingSearch(data.upcomingWindow)}>
-                  View all upcoming deliveries
-                </RouterLink>
-              </Stack>
-            </Paper>
-            <Paper
-              component="section"
-              aria-labelledby="recent-title"
-              variant="outlined"
-              sx={{ p: { xs: 2, md: 3 } }}
-            >
-              <Stack spacing={2}>
-                <Typography id="recent-title" component="h2" variant="h5">
-                  Recent tracking changes
-                </Typography>
-                <Typography color="text.secondary">
-                  Latest application-recorded observations, including initial tracking. This is not
-                  a complete carrier event timeline.
-                </Typography>
-                {!data.recentChanges.length && (
-                  <Typography>No tracking observations recorded yet.</Typography>
-                )}
-                {data.recentChanges.map((change) => (
-                  <Box
-                    component="article"
-                    key={change.snapshot.externalId}
-                    sx={{ borderBottom: 1, borderColor: 'divider', pb: 2 }}
-                  >
-                    <RouterLink
-                      to="/shipments/$shipmentId"
-                      params={{ shipmentId: change.shipmentExternalId }}
-                      search={{ returnTo: '/', tab: 'history' }}
-                    >
-                      {change.trackingReference} history
-                    </RouterLink>
-                    <Typography variant="body2">{change.carrier.name}</Typography>
-                    <Typography>
-                      {change.snapshot.carrierStatus ?? 'Carrier status not available'}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Recorded {businessTimestamp(change.snapshot.observedAt)} · {data.timezone}
-                    </Typography>
-                  </Box>
-                ))}
-              </Stack>
-            </Paper>
-          </Box>
         </>
       )}
     </Stack>

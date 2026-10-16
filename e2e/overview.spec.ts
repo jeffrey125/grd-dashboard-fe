@@ -43,19 +43,17 @@ test('server counts, problem-first layout, keyboard drill-downs, return navigati
   const state = await setup(page);
   await page.goto('/');
   await expect(page.getByRole('link', { name: 'All shipments: 1200' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Paused:/ })).toHaveCount(0);
   const attention = page.getByRole('region', { name: 'Needs attention', exact: true });
-  const upcoming = page.getByRole('region', { name: 'Upcoming deliveries', exact: true });
-  const recent = page.getByRole('region', { name: 'Recent tracking changes', exact: true });
   await expect(attention).toContainText('Latest tracking lookup failed');
   await expect(attention).toContainText('Monitoring paused after repeated not-found results');
   await expect(attention).toContainText('Last known carrier status: In transit');
-  await expect(upcoming).toContainText('2026-10-20');
-  await expect(recent).toContainText('10:00 AM');
+  await expect(page.getByRole('region', { name: 'Upcoming deliveries' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Recent tracking changes' })).toHaveCount(0);
   await expect(page.getByText('PRIVATE_DIAGNOSTIC')).toHaveCount(0);
   for (const [name, tab] of [
     ['All shipments', 'all'],
     ['Active', 'active'],
-    ['Paused', 'paused'],
     ['Delivered', 'delivered'],
     ['Needs attention', 'attention'],
   ]) {
@@ -68,14 +66,7 @@ test('server counts, problem-first layout, keyboard drill-downs, return navigati
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
     await expect(page.locator('html')).toHaveAttribute('data-grd-color-scheme', theme);
     const a = await attention.boundingBox();
-    const u = await upcoming.boundingBox();
-    const r = await recent.boundingBox();
-    if (!a || !u || !r) throw new Error('Missing homepage panels');
-    expect(u.y).toBeGreaterThan(a.y + a.height - 1);
-    if ((page.viewportSize()?.width ?? 0) >= 900) {
-      expect(Math.abs(u.y - r.y)).toBeLessThan(2);
-      expect(a.width).toBeGreaterThan(u.width);
-    } else expect(r.y).toBeGreaterThan(u.y);
+    if (!a) throw new Error('Missing Needs attention panel');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
@@ -88,21 +79,6 @@ test('server counts, problem-first layout, keyboard drill-downs, return navigati
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: state.row.trackingReference })).toBeVisible();
   await page.getByRole('link', { name: 'Back to Overview' }).click();
-  await recent.getByRole('link').click();
-  await expect(page).toHaveURL(/tab=history/);
-  await expect(page.getByRole('article', { name: /^Initial observation/ })).toHaveCount(1);
-  await page.getByRole('link', { name: 'Back to Overview' }).click();
-  await page.getByRole('link', { name: 'View all upcoming deliveries' }).click();
-  const params = new URL(page.url()).searchParams;
-  expect(Object.fromEntries(params)).toMatchObject({
-    tab: 'all',
-    undeliveredOnly: 'true',
-    estimatedDeliveryFrom: '2026-10-16',
-    estimatedDeliveryTo: '2026-10-22',
-    sortBy: 'estimatedDeliveryOn',
-    sortDirection: 'asc',
-  });
-  await expect(page.getByText('Undelivered only', { exact: true })).toBeVisible();
 });
 
 test('loading, initial error, retry and genuine empty data stay distinct', async ({ page }) => {
@@ -123,8 +99,8 @@ test('loading, initial error, retry and genuine empty data stay distinct', async
   await page.getByRole('button', { name: 'Retry' }).click();
   await expect(page.getByRole('link', { name: 'All shipments: 0' })).toBeVisible();
   await expect(page.getByText('No shipments need attention.')).toBeVisible();
-  await expect(page.getByText('No known deliveries in this window.')).toBeVisible();
-  await expect(page.getByText('No tracking observations recorded yet.')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Upcoming deliveries' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Recent tracking changes' })).toHaveCount(0);
 });
 
 test('minute polling retains stale data and its warning until a successful recovery', async ({
@@ -183,35 +159,3 @@ test('live tracking refreshes quietly without losing the homepage', async ({ pag
   await expect(page.getByRole('alert')).toHaveCount(0);
   await expect(page).toHaveURL('/');
 });
-
-for (const [before, after, from, to] of [
-  ['2026-03-08T04:59:30Z', '2026-03-08T05:00:30Z', '2026-03-08', '2026-03-14'],
-  ['2026-11-01T03:59:30Z', '2026-11-01T04:00:30Z', '2026-11-01', '2026-11-07'],
-] as const)
-  test(`minute refresh advances the server window across New York midnight ${from}`, async ({
-    page,
-  }) => {
-    await page.clock.install({ time: new Date(before) });
-    const state = await setup(page);
-    state.data = {
-      ...emptyOverview,
-      asOf: before,
-      upcomingWindow: {
-        from: from === '2026-03-08' ? '2026-03-07' : '2026-10-31',
-        to: from === '2026-03-08' ? '2026-03-13' : '2026-11-06',
-      },
-    };
-    await page.goto('/');
-    await expect(page.getByRole('link', { name: 'All shipments: 0' })).toBeVisible();
-    state.data = { ...emptyOverview, asOf: after, upcomingWindow: { from, to } };
-    await page.clock.runFor(60_100);
-    await expect(page.getByRole('region', { name: 'Upcoming deliveries' })).toContainText(
-      `${from} through ${to}`,
-    );
-    const href = await page
-      .getByRole('link', { name: 'View all upcoming deliveries' })
-      .getAttribute('href');
-    expect(new URL(href ?? '', 'http://fixture').searchParams.get('estimatedDeliveryFrom')).toBe(
-      from,
-    );
-  });

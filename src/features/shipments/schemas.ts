@@ -33,7 +33,7 @@ export const carrierSchema = z.object({
   name: z.string(),
   isActive: z.boolean(),
 });
-export const trackingSnapshotSchema = z.object({
+const trackingSnapshotSchema = z.object({
   externalId: z.uuidv4(),
   carrierStatus: z.string().nullable(),
   carrierStatusDetail: z.string().nullable(),

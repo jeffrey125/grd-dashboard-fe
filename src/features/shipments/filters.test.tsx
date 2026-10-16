@@ -3,28 +3,37 @@ import userEvent from '@testing-library/user-event';
 import { expect, it, vi } from 'vitest';
 import { ShipmentFilters } from './filters';
 
-it('requires Apply, explains reversed dates, and keeps drafts through live data changes', async () => {
+it('requires Apply and keeps the carrier draft through live data changes', async () => {
   const user = userEvent.setup();
   const apply = vi.fn();
-  const raw = { createdFrom: '2026-10-20', createdTo: '2026-10-10', q: '001', page: '3' };
+  const carrier = {
+    externalId: '5cf5db63-ef5e-4f1d-8462-61f7e060532c',
+    name: 'UPS',
+    isActive: true,
+  };
+  const raw = { q: '001', page: '3' };
   const view = render(
-    <ShipmentFilters raw={raw} carriers={[]} onApply={apply} onClear={vi.fn()} />,
+    <ShipmentFilters raw={raw} carriers={[carrier]} onApply={apply} onClear={vi.fn()} />,
   );
-  expect(screen.getByText('End date must be on or after start date.')).toBeVisible();
-  await user.click(screen.getByRole('button', { name: 'Choose created to' }));
-  await user.click(screen.getByRole('gridcell', { name: /^30$/ }));
-  const accept = screen.queryByRole('button', { name: 'OK' });
-  if (accept) await user.click(accept);
+  expect(screen.queryByLabelText('Latest lookup')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Created from')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Created to')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Delivery from')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Delivery to')).not.toBeInTheDocument();
+  await user.selectOptions(screen.getByLabelText('Carrier'), carrier.externalId);
   expect(apply).not.toHaveBeenCalled();
   view.rerender(
-    <ShipmentFilters raw={{ ...raw, q: '002' }} carriers={[]} onApply={apply} onClear={vi.fn()} />,
+    <ShipmentFilters
+      raw={{ ...raw, q: '002' }}
+      carriers={[carrier]}
+      onApply={apply}
+      onClear={vi.fn()}
+    />,
   );
-  expect(await screen.findByRole('group', { name: 'Created to' })).toHaveTextContent(
-    /2026.*10.*30/,
-  );
+  expect(screen.getByLabelText('Carrier')).toHaveValue(carrier.externalId);
   await user.click(screen.getByRole('button', { name: 'Apply filters' }));
   expect(apply).toHaveBeenCalledWith(
-    expect.objectContaining({ createdTo: '2026-10-30', q: '002', page: '1' }),
+    expect.objectContaining({ carrierExternalId: carrier.externalId, q: '002', page: '1' }),
   );
 });
 it('requires explicit correction of an invalid URL page rather than silently resetting it', async () => {
@@ -38,7 +47,7 @@ it('requires explicit correction of an invalid URL page rather than silently res
   expect(apply).toHaveBeenCalledWith(expect.objectContaining({ page: '1' }));
 });
 
-it('keeps impossible bookmarked dates visible and blocked until explicitly cleared', async () => {
+it('keeps invalid removed URL filters visible and blocked until explicitly cleared', async () => {
   const user = userEvent.setup();
   const apply = vi.fn();
   render(
@@ -49,10 +58,10 @@ it('keeps impossible bookmarked dates visible and blocked until explicitly clear
       onClear={vi.fn()}
     />,
   );
-  expect(screen.getByText(/Invalid date: 2025-02-29/)).toBeVisible();
+  expect(screen.getByLabelText('URL value: createdFrom')).toHaveValue('2025-02-29');
   await user.click(screen.getByRole('button', { name: 'Apply filters' }));
   expect(apply).not.toHaveBeenCalled();
-  await user.click(screen.getByRole('button', { name: 'Clear created from' }));
+  await user.click(screen.getByRole('button', { name: 'Clear createdFrom' }));
   await user.click(screen.getByRole('button', { name: 'Apply filters' }));
   expect(apply).toHaveBeenCalledWith({ page: '1' });
 });

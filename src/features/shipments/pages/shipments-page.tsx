@@ -16,7 +16,6 @@ import { ShipmentGrid } from '@features/shipments/shipment-grid';
 import { liveQuery, ReviewControls } from '@features/tracking-updates';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import Chip from '@mui/material/Chip';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Tab from '@mui/material/Tab';
@@ -66,6 +65,13 @@ export function ShipmentsPage() {
   const data = search ? query.data : undefined;
   const tabLabel = (value: keyof typeof tabs, label: string) =>
     `${label} (${data && !query.isPlaceholderData ? data.tabCounts[value] : '—'})`;
+  useEffect(() => {
+    if (raw.tab === 'paused') update(changeSearch(raw, { tab: 'attention' }, false), true);
+  }, [raw, update]);
+  useEffect(() => {
+    if (raw.sortBy === 'lastAttemptedAt')
+      update(changeSearch(raw, { sortBy: 'createdAt' }, false), true);
+  }, [raw, update]);
   useEffect(() => {
     if (!search || !data || query.isPlaceholderData || query.isFetching || query.isError) return;
     const last = Math.max(1, Math.ceil(data.total / search.pageSize));
@@ -168,13 +174,6 @@ export function ShipmentsPage() {
                 });
               }}
             />
-            {raw.undeliveredOnly === 'true' && (
-              <Chip
-                label="Undelivered only"
-                onDelete={() => update(changeSearch(raw, { undeliveredOnly: undefined }))}
-                sx={{ alignSelf: 'flex-start' }}
-              />
-            )}
           </Stack>
         </Paper>
         <TextField
@@ -210,7 +209,8 @@ export function ShipmentsPage() {
           ))}
         </Tabs>
         <Typography variant="caption">
-          Needs attention overlaps other tabs. Timestamps: America/New_York. Carrier delivery dates
+          Active, Delivered, and Needs attention partition All shipments. Needs attention includes
+          paused shipments and failed lookups. Timestamps: America/New_York. Carrier delivery dates
           are calendar dates.
         </Typography>
         {search && query.isError && (

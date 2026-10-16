@@ -31,16 +31,29 @@ async function setup(page: Page) {
     );
     const counts = {
       all: rows.length,
-      active: rows.filter((row) => row.monitoringStatus === 'active').length,
+      active: rows.filter(
+        (row) => row.monitoringStatus === 'active' && row.latestLookup?.outcome !== 'failed',
+      ).length,
       paused: rows.filter((row) => row.monitoringStatus === 'paused').length,
       delivered: 0,
-      attention: rows.filter((row) => row.monitoringReason === 'not_found_threshold').length,
+      attention: rows.filter(
+        (row) =>
+          row.monitoringStatus === 'paused' ||
+          (row.monitoringStatus !== 'completed' && row.latestLookup?.outcome === 'failed'),
+      ).length,
     };
     const tab = params.get('tab');
-    if (tab === 'active' || tab === 'paused')
-      rows = rows.filter((row) => row.monitoringStatus === tab);
+    if (tab === 'active')
+      rows = rows.filter(
+        (row) => row.monitoringStatus === 'active' && row.latestLookup?.outcome !== 'failed',
+      );
+    if (tab === 'paused') rows = rows.filter((row) => row.monitoringStatus === 'paused');
     if (tab === 'attention')
-      rows = rows.filter((row) => row.monitoringReason === 'not_found_threshold');
+      rows = rows.filter(
+        (row) =>
+          row.monitoringStatus === 'paused' ||
+          (row.monitoringStatus !== 'completed' && row.latestLookup?.outcome === 'failed'),
+      );
     if (params.get('sortBy') === 'trackingReference')
       rows.sort(
         (a, b) =>
@@ -167,40 +180,39 @@ test('default, pagination, debounced search, sort and back/detail return retain 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('invalid dates block requests until corrected and explicitly applied', async ({ page }) => {
+test('removed filters stay hidden while invalid legacy values remain clearable', async ({
+  page,
+}) => {
   const state = await setup(page);
   await page.goto('/shipments?createdFrom=2026-10-20&createdTo=2026-10-10');
   await expect(page.getByText(/Results are paused/)).toBeVisible();
   expect(state.queries).toHaveLength(0);
-  await page.getByRole('button', { name: 'Choose created to' }).click();
-  await page.getByRole('gridcell', { name: '30', exact: true }).click();
-  if ((page.viewportSize()?.width ?? 0) < 600)
-    await page.getByRole('button', { name: 'OK', exact: true }).click();
-  expect(state.queries).toHaveLength(0);
+  await expect(page.getByLabel('Latest lookup', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Created from', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Created to', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Delivery from', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Delivery to', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('URL value: createdFrom', { exact: true })).toHaveValue(
+    '2026-10-20',
+  );
+  await expect(page.getByLabel('URL value: createdTo', { exact: true })).toHaveValue('2026-10-10');
+  await page.getByRole('button', { name: 'Clear createdFrom' }).click();
+  await page.getByRole('button', { name: 'Clear createdTo' }).click();
   await page.getByRole('button', { name: 'Apply filters' }).click();
   await expectShipmentView(page, 'active', 'Active (30)');
-  expect(state.queries.at(-1)?.get('createdTo')).toBe('2026-10-30');
-  await page.getByRole('button', { name: 'Choose created from' }).click();
-  await page.getByRole('gridcell', { name: '21', exact: true }).click();
-  if ((page.viewportSize()?.width ?? 0) < 600)
-    await page.getByRole('button', { name: 'OK', exact: true }).click();
-  await page.evaluate(
-    (externalId) => window.liveFixture.emit('shipment.changed', { externalId, reason: 'updated' }),
-    shipmentFixture().externalId,
-  );
-  await expect(page.getByRole('group', { name: 'Created from', exact: true })).toHaveText(
-    /2026.*10.*21/,
-  );
-  expect(state.queries.at(-1)?.get('createdFrom')).toBe('2026-10-20');
+  expect(state.queries.at(-1)?.has('createdFrom')).toBe(false);
+  expect(state.queries.at(-1)?.has('createdTo')).toBe(false);
 });
 
-test('row actions target UUIDs, refetch conflicts, and move paused rows out of Active', async ({
+test('row actions target UUIDs, refetch conflicts, and move paused rows to Needs attention', async ({
   page,
 }) => {
   const state = await setup(page);
   state.rows = state.rows.slice(0, 2);
   await page.goto('/shipments');
   await expectShipmentView(page, 'active', 'Active (2)');
+  await expect(page.getByRole('tab', { name: /^Paused/ })).toHaveCount(0);
+  await expect(page.getByRole('option', { name: /^Paused/ })).toHaveCount(0);
   await (await actionControl(page, '0001', 'Refresh')).click();
   await expect(page.getByText(/refresh queued or joined/)).toBeVisible();
   expect(state.commands[0]).toContain(`${shipmentFixture().externalId}/refresh`);
@@ -215,8 +227,8 @@ test('row actions target UUIDs, refetch conflicts, and move paused rows out of A
   state.conflict = false;
   await (await actionControl(page, '0001', 'Pause monitoring')).click();
   await expectShipmentView(page, 'active', 'Active (1)');
-  await chooseShipmentView(page, 'paused', 'Paused (1)');
-  await expectShipmentView(page, 'paused', 'Paused (1)');
+  await chooseShipmentView(page, 'attention', 'Needs attention (1)');
+  await expectShipmentView(page, 'attention', 'Needs attention (1)');
   await expect(await actionControl(page, '0001', 'Resume monitoring')).toBeVisible();
   if (mobile(page)) {
     await expect(
@@ -402,7 +414,9 @@ test('page size controls remain available on narrow screens and reset to the fir
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('run-only events refresh the displayed latest run without changing sort', async ({ page }) => {
+test('run-only events refresh results without restoring the removed run field or changing sort', async ({
+  page,
+}) => {
   const state = await setup(page);
   const row = shipmentFixture(1, {
     latestRun: {
@@ -419,6 +433,7 @@ test('run-only events refresh the displayed latest run without changing sort', a
   state.rows = [row];
   await page.goto('/shipments');
   await expectShipmentView(page, 'active', 'Active (1)');
+  const reads = state.queries.length;
   if (!row.latestRun) throw new Error('Expected run fixture');
   row.latestRun.status = 'running';
   row.latestRun.startedAt = '2026-10-16T14:01:00Z';
@@ -426,12 +441,8 @@ test('run-only events refresh the displayed latest run without changing sort', a
     (externalId) => window.liveFixture.emit('run.changed', { externalId }),
     row.latestRun.externalId,
   );
-  const scroller = page.locator('.MuiDataGrid-virtualScroller');
-  if (await scroller.count())
-    await scroller.evaluate((element) => {
-      element.scrollLeft = 760;
-    });
-  await expect(page.getByText('Run: running', { exact: true })).toBeVisible();
+  await expect.poll(() => state.queries.length).toBeGreaterThan(reads);
+  await expect(page.getByText('Run: running', { exact: true })).toHaveCount(0);
   expect(state.queries.at(-1)?.get('sortBy')).toBe('createdAt');
   expect(state.queries.at(-1)?.get('sortDirection')).toBe('desc');
 });
@@ -468,7 +479,8 @@ test('responsive cards retain all details, wrap long text, and preserve state ac
   await expect(card.getByText('Pickup', { exact: true })).toBeVisible();
   await expect(card.getByText('2026-10-17', { exact: true })).toBeVisible();
   await expect(card.getByText('Delivery', { exact: true })).toBeVisible();
-  await expect(card.getByText('Latest lookup', { exact: true })).toBeVisible();
+  await expect(card.getByText('Latest lookup', { exact: true })).toHaveCount(0);
+  await expect(card.getByText('Last attempted', { exact: true })).toHaveCount(0);
   await expect(card.getByText('LongNote'.repeat(35), { exact: true })).toBeVisible();
   await expect(card.getByRole('link', { name: 'View details', exact: true })).toBeVisible();
   await expect(card.getByRole('button', { name: 'Refresh', exact: true })).toBeVisible();
@@ -499,42 +511,8 @@ test('responsive cards retain all details, wrap long text, and preserve state ac
   await expect(page.getByRole('grid', { name: 'Shipments' })).toBeVisible();
   await expect(page.getByRole('columnheader', { name: 'Pickup', exact: true })).toBeVisible();
   await expect(page.getByRole('columnheader', { name: 'Delivery', exact: true })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Latest lookup / run' })).toHaveCount(0);
+  await expect(page.getByRole('columnheader', { name: 'Last attempted' })).toHaveCount(0);
   await expect(page.getByRole('article')).toHaveCount(0);
   await expect(page).toHaveURL(/sortDirection=asc/);
-});
-
-test.describe('touch calendar filters', () => {
-  test.use({ hasTouch: true, isMobile: true, timezoneId: 'America/Los_Angeles' });
-  test('replaces an impossible URL date, applies all four dates, and clears explicitly', async ({
-    page,
-  }) => {
-    await page.clock.setFixedTime(new Date('2026-10-16T14:00:00Z'));
-    const state = await setup(page);
-    await page.goto('/shipments?createdFrom=2025-02-29');
-    await expect(page.getByText(/Invalid date: 2025-02-29/)).toBeVisible();
-    await page.getByRole('button', { name: 'Apply filters' }).click();
-    expect(state.queries).toHaveLength(0);
-    for (const label of ['created from', 'created to', 'delivery from', 'delivery to']) {
-      await page.getByRole('button', { name: `Choose ${label}`, exact: true }).click();
-      await page.getByRole('gridcell', { name: '20', exact: true }).click();
-      await page.getByRole('button', { name: 'OK', exact: true }).click();
-    }
-    expect(state.queries).toHaveLength(0);
-    await page.getByRole('button', { name: 'Apply filters' }).click();
-    await expectShipmentView(page, 'active', 'Active (30)');
-    for (const key of [
-      'createdFrom',
-      'createdTo',
-      'estimatedDeliveryFrom',
-      'estimatedDeliveryTo',
-    ]) {
-      expect(state.queries.at(-1)?.get(key)).toBe('2026-10-20');
-    }
-    await page.getByRole('button', { name: 'Clear created from', exact: true }).click();
-    await page.getByRole('button', { name: 'Apply filters' }).click();
-    await expect(page).not.toHaveURL(/createdFrom=/);
-    await expect(page).toHaveURL(/estimatedDeliveryFrom=2026-10-20/);
-    await page.getByRole('button', { name: 'Clear filters', exact: true }).click();
-    await expect(page).not.toHaveURL(/createdTo=|estimatedDelivery/);
-  });
 });

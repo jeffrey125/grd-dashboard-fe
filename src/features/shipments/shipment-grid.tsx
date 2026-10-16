@@ -21,7 +21,7 @@ import { useMemo, useState } from 'react';
 import { actionRules, useShipmentCommand } from './actions';
 import { monitoringLabel } from './detail-model';
 import type { Shipment } from './schemas';
-import { outcomes, type ShipmentSearch, sorts } from './search-state';
+import { type ShipmentSearch, sorts } from './search-state';
 
 const RouterMenuItem = createLink(MenuItem);
 const RouterButton = createLink(Button);
@@ -271,32 +271,10 @@ export function ShipmentGrid({
         valueGetter: (_value, row) => row.currentTracking?.estimatedDeliveryOn ?? 'Not available',
       },
       {
-        field: 'latestLookup',
-        headerName: 'Latest lookup / run',
-        width: 180,
-        sortable: false,
-        renderCell: ({ row }) => (
-          <Stack sx={{ justifyContent: 'center', height: '100%', lineHeight: 1.4 }}>
-            <span>{outcomes[row.latestLookup?.outcome ?? 'never_checked']}</span>
-            {row.latestRun && (
-              <Typography variant="caption">
-                Run: {row.latestRun.status.replaceAll('_', ' ')}
-              </Typography>
-            )}
-          </Stack>
-        ),
-      },
-      {
         field: 'createdAt',
         headerName: 'Created',
         width: 210,
         valueFormatter: (value: string) => businessTimestamp(value),
-      },
-      {
-        field: 'lastAttemptedAt',
-        headerName: 'Last attempted',
-        width: 210,
-        valueFormatter: (value: string | null) => businessTimestamp(value),
       },
       {
         field: 'notes',
@@ -400,12 +378,7 @@ export function ShipmentGrid({
                   Monitoring: monitoringLabel(row),
                   Pickup: row.currentTracking?.pickedUpOn ?? 'Not available',
                   Delivery: row.currentTracking?.estimatedDeliveryOn ?? 'Not available',
-                  'Latest lookup': outcomes[row.latestLookup?.outcome ?? 'never_checked'],
-                  'Latest run': row.latestRun
-                    ? `Run: ${row.latestRun.status.replaceAll('_', ' ')}`
-                    : 'Not available',
                   Created: businessTimestamp(row.createdAt),
-                  'Last attempted': businessTimestamp(row.lastAttemptedAt),
                 }).map(([label, value]) => (
                   <Box key={label}>
                     <Typography component="dt" variant="caption" color="text.secondary">

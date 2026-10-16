@@ -80,7 +80,7 @@ test('preserves a safe deep link, rejects bad credentials and restores after rel
   ).toBeVisible();
   await expect(page.getByLabel('Password', { exact: true })).toHaveValue('');
   await login(page);
-  await expect(page).toHaveURL(/\/shipments\?tab=paused$/);
+  await expect(page).toHaveURL(/\/shipments\?tab=attention$/);
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Shipments' })).toBeVisible();
   await page.goto('/admin/accounts');
@@ -103,7 +103,7 @@ test('forces replacement and returns to login after 204', async ({ page, context
   await page.getByRole('button', { name: 'Change password', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
   await expect(page.getByText('Password changed. Sign in with your new password.')).toBeVisible();
-  await expect(page).toHaveURL(/returnTo=%2Fshipments%3Ftab%3Dpaused/);
+  await expect(page).toHaveURL(/returnTo=%2Fshipments%3Ftab%3Dattention/);
 });
 
 test('locks other tabs, hides protected content on failed logout and retries', async ({

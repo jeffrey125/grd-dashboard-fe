@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { changeSearch, listReturnTo, readSearch, searchErrors, searchSchema } from './search-state';
 
 describe('shipment URL contract', () => {
-  it('defaults to active/newest, preserving literal references and date-only filters', () => {
+  it('defaults to active/newest and preserves literal references', () => {
     expect(searchSchema.parse({})).toMatchObject({
       tab: 'active',
       page: 1,
@@ -10,15 +10,17 @@ describe('shipment URL contract', () => {
       sortBy: 'createdAt',
       sortDirection: 'desc',
     });
-    expect(
-      searchSchema.parse({ q: ' 001%_ ', createdFrom: '2024-02-29', undeliveredOnly: 'true' }),
-    ).toMatchObject({ q: '001%_', createdFrom: '2024-02-29', undeliveredOnly: true });
+    expect(searchSchema.parse({ q: ' 001%_ ' })).toMatchObject({ q: '001%_' });
+    expect(searchSchema.parse({ tab: 'paused' }).tab).toBe('attention');
+    expect(searchSchema.parse({ sortBy: 'lastAttemptedAt' }).sortBy).toBe('createdAt');
   });
   it.each([
-    { createdFrom: '2025-02-29' },
-    { createdFrom: '0000-01-01' },
-    { createdFrom: '2026-10-20', createdTo: '2026-10-10' },
-    { estimatedDeliveryFrom: '2026-10-20', estimatedDeliveryTo: '2026-10-10' },
+    { lookupOutcome: 'failed' },
+    { createdFrom: '2026-10-20' },
+    { createdTo: '2026-10-20' },
+    { estimatedDeliveryFrom: '2026-10-20' },
+    { estimatedDeliveryTo: '2026-10-20' },
+    { undeliveredOnly: 'true' },
     { page: '0' },
     { page: '9007199254740991', pageSize: '100' },
     { pageSize: '10' },
@@ -34,15 +36,15 @@ describe('shipment URL contract', () => {
     expect(Object.keys(searchErrors(raw)).length).toBeGreaterThan(0);
   });
   it('resets page for changed filters and retains it for pagination', () => {
-    expect(changeSearch({ tab: 'paused', page: '9', q: '001' }, { q: '' })).toEqual({
-      tab: 'paused',
+    expect(changeSearch({ tab: 'attention', page: '9', q: '001' }, { q: '' })).toEqual({
+      tab: 'attention',
       page: '1',
     });
     expect(changeSearch({}, { page: '3' }, false)).toEqual({ page: '3' });
   });
   it('accepts only the overview or originating internal list as a return destination', () => {
     expect(listReturnTo('/')).toBe('/');
-    expect(listReturnTo('/shipments?tab=paused&page=3')).toBe('/shipments?tab=paused&page=3');
+    expect(listReturnTo('/shipments?tab=attention&page=3')).toBe('/shipments?tab=attention&page=3');
     for (const value of [
       'https://evil.example/shipments',
       '//evil.example/shipments',
