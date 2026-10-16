@@ -34,6 +34,7 @@ for (const signal of ['SIGINT', 'SIGTERM'])
 
 try {
   container = await new PostgreSqlContainer('postgres:18.3-alpine')
+    .withLabels({ 'grd.fe.test.api-port': String(apiPort) })
     .withDatabase('fe_auth_test')
     .withUsername('fe_auth_test')
     .withPassword(randomBytes(24).toString('hex'))
