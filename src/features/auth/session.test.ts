@@ -28,6 +28,18 @@ it('restores profiles and deduplicates concurrent business/SSE rechecks with a c
   expect(request).toHaveBeenCalledOnce();
 });
 
+it('refreshes own profile changes through Better Auth even during the auth cooldown', async () => {
+  const { session, request } = setup();
+  await session.recheck();
+  request.mockResolvedValueOnce({ ...accountFixture, firstName: 'Updated' });
+  await session.accountChanged();
+  expect(request).toHaveBeenCalledTimes(2);
+  expect(request).toHaveBeenLastCalledWith(
+    expect.objectContaining({ url: '/auth/me', auth: true }),
+  );
+  expect(session.getSnapshot().account?.firstName).toBe('Updated');
+});
+
 it('clears cached data, closes resources and rejects late auth restoration on expiry', async () => {
   const { session, request, queries } = setup();
   const cleanup = vi.fn();

@@ -206,6 +206,17 @@ export class Session {
     }
   };
 
+  /** Re-read an edited own profile through Better Auth, including other open tabs. */
+  async accountChanged() {
+    // An older in-flight profile read must not consume the post-save refresh.
+    const generation = this.state.generation;
+    await this.checkPromise;
+    if (generation !== this.state.generation) return;
+    this.nextCheck = 0;
+    await this.recheck(false);
+    this.broadcast('changed');
+  }
+
   async signIn(input: SignInInput) {
     if (this.action) return;
     this.action = true;
