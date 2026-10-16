@@ -3,9 +3,13 @@ import { randomBytes } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { seedShipmentDetailFixtures } from './shipment-detail-fixtures.mjs';
 import { seedShipmentListFixtures } from './shipment-list-fixtures.mjs';
 
 const backend = resolve('../grd-dashboard-be');
+const apiPort = Number(process.env.FE_TEST_API_PORT ?? 3000);
+if (!Number.isInteger(apiPort) || apiPort < 1024 || apiPort > 65535)
+  throw new Error('Invalid FE_TEST_API_PORT');
 const requireBackend = createRequire(resolve(backend, 'package.json'));
 const { PostgreSqlContainer } = requireBackend('@testcontainers/postgresql');
 const { NestFactory } = requireBackend('@nestjs/core');
@@ -36,9 +40,9 @@ try {
   Object.assign(process.env, {
     NODE_ENV: 'test',
     LOG_LEVEL: 'silent',
-    PORT: '3000',
+    PORT: String(apiPort),
     AUTH_SECRET: randomBytes(48).toString('hex'),
-    AUTH_BASE_URL: 'http://localhost:3000',
+    AUTH_BASE_URL: `http://localhost:${apiPort}`,
     AUTH_TRUSTED_ORIGINS: 'http://localhost:4175,http://localhost:4176,http://localhost:5173',
     DB_HOST: container.getHost(),
     DB_PORT: String(container.getPort()),
@@ -80,7 +84,7 @@ try {
     newPassword: 'admin fixture password',
   });
   const admin = await principalFor(email, 'admin fixture password');
-  for (const name of ['staff', 'restricted', 'shipments']) {
+  for (const name of ['staff', 'restricted', 'shipments', 'details']) {
     const accountEmail = `frontend-${name}@example.test`;
     await auth.createAccount(admin, {
       firstName: 'Frontend',
@@ -97,12 +101,15 @@ try {
   }
   const { DataSource } = requireBackend('typeorm');
   await seedShipmentListFixtures(app.get(DataSource));
-  await app.listen(3000, 'localhost');
-  console.log('Isolated auth API ready at http://localhost:3000/api/v1 (worker disabled).');
-} catch {
+  await seedShipmentDetailFixtures(app.get(DataSource));
+  await app.listen(apiPort, 'localhost');
+  console.log(`Isolated auth API ready at http://localhost:${apiPort}/api/v1 (worker disabled).`);
+} catch (error) {
   console.error(
-    'Isolated auth API failed. Check Docker access, backend build, and port 3000 availability.',
+    'Isolated auth API failed. Check Docker access, backend build, and test API port availability.',
   );
+  // Codes aid fixture diagnosis without logging SQL parameters, cookies or credentials.
+  console.error('Failure type:', error?.name ?? 'unknown', 'code:', error?.code ?? 'unavailable');
   await stop();
   process.exitCode = 1;
 }

@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const apiOrigin = `http://localhost:${process.env.FE_TEST_API_PORT ?? 3000}`;
+
 export default defineConfig({
   testDir: './e2e-backend',
   fullyParallel: false,
@@ -20,7 +22,7 @@ export default defineConfig({
   webServer: [
     {
       command: 'node scripts/auth-backend.mjs',
-      url: 'http://localhost:3000/api/v1/health/live',
+      url: `${apiOrigin}/api/v1/health/live`,
       reuseExistingServer: false,
       timeout: 120_000,
       gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 },
@@ -33,6 +35,7 @@ export default defineConfig({
     },
     {
       command: 'pnpm exec vite --host localhost --port 4176 --strictPort',
+      env: { VITE_API_ORIGIN: apiOrigin },
       url: 'http://localhost:4176',
       reuseExistingServer: false,
       timeout: 30_000,
