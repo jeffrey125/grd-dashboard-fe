@@ -42,7 +42,7 @@ restoration; no database migration or new provider calls are needed.
 | Themes         | Light/dark, system default, persisted explicit preference.                                                |
 | Branding       | GRD official website colors and logo; vector globe/GRD favicon and multi-size ICO fallback.               |
 | Timezone       | Headquarters timezone, `America/New_York`; preserve carrier calendar dates unchanged.                     |
-| Deferred       | Analytics, global controls, production publishing, hosting, and deployment.                               |
+| Delivery       | Manual LAN-only Docker Compose deployment at `https://192.168.100.83`; public hosting and automated publishing/deployment remain deferred. |
 
 ## Approved libraries and tools
 
@@ -296,3 +296,20 @@ Axios and Day.js. Admin operations use the implemented GRD account endpoints;
 do not install a Better Auth Admin plugin or call nonexistent generic Admin routes.
 No new dependency is needed. Credential-bearing mutations use local async/form
 state rather than Query's mutation cache; account reads remain Query-owned.
+
+## FE-V1-014 interview decisions
+
+Approved on 2026-10-17: deploy the complete dashboard on `debian-vm` for LAN-only
+IP access at `https://192.168.100.83`. Use Docker Compose with exact official
+PostgreSQL and Caddy images; add no npm production dependency. Build frontend and
+backend images locally, save and transfer an image archive, and copy a generated
+mode-600 environment file to `/home/jeff/app/grd-dashboard`.
+
+Use a fresh PostgreSQL database; do not migrate the Raspberry Pi SQLite data.
+Caddy belongs in the Compose stack and terminates HTTPS with its internal CA. The
+frontend and API use one origin, API port 3000 and PostgreSQL remain unpublished,
+and the exported CA certificate must be trusted on each client. The first start
+runs PostgreSQL, migrations, one API and Caddy/frontend. Keep the worker stopped
+until an Admin is bootstrapped and carrier settings/credentials are confirmed,
+then start exactly one worker through its explicit profile. Backups and deployments
+are manual; no backup sidecar, registry or deployment workflow is authorized.

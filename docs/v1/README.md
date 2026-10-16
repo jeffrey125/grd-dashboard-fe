@@ -37,6 +37,10 @@ See its
 [implementation summary](implementation-summary/FE-V1-012-implementation-summary.md).
 FE-V1-013 is implemented and locally verified; commit approval is pending. See its
 [implementation summary](implementation-summary/FE-V1-013-implementation-summary.md).
+FE-V1-014 is implemented, locally accepted, and deployed to the approved LAN
+homeserver with the worker held for manual bootstrap. Commit approval is pending.
+See its
+[implementation summary](implementation-summary/FE-V1-014-implementation-summary.md).
 Upcoming deliveries and matching search filters are restored in both repositories;
 see the [restoration summary](implementation-summary/FE-V1-010-upcoming-restoration.md).
 BE-V1-001 is implemented, locally verified, and committed in the
@@ -48,7 +52,9 @@ individual files.
 
 Rebuild shipment-monitoring behavior against the new backend, use Tom's dashboard
 layout patterns, and apply GRD branding. The homepage is a separate operational
-overview; performance analytics and deployment are deferred.
+overview. Performance analytics, public hosting and automated deployment are
+deferred; the approved manual LAN deployment is documented in
+[lan-deployment.md](lan-deployment.md).
 
 ## Reading order
 
@@ -86,8 +92,9 @@ before a dependent frontend feature can be accepted against the real API.
   `BE-V1-*` tickets execute in the backend; `FE-V1-*` execute here.
 - CI is in scope: installation, formatting, linting, types, dead-code checks,
   tests, build, secret scanning, and browser smoke checks.
-- No image publishing, deployment workflow, hosting account, production proxy,
-  DNS changes, or registry credentials are selected.
+- No image registry, deployment workflow, public hosting account, DNS changes, or
+  registry credentials are selected. FE-V1-014 adds only the approved manual
+  LAN image-archive deployment and Caddy proxy.
 - The existing backend authentication and role policies remain authoritative.
   There is no signup, emailed password reset, refresh-all, or scheduler control UI.
 - No npm dependencies have been installed by this planning milestone.

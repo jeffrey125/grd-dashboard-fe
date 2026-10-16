@@ -14,6 +14,9 @@ FE-V1-001/002 now provide these commands. The root
 | `pnpm test` / `pnpm test:coverage` | Run Vitest once; optional V8 coverage reports without a percentage threshold. |
 | `pnpm build` | Typecheck and create a Vite production artifact. |
 | `pnpm test:e2e` | Build and run isolated desktop/mobile Chromium smoke tests. |
+| `pnpm test:e2e:backend` | Run the real frontend/API browser paths on disposable PostgreSQL fixtures. |
+| `pnpm test:container` | Verify the LAN images and fresh-database Compose lifecycle without starting the worker. |
+| `pnpm test:acceptance` | Run frontend CI, real-backend browser acceptance, and container release checks. |
 | `pnpm check` | Format, lint, types, Knip, and unit/component tests. |
 | `pnpm run ci` | Format, lint, Knip, coverage, then build/types/browser smoke. |
 
@@ -91,9 +94,10 @@ Husky runs lint-staged safe formatting/lint fixes on intended staged files.
 Typechecks/tests are full CI/local gates rather than silently running in partial
 file mode. No script should stage unrelated working-tree changes.
 
-Do not copy Tom's GHCR publishing, SSH deployment, DigitalOcean environment,
-Docker delivery assumptions, or production-env sync scripts. No production
-secrets are needed for ordinary CI. Future real-backend CI must identify an
+Do not copy Tom's GHCR publishing, DigitalOcean environment, or production-env
+sync scripts. The separately approved LAN runbook uses local image archives and
+manual SSH transfer, not CI deployment or a registry. No production secrets are
+needed for ordinary CI. Future real-backend CI must identify an
 authorized backend checkout/ref, disposable database, fixtures, and credentials;
 never invent private-repository access or silently skip a required integration job.
 Local real-backend checks remain a release-readiness requirement while that CI
@@ -123,9 +127,9 @@ services or contain real provider credentials.
 
 Read the backend README before starting services. Use isolated fixtures and an
 authorized test account; do not reset a user's existing account or expose provider
-credentials to obtain a test login. Production-origin cookie/CORS verification
-stays deferred until hosting/domains are actually configured; local success does
-not prove production behavior.
+credentials to obtain a test login. The LAN same-origin container check verifies
+Caddy routing and API readiness. It does not replace browser auth verification
+against the real API or prove a public production-domain deployment.
 
 After a full-stack implementation, start/reuse frontend and backend, verify both
 are reachable, report their actual local URLs, and leave them running when the

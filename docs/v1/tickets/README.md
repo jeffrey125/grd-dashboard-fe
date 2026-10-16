@@ -28,6 +28,10 @@ FE-V1-012 is implemented, locally verified, and committed on `feature/dashboard-
 See its [summary](../implementation-summary/FE-V1-012-implementation-summary.md).
 FE-V1-013 is **Implemented and locally verified**, with commit approval pending.
 See its [summary](../implementation-summary/FE-V1-013-implementation-summary.md).
+FE-V1-014 is **Implemented, locally accepted, and deployed to the approved LAN
+homeserver**; the worker remains held for manual bootstrap and commit approval
+is pending. See its
+[summary](../implementation-summary/FE-V1-014-implementation-summary.md).
 BE-V1-001 is **Implemented, locally verified, and committed**; deployment is
 pending. See its [summary](../../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-001-implementation-summary.md).
 BE-V1-002 is **Implemented and locally verified**; deployment is pending. See its
@@ -126,6 +130,7 @@ and leave the verification limitation visible. Do not claim a missing API exists
 because fixture tests passed. Summaries record the target repository, changes,
 exact checks/results, relevant commit if approved, and unresolved limitations.
 
-Publishing and deployment are explicitly deferred, not hidden jobs enabled on
-main. Ticket completion does not grant commit approval. Brand assets must remain
-traceable to their original sources.
+Public publishing and automated deployment are explicitly deferred, not hidden
+jobs enabled on main. The manual LAN archive deployment is the only approved
+delivery path. Ticket completion does not grant commit approval. Brand assets
+must remain traceable to their original sources.

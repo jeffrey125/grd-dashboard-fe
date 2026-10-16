@@ -212,15 +212,22 @@ warning; reload can lose memory-only marks. No names, notes or API caches persis
 
 ## Configuration and delivery
 
-Plan `VITE_API_ORIGIN` as public build configuration, local default
+`VITE_API_ORIGIN` is public build configuration, with local default
 `http://localhost:3000`, with frontend origin `http://localhost:5173`. Validate it
 and document that `VITE_*` values are public. Do not copy actual `.env` files or
-reference-project domains/secrets. The future hosting choice must support SPA
-deep links and credentialed same-site HTTPS API access.
+reference-project domains/secrets.
 
 Keep the build a Vite static artifact. `vite preview` is for verification, not a
-selected production server. Docker delivery, reverse proxies, registry pushes,
-production environment syncing, and hosting-specific runtime config are deferred.
+selected production server. The approved LAN delivery builds the frontend with
+`VITE_API_ORIGIN=https://192.168.100.83` and serves it with Caddy from the same
+origin as `/api/v1`. Caddy's internal CA provides IP-address HTTPS after its root
+certificate is installed on each client. The Compose stack runs fresh PostgreSQL,
+a one-shot migration, one API, static frontend, and an opt-in single worker.
+Only ports 80/443 bind to the LAN address; PostgreSQL and API port 3000 stay private.
+
+Local image archives and a mode-600 environment file are manually copied to the
+homeserver. Registry pushes, public hosting/DNS and automated deployment remain
+deferred. See [lan-deployment.md](lan-deployment.md).
 
 ## Dates and responsive shipment results
 
