@@ -23,7 +23,8 @@ RUN pnpm build
 
 FROM caddy:2.11.7-alpine AS runtime
 
-COPY Caddyfile /etc/caddy/Caddyfile
+ARG CADDYFILE=Caddyfile
+COPY ${CADDYFILE} /etc/caddy/Caddyfile
 COPY --from=build /app/dist /srv
 
 EXPOSE 80 443 443/udp

@@ -3,6 +3,7 @@
 **
 !Dockerfile
 !Caddyfile
+!Caddyfile.http
 !package.json
 !pnpm-lock.yaml
 !pnpm-workspace.yaml

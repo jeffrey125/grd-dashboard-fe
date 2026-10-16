@@ -1,0 +1,19 @@
+# Explicitly insecure HTTP-only LAN override. Use only on a trusted private
+# network; passwords and session cookies travel in cleartext.
+services:
+  api:
+    environment:
+      NODE_ENV: development
+      AUTH_BASE_URL: ${GRD_ORIGIN:?Set GRD_ORIGIN to an http origin}
+      AUTH_TRUSTED_ORIGINS: ${GRD_ORIGIN:?Set GRD_ORIGIN to an http origin}
+    ports: !override
+      - '${GRD_LAN_IP:?Set GRD_LAN_IP}:${GRD_HTTP_PORT:-80}:80'
+
+  frontend:
+    image: ${GRD_FRONTEND_IMAGE:?Set GRD_FRONTEND_IMAGE to the HTTP image}
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget --quiet --spider http://$${GRD_LAN_IP}/healthz',
+        ]

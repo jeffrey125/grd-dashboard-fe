@@ -8,6 +8,7 @@ const { values } = parseArgs({
     ip: { type: 'string', default: '192.168.100.83' },
     output: { type: 'string', default: '.env.lan' },
     release: { type: 'string' },
+    scheme: { type: 'string', default: 'https' },
     source: { type: 'string', default: '../grd-dashboard-be/.env' },
   },
   strict: true,
@@ -19,6 +20,10 @@ if (!values.release || !/^\d{8}-\d{2}$/.test(values.release)) {
 
 if (!values.ip || !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(values.ip)) {
   throw new Error('--ip must be an IPv4 address.');
+}
+
+if (values.scheme !== 'http' && values.scheme !== 'https') {
+  throw new Error('--scheme must be http or https.');
 }
 
 const sourcePath = resolve(values.source);
@@ -38,9 +43,10 @@ function literal(value: string | undefined) {
 const variables = {
   GRD_RELEASE: values.release,
   GRD_BACKEND_IMAGE: `grd-dashboard-be:${values.release}`,
-  GRD_FRONTEND_IMAGE: `grd-dashboard-fe:${values.release}`,
+  GRD_FRONTEND_IMAGE: `grd-dashboard-fe:${values.scheme === 'http' ? `http-${values.release}` : values.release}`,
   GRD_LAN_IP: values.ip,
-  GRD_ORIGIN: `https://${values.ip}`,
+  GRD_ORIGIN: `${values.scheme}://${values.ip}`,
+  GRD_HTTP_ONLY: values.scheme === 'http' ? 'true' : 'false',
   GRD_DB_NAME: 'grd_dashboard',
   GRD_DB_USER: 'grd_dashboard',
   GRD_DB_PASSWORD: randomBytes(32).toString('hex'),

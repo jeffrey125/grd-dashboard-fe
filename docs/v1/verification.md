@@ -16,6 +16,7 @@ FE-V1-001/002 now provide these commands. The root
 | `pnpm test:e2e` | Build and run isolated desktop/mobile Chromium smoke tests. |
 | `pnpm test:e2e:backend` | Run the real frontend/API browser paths on disposable PostgreSQL fixtures. |
 | `pnpm test:container` | Verify the LAN images and fresh-database Compose lifecycle without starting the worker. |
+| `pnpm test:container:http` | Verify the opt-in HTTP-only Compose override, HTTP API/SPA routing, no HTTPS bindings, and no worker. |
 | `pnpm test:acceptance` | Run frontend CI, real-backend browser acceptance, and container release checks. |
 | `pnpm check` | Format, lint, types, Knip, and unit/component tests. |
 | `pnpm run ci` | Format, lint, Knip, coverage, then build/types/browser smoke. |

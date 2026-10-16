@@ -47,6 +47,46 @@ docker compose --env-file .env.lan -f docker-compose.lan.yml config --quiet
 Never print, source in a shared shell, or commit `.env.lan`. Changing
 `VITE_API_ORIGIN` requires rebuilding the frontend image.
 
+### Optional HTTP-only LAN mode
+
+HTTPS is the default. If a trusted, isolated LAN cannot install the Caddy root
+certificate, use the explicit insecure override below. It sends passwords and
+session cookies in cleartext, switches the API to development cookie mode, and
+must never be exposed outside that private network. Do not combine it with the
+HTTPS environment file or Compose file.
+
+```sh
+pnpm env:lan --scheme http --release 20261017-02 --ip 192.168.100.83 --output .env.lan-http
+docker build --tag grd-dashboard-be:20261017-02 ../grd-dashboard-be
+docker build \
+  --build-arg VITE_API_ORIGIN=http://192.168.100.83 \
+  --build-arg CADDYFILE=Caddyfile.http \
+  --tag grd-dashboard-fe:http-20261017-02 \
+  .
+docker compose --env-file .env.lan-http \
+  -f docker-compose.lan.yml -f docker-compose.lan-http.yml config --quiet
+```
+
+When reusing an existing PostgreSQL volume, preserve the current
+`GRD_DB_PASSWORD` and `GRD_AUTH_SECRET` values in the remote environment. The
+generator creates fresh random values for a fresh database; replacing the
+database password while retaining an initialized volume prevents migrations and
+the API from authenticating.
+
+Transfer `.env.lan-http`, `docker-compose.lan.yml`, `docker-compose.lan-http.yml`,
+and the image archive. On the host, use both Compose files for every command:
+
+```sh
+docker compose --env-file .env -f docker-compose.lan.yml \
+  -f docker-compose.lan-http.yml up -d --wait frontend
+curl --fail http://192.168.100.83/healthz
+curl --fail http://192.168.100.83/api/v1/health/ready
+```
+
+The HTTP override publishes only port 80 and deliberately does not generate or
+require a CA certificate. Switch back to the default HTTPS stack before sharing
+the service beyond a trusted isolated LAN.
+
 ## 3. Package and transfer
 
 ```sh

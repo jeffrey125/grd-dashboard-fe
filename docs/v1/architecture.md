@@ -225,6 +225,12 @@ certificate is installed on each client. The Compose stack runs fresh PostgreSQL
 a one-shot migration, one API, static frontend, and an opt-in single worker.
 Only ports 80/443 bind to the LAN address; PostgreSQL and API port 3000 stay private.
 
+For a trusted isolated LAN that cannot install the local CA, the explicit
+`docker-compose.lan-http.yml` override builds Caddy with `Caddyfile.http`, uses an
+HTTP frontend origin, publishes only port 80, and switches the API to development
+cookie mode. This mode carries credentials and session cookies in cleartext and is
+never a substitute for the default HTTPS delivery or a public deployment.
+
 Local image archives and a mode-600 environment file are manually copied to the
 homeserver. Registry pushes, public hosting/DNS and automated deployment remain
 deferred. See [lan-deployment.md](lan-deployment.md).

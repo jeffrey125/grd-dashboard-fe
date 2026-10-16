@@ -74,6 +74,7 @@ rebuild it. Non-public environment files are ignored by Git.
 | `pnpm test:e2e` | `pnpm build && playwright test` — fresh production build and Chromium desktop/mobile smoke tests. |
 | `pnpm test:e2e:backend` | Build both repositories and run the browser suite against a disposable PostgreSQL database and real API. |
 | `pnpm test:container` | Build disposable application images and verify fresh-database migration, same-origin HTTPS, isolation, and runtime contents. |
+| `pnpm test:container:http` | Build the explicit insecure HTTP-only LAN override and verify HTTP/API/SPA behavior with no HTTPS or worker. |
 | `pnpm test:acceptance` | Run frontend CI, real-backend browser acceptance, and the disposable LAN container lifecycle. |
 | `pnpm env:lan --release YYYYMMDD-NN` | Create a mode-600 `.env.lan` from the sibling backend environment with new database/auth secrets. |
 | `pnpm check` | `pnpm format:check && pnpm lint && pnpm typecheck && pnpm knip && pnpm test` — fast local gates. |
@@ -184,6 +185,13 @@ start exactly one worker. Caddy uses its internal CA, so each client must trust 
 exported root certificate before the IP origin is warning-free. This is a LAN-only,
 manual archive deployment; registry publishing, CI deployment and public hosting
 remain deferred.
+
+HTTPS is the default and recommended LAN mode. An explicit
+`docker-compose.lan-http.yml` override and `pnpm env:lan --scheme http` are
+available only for a trusted, isolated LAN where certificate installation is not
+possible. HTTP sends passwords and session cookies in cleartext, sets the API to
+development cookie mode, publishes only port 80, and must never be exposed beyond
+that private network.
 
 ## Implemented and planned routes
 

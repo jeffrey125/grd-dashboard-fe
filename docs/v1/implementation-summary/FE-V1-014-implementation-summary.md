@@ -14,6 +14,7 @@ FE-V1-014 is implemented as a LAN-only release path for the dashboard. The front
 - Hardened the real-backend Playwright harness with dedicated fixture identities and exact per-run Testcontainer handoff so the backend's per-email throttle and concurrent runs do not interfere.
 - Fixed the carrier editor focus/reconciliation race so a held server refresh cannot discard a user's in-progress selection; added a deterministic regression scenario.
 - Recorded the LAN deployment decision, deferred public-hosting decisions, verification evidence, and ticket status in the v1 documentation.
+- Added an explicit HTTP-only LAN override for trusted isolated networks that cannot install the Caddy root CA; HTTPS remains the default and recommended mode.
 
 ## Files Changed
 
@@ -21,6 +22,7 @@ FE-V1-014 is implemented as a LAN-only release path for the dashboard. The front
 - `scripts/prepare-lan-env.ts` — safe release environment generation.
 - `package.json`, `tsconfig.node.json`, `knip.json`, `README.md`, `.gitignore` — build, test, and documentation entry points.
 - `test/container/runtime.test.ts` — disposable Compose lifecycle and runtime-isolation checks.
+- `Caddyfile.http`, `docker-compose.lan-http.yml`, `.env.lan-http.example`, `test/container/http-runtime.test.ts` — opt-in HTTP-only release path and isolation checks.
 - `scripts/auth-backend.mjs`, `e2e-backend/*.spec.ts`, `e2e/carriers.spec.ts` — deterministic backend fixtures and regression coverage.
 - `src/features/carriers/carrier-editor.tsx` — dirty-editor reconciliation fix.
 - `docs/v1/README.md`, `docs/v1/architecture.md`, `docs/v1/decisions.md`, `docs/v1/verification.md`, `docs/v1/lan-deployment.md`, `docs/v1/tickets/*` — release decisions, runbook, and ticket records.
@@ -37,10 +39,28 @@ FE-V1-014 is implemented as a LAN-only release path for the dashboard. The front
 - `pnpm lint` — **PASS**.
 - `pnpm typecheck` — **PASS** for application, Node scripts, and e2e TypeScript configs.
 - `pnpm knip` — **PASS**.
+- `pnpm test:container:http` — **PASS**. Builds the HTTP Caddy image, starts a disposable PostgreSQL/API/frontend stack, verifies health/API/SPA routing, confirms no 443 bindings, and confirms the worker remains absent.
 - Gitleaks 8.30.1 git-history scan and working-tree directory scan — **PASS**, no leaks detected.
 - `git diff --check` — **PASS**.
 
 The image archive build and LAN transfer are intentionally a separate manual release step. Public hosting, registry publishing, and Pi data migration remain out of scope for this ticket.
+
+HTTP-only follow-up (2026-10-17): the opt-in override is intentionally insecure.
+It sends credentials and session cookies in cleartext, uses development cookie
+settings, and is suitable only for a trusted isolated LAN. The homeserver should
+use the existing HTTPS Compose file unless every approved client can accept that
+tradeoff.
+
+Current HTTP rollout evidence (2026-10-17): release `20261017-02` is loaded on
+`debian-vm` with archive SHA-256
+`a9066dab0fec7b13ea13804548d14e9d2904d5c33a4ca11ed4b7d910e33a9430` and the
+existing PostgreSQL volume preserved. HTTP `/healthz` and
+API readiness returned `200`, the protected shipments route returned `401`, the
+`/shipments/example` deep link returned `200`, port 443 was unreachable, and the
+worker remained absent. The remote database contains one active Admin still
+requiring the first-login password change. Because this was a profile switch on
+an initialized volume, the prior DB/auth secrets were retained rather than using
+the generator's fresh values.
 
 Homeserver deployment evidence (2026-10-17): release `20261017-01` was loaded on
 `debian-vm` at `/home/jeff/app/grd-dashboard`; the mode-600 remote environment is

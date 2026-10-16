@@ -38,7 +38,9 @@ See its
 FE-V1-013 is implemented and locally verified; commit approval is pending. See its
 [implementation summary](implementation-summary/FE-V1-013-implementation-summary.md).
 FE-V1-014 is implemented, locally accepted, and deployed to the approved LAN
-homeserver with the worker held for manual bootstrap. Commit approval is pending.
+homeserver with the worker held for manual bootstrap. HTTPS remains the default;
+an explicit, insecure HTTP-only override is available for a trusted isolated LAN.
+Commit approval is pending.
 See its
 [implementation summary](implementation-summary/FE-V1-014-implementation-summary.md).
 Upcoming deliveries and matching search filters are restored in both repositories;
@@ -94,7 +96,8 @@ before a dependent frontend feature can be accepted against the real API.
   tests, build, secret scanning, and browser smoke checks.
 - No image registry, deployment workflow, public hosting account, DNS changes, or
   registry credentials are selected. FE-V1-014 adds only the approved manual
-  LAN image-archive deployment and Caddy proxy.
+  LAN image-archive deployment and Caddy proxy. HTTP-only delivery is an explicit
+  insecure override, not the default.
 - The existing backend authentication and role policies remain authoritative.
   There is no signup, emailed password reset, refresh-all, or scheduler control UI.
 - No npm dependencies have been installed by this planning milestone.

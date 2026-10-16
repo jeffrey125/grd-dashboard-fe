@@ -12,6 +12,7 @@ test-results/
 .env.*
 !.env.example
 !.env.lan.example
+!.env.lan-http.example
 
 # Local agent and credential directories are not application inputs.
 .agents/

@@ -3,8 +3,10 @@
 ## Status
 
 Implemented with local acceptance and a fresh LAN rollout on `debian-vm`.
-The worker remains intentionally stopped until interactive Admin bootstrap and
-carrier/provider confirmation are complete.
+The current homeserver release uses the explicit HTTP-only override because the
+approved LAN clients could not install the Caddy CA. HTTPS remains the default
+rollback path. The worker remains intentionally stopped until carrier/provider
+confirmation is complete.
 
 ## Target repository
 
@@ -70,3 +72,20 @@ Keep public hosting, registry publishing, and automated deployment deferred.
   `/home/jeff/app/grd-dashboard/grd-dashboard-root.crt` (SHA-256
   `85ec17d72be7812db0b386e3ea393d23a83318f549d7f564660fbc9ba94b50f6`) for
   manual LAN client trust installation.
+
+## Current HTTP-only rollout evidence (2026-10-17)
+
+- Release `20261017-02` was built locally, checksum-verified
+  (`a9066dab0fec7b13ea13804548d14e9d2904d5c33a4ca11ed4b7d910e33a9430`), and
+  loaded on `debian-vm`. The live environment selects `grd-dashboard-be:20261017-02`,
+  `grd-dashboard-fe:http-20261017-02`, `http://192.168.100.83`, and
+  `GRD_HTTP_ONLY=true`.
+- The existing PostgreSQL volume was preserved. Its original database and auth
+  secrets were retained in the HTTP environment; no volume deletion or data
+  reset occurred.
+- Live checks returned HTTP `/healthz` `200`, API readiness `200`, protected
+  shipments `401`, and `/shipments/example` `200`. HTTPS port 443 is not
+  published and the worker is absent.
+- The database contains one active Admin with `must_change_password=true`; the
+  first-admin bootstrap is therefore complete, but the issued password still
+  requires replacement at first login.

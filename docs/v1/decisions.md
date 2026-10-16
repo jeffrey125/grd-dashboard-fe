@@ -313,3 +313,8 @@ runs PostgreSQL, migrations, one API and Caddy/frontend. Keep the worker stopped
 until an Admin is bootstrapped and carrier settings/credentials are confirmed,
 then start exactly one worker through its explicit profile. Backups and deployments
 are manual; no backup sidecar, registry or deployment workflow is authorized.
+
+On 2026-10-17 the user also approved an explicit HTTP-only Compose override for a
+trusted isolated LAN. It uses a separate Caddyfile, publishes only port 80, sets
+the API to development cookie mode, and is opt-in through `--scheme http`; HTTPS
+and the internal-CA flow remain the default and recommended deployment.

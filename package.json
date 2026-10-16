@@ -28,7 +28,8 @@
     "ci": "pnpm format:check && pnpm lint && pnpm knip && pnpm test:coverage && pnpm test:e2e",
     "test:e2e:backend": "pnpm --dir ../grd-dashboard-be build && pnpm build && playwright test --config playwright.backend.config.ts",
     "test:container": "node --test test/container/runtime.test.ts",
-    "test:acceptance": "pnpm run ci && pnpm test:e2e:backend && pnpm test:container"
+    "test:container:http": "node --test test/container/http-runtime.test.ts",
+    "test:acceptance": "pnpm run ci && pnpm test:e2e:backend && pnpm test:container && pnpm test:container:http"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
