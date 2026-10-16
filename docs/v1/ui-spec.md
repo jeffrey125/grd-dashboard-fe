@@ -124,7 +124,7 @@ views without promising a restore feature. Handle a concurrent delete with a
 clear missing/deleted screen and list link.
 
 FE-V1-008 uses separate Tracking, Monitoring, Latest lookup & run, and Notes cards.
-History navigation is absent until FE-V1-009. Notes start read-only with Edit notes;
+FE-V1-009 adds Overview/History navigation. Notes start read-only with Edit notes;
 detected concurrent changes show the latest server note while preserving the draft,
 with Use latest note and Save my draft anyway choices. Conditional save/locking is
 not supported by the current API. Internal navigation uses a discard dialog;
@@ -144,6 +144,16 @@ separately from later changes and render readable status/date differences where
 available; don't invent the previous record at a pagination boundary. It is the
 application's observation history, not a full carrier event timeline. Distinguish
 never observed, empty page, loading, and failure. Store tab/page in the URL.
+
+FE-V1-009 uses responsive snapshot cards with full normalized values, public UUIDs,
+and optional field-change callouts. Compare only neighboring observations in one
+response; explain unavailable comparison context at page boundaries. Default to
+25 observations with 25/50/100 options. Live refresh retains page/scroll, with a
+quiet dismissible notice when records/count change; offset pages can shift.
+Switching from Overview with dirty notes requires the existing discard confirmation.
+Keep the explicitly requested run above both tabs; Overview retains any distinct
+latest run. Invalid URL values remain visible with Reset view, while valid
+out-of-range pages replace the URL with the last available page after a successful read.
 
 ## Admin pages
 

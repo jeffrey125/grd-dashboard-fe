@@ -2,7 +2,11 @@
 
 ## Status
 
-Not started. Depends on FE-V1-008 and BE-V1-003.
+Implemented with local unit, browser and real-backend verification. Commit approval
+is pending. Prerequisites FE-V1-008 and BE-V1-003 were verified in source and their
+implementation evidence. See the
+[implementation summary](../implementation-summary/FE-V1-009-implementation-summary.md)
+for exact checks and limitations.
 
 ## Target repository
 

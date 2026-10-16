@@ -23,6 +23,9 @@ FE-V1-007 is implemented and locally verified; commit approval is pending.
 See its [implementation summary](implementation-summary/FE-V1-007-implementation-summary.md).
 FE-V1-008 is implemented, locally verified and committed on `feature/dashboard-v1`.
 See its [implementation summary](implementation-summary/FE-V1-008-implementation-summary.md).
+FE-V1-009 is implemented with local unit, browser and real-backend verification;
+commit approval is pending. See its
+[implementation summary](implementation-summary/FE-V1-009-implementation-summary.md).
 BE-V1-001 is implemented, locally verified, and committed in the
 backend repository; deployment is pending. See its
 [summary](../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-001-implementation-summary.md).

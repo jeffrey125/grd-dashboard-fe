@@ -8,7 +8,9 @@ real cookie-session authentication, password replacement, role guards, and cross
 session isolation. FE-V1-005 supplies live synchronization; FE-V1-006 supplies the
 server-paginated shipment list, Apply filters, URL validation and quick row actions.
 FE-V1-007 adds inline creation; FE-V1-008 adds shipment details, protected note
-editing, monitoring actions and run progress. Administration and later features remain in the
+editing, monitoring actions and run progress. FE-V1-009 adds the paginated History
+tab, normalized snapshot comparisons and shared requested-run progress.
+Administration and later features remain in the
 [v1 implementation tickets](docs/v1/tickets/README.md).
 
 ## Local development
@@ -182,7 +184,16 @@ detail routes now show separate Tracking, Monitoring, Latest lookup & run, and
 Notes sections. Drafts survive live updates, detected note conflicts require an
 explicit choice, and dirty navigation is protected. Refresh follows the exact
 accepted run, and reference-specific soft deletion returns to the originating
-list. History stays absent until FE-V1-009. Staff direct links
+list. Overview and History tabs use URL state (`tab`, `page`, `pageSize`). History
+defaults to 25 observations, with 25/50/100 options. Cards show full snapshots,
+public IDs, New York recorded timestamps and date-only carrier values. Comparisons
+use only adjacent records within the same response; the oldest entry is labeled
+Initial observation. Live updates retain the page and scroll position, with a quiet
+notice when the page's records/count change. New records can shift offset pages.
+Switching tabs requires confirmation before discarding dirty notes. A requested
+refresh remains visible above both tabs. Invalid detail URL values block content
+until explicitly reset; valid out-of-range pages clamp after a successful response.
+Staff direct links
 to `/admin` and descendants show a forbidden state; Admin links currently lead to
 an authenticated not-found screen until administration tickets are implemented.
 Unknown protected paths remain authenticated and offer a return-home link.

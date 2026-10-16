@@ -204,3 +204,24 @@ Final frontend CI passes 112 unit tests and 66 browser cases (22 detail cases).
 The two real-backend detail scenarios pass without development React warnings.
 Exact commands, visual evidence and verification limits are in the
 [FE-V1-008 summary](implementation-summary/FE-V1-008-implementation-summary.md).
+
+## FE-V1-009 history verification
+
+Unit coverage checks URL defaults/invalid values, unsafe offsets, nullable field
+comparisons and strict history envelope/page validation. Desktop/mobile Chromium
+cases cover direct links, page sizes, Back/reload, initial versus boundary labels,
+New York timestamps in a Los Angeles browser, date-only values, dirty-note discard,
+loading/error/empty/page-clamp states, live-event/request races, preserved scroll,
+deletion, keyboard tabs and both themes.
+
+`e2e-backend/shipment-history.spec.ts` reads actual PostgreSQL snapshots through
+direct API/production preview and the Vite proxy/mobile view. The disposable harness
+uses backend tracking finalization to seed initial, unchanged, changed and failed-later
+scenarios with partial null fields; a deterministic equal-time 26-record fixture
+exercises pagination. It checks public IDs, retained history after failure and
+requested-run visibility across tabs. No worker or carrier I/O runs.
+
+The history suite supports the same `FE_TEST_API_PORT` override as detail tests.
+The isolated account is `frontend-history@example.test` / `history fixture password`.
+See the [FE-V1-009 summary](implementation-summary/FE-V1-009-implementation-summary.md)
+for final commands and results.

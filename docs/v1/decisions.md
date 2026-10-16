@@ -199,3 +199,22 @@ polling only while queued/running; terminal and inaccessible runs stop polling.
 Mutation responses trigger authoritative reads instead of replacing newer cached
 shipment projections. Tracking-change audio/toasts and reviewed highlights remain
 FE-V1-011; user-action notifications remain available.
+
+## FE-V1-009 interview decisions
+
+Approved through the ticket interview: full responsive snapshot cards, showing
+public IDs, normalized status/date fields and New York recorded timestamps.
+Show differences only against an adjacent older snapshot in the same response;
+no extra boundary request. Identify the initial observation using the response's
+total and position. History is the application's observations, without invented
+unchanged polls or failed-lookup entries.
+
+Reuse installed MUI, TanStack Router/Query, Axios, Zod and Day.js. Five-field
+comparison is feature-local logic; no new dependency or generic diff package.
+URL state owns tab/page/pageSize, with 25/50/100 options. Preserve the current
+page and scroll on live updates and display a quiet update notice; offset reads
+may shift records between pages. Dirty notes require discard confirmation before
+switching to History. The accepted manual run stays above both tabs, without
+duplicating the same run in Overview. Existing live coordination handles
+coalescing, trailing reads and deletion; terminal displayed runs also invalidate
+history for missed-event recovery.
