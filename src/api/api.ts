@@ -58,6 +58,7 @@ export function safeError(error: unknown): ApiError {
 type Request = Omit<AxiosRequestConfig, 'baseURL' | 'withCredentials' | 'signal' | 'auth'> & {
   signal?: AbortSignal;
   auth?: boolean;
+  mapError?: (status: number, body: unknown) => ApiError | undefined;
 };
 
 /** A generation boundary covers mutations as well as Query-managed reads. */
@@ -79,7 +80,7 @@ export class ApiClient {
     this.controller = new AbortController();
   }
 
-  async request<T = unknown>({ signal, auth = false, ...config }: Request): Promise<T> {
+  async request<T = unknown>({ signal, auth = false, mapError, ...config }: Request): Promise<T> {
     const generation = this.generation;
     const combined = signal
       ? AbortSignal.any([signal, this.controller.signal])
@@ -96,7 +97,11 @@ export class ApiClient {
       if (!auth && (normalized.status === 401 || normalized.status === 403)) {
         this.onAuthError?.(normalized.status);
       }
-      throw normalized;
+      throw (
+        (axios.isAxiosError(error)
+          ? mapError?.(normalized.status, error.response?.data)
+          : undefined) ?? normalized
+      );
     }
   }
 }

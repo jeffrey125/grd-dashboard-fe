@@ -28,7 +28,7 @@ Deliver a responsive shipment workspace with server-owned queries and reliable q
 - Implement All/Active/Paused/Delivered/Needs attention tabs and server counts, default Active, page size controls, and createdAt desc with stable server ties.
 - Store tab/search/carrier/outcome/date ranges/page/sort in validated Router URL state. Support the overview's undelivered-only drill-down with a visible removable filter indicator.
 - Debounce search, cancel obsolete requests, reset page for changed filters/sort/tab, and clamp pages after deletion/state changes.
-- Implement reference/detail links, Add shipments navigation, useful columns/status distinctions, and per-row refresh plus valid pause/resume using shared feature mutations.
+- Implement reference/detail links, a reserved inline creation area, useful columns/status distinctions, and per-row refresh plus valid pause/resume using shared feature mutations.
 
 ## Acceptance criteria
 

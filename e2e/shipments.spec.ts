@@ -134,22 +134,31 @@ test('default, pagination, debounced search, sort and back/detail return retain 
   await expect(page.getByRole('heading', { name: 'Shipment details' })).toBeVisible();
   await page.getByRole('link', { name: 'Back to results' }).click();
   await expect(page).toHaveURL(/page=2/);
+  await page.evaluate(() =>
+    window.scrollTo(0, Math.min(240, document.body.scrollHeight - innerHeight)),
+  );
+  const searchScrollY = await page.evaluate(() => window.scrollY);
   await page.getByLabel('Search reference or notes').fill('00030');
   await expect(page.getByRole('link', { name: '00030', exact: true })).toBeVisible();
   await expectShipmentView(page, 'active', 'Active (1)');
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(searchScrollY);
   await page.reload();
   await expect(page.getByLabel('Search reference or notes')).toHaveValue('00030');
+  await page.evaluate(() =>
+    window.scrollTo(0, Math.min(240, document.body.scrollHeight - innerHeight)),
+  );
+  const scrollY = await page.evaluate(() => window.scrollY);
   if (await page.getByRole('combobox', { name: 'Sort by', exact: true }).count()) {
     await page
       .getByRole('combobox', { name: 'Sort by', exact: true })
       .selectOption('trackingReference');
   } else await page.getByRole('columnheader', { name: 'Reference / carrier' }).click();
   await expect(page).toHaveURL(/sortBy=trackingReference/);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(scrollY);
   await page.goBack();
   await expect(page).not.toHaveURL(/sortBy=trackingReference/);
-  await page.getByRole('link', { name: 'Add shipments' }).click();
-  await expect(page.getByText('Shipment creation is not available yet.')).toBeVisible();
-  await page.getByRole('link', { name: 'Back to results' }).click();
+  await expect(page.getByRole('heading', { name: 'Add shipment', exact: true })).toBeVisible();
+  await expect(page.getByLabel('Tracking reference', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Search reference or notes')).toHaveValue('00030');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
@@ -223,6 +232,7 @@ test('live deletion clamps pages and errors preserve known results with stale fe
   const state = await setup(page);
   await page.goto('/shipments?page=2');
   await expect(page.getByRole('link', { name: '00026', exact: true })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.liveFixture.active)).toBe(1);
   state.rows = state.rows.slice(0, 24);
   await page.evaluate(
     (externalId) => window.liveFixture.emit('shipment.changed', { externalId, reason: 'deleted' }),

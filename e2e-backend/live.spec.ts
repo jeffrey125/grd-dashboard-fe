@@ -77,16 +77,12 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
     const created = await context.request.post(`${api}/shipments`, {
       headers,
       data: {
-        items: [
-          {
-            carrierExternalId: carriers[0].externalId,
-            trackingReference: `sse-${origin.slice(-4)}-${Date.now()}`,
-          },
-        ],
+        carrierExternalId: carriers[0].externalId,
+        trackingReference: `sse-${origin.slice(-4)}-${Date.now()}`,
       },
     });
     expect(created.status()).toBe(201);
-    const id = (await created.json()).inserted[0].externalId;
+    const id = (await created.json()).shipment.externalId;
     await expect
       .poll(() =>
         page.evaluate(

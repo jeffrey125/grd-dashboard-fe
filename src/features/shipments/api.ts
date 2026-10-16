@@ -1,5 +1,6 @@
 import { type ApiClient, ApiError } from '@api/api';
 import { z } from 'zod';
+import { type CreateShipmentInput, shipmentValidationError } from './create-schema';
 import { carrierSchema, runSchema, searchResponseSchema, shipmentSchema } from './schemas';
 import type { ShipmentSearch } from './search-state';
 
@@ -21,6 +22,22 @@ export async function searchShipments(
 }
 export async function getCarriers(client: ApiClient, signal: AbortSignal) {
   return parse(z.array(carrierSchema), await client.request({ url: '/carriers', signal }));
+}
+const createResponseSchema = z.object({
+  outcome: z.enum(['created', 'existing']),
+  shipment: shipmentSchema,
+});
+export type CreateShipmentResult = z.infer<typeof createResponseSchema>;
+export async function createShipment(client: ApiClient, input: CreateShipmentInput) {
+  return parse(
+    createResponseSchema,
+    await client.request({
+      url: '/shipments',
+      method: 'POST',
+      data: input,
+      mapError: shipmentValidationError,
+    }),
+  );
 }
 export async function shipmentCommand(
   client: ApiClient,

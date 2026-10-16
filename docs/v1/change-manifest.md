@@ -48,7 +48,7 @@ is part of this milestone.
 | [`FE-V1-004-api-and-auth.md`](tickets/FE-V1-004-api-and-auth.md)                         | Axios and employee session/replacement/role lifecycle.                |
 | [`FE-V1-005-live-synchronization.md`](tickets/FE-V1-005-live-synchronization.md)         | Single SSE connection and event/fetch-race reconciliation.            |
 | [`FE-V1-006-shipment-list.md`](tickets/FE-V1-006-shipment-list.md)                       | Active-default tabbed server-driven table and quick actions.          |
-| [`FE-V1-007-create-shipments.md`](tickets/FE-V1-007-create-shipments.md)                 | Dedicated atomic batch form and list redirect.                        |
+| [`FE-V1-007-create-shipments.md`](tickets/FE-V1-007-create-shipments.md)                 | Inline single-shipment form and duplicate feedback.                   |
 | [`FE-V1-008-shipment-details.md`](tickets/FE-V1-008-shipment-details.md)                 | Dedicated Overview page, notes, run status, and actions.              |
 | [`FE-V1-009-shipment-history.md`](tickets/FE-V1-009-shipment-history.md)                 | Separate History tab and pagination.                                  |
 | [`FE-V1-010-overview-homepage.md`](tickets/FE-V1-010-overview-homepage.md)               | Problem-first homepage and matching drill-downs.                      |

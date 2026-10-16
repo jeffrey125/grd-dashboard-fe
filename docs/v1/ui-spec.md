@@ -8,7 +8,6 @@
 | `/change-password`           | Password replacement; required for restricted sessions, also available to authenticated users. |
 | `/`                          | Overview homepage; unrestricted Staff/Admin.                                                   |
 | `/shipments`                 | Shipment table; unrestricted Staff/Admin.                                                      |
-| `/shipments/new`             | Batch creation; unrestricted Staff/Admin.                                                      |
 | `/shipments/$shipmentId`     | Dedicated detail; `tab=overview` default or `tab=history`. Public UUID parameter.              |
 | `/admin/accounts`            | Account list; Admin.                                                                           |
 | `/admin/accounts/new`        | Create account; Admin.                                                                         |
@@ -81,7 +80,7 @@ shipment cards with labeled details, wrapping reference/notes, stacked full-widt
 action buttons, explicit sort controls and server pagination; desktop retains the
 tabs and table. Row highlights include a textual/icon "Updated" indicator.
 
-Page header contains Add shipments, sound preference, and **Mark displayed changes
+Page header contains sound preference and **Mark displayed changes
 as seen** when appropriate. Row menu offers detail, refresh, and permitted
 pause/resume; action availability follows backend rules. No refresh-all, bulk
 pause/delete, or scheduler start/stop. Editing notes/deletion belongs on detail.
@@ -91,25 +90,20 @@ delivered/paused. Created-time ordering prevents updates from moving rows to the
 top just because tracking changed. Refetch must not activate the wrong row action
 or silently drop pending user input. Clamp an invalid page after deletions.
 
-## Create shipments
+## Create shipment
 
-Start with one row: carrier, literal tracking reference, optional notes. Add/remove
-rows up to 10, with stable row identity and accessible labels. Only enabled
-carriers may be selected, while stale eligibility is rechecked by the backend.
-Explain the atomic batch and duplicate rules. No CSV/import/export feature is
-implied by batch entry.
+Place one compact form above the `/shipments` filters and results: enabled carrier,
+literal tracking reference, optional notes, and **Add shipment**. There is no bulk
+entry or import route. The backend rechecks carrier eligibility. Preserve leading
+zeros/case and turn blank optional notes into null.
 
-Disable repeat submission while pending. Map 1-based backend row errors to the
-correct submitted row, retaining every value. Preserve leading zeros/case and
-turn blank optional notes into null/omission according to the contract.
-
-On 200 or 201 success, return to `/shipments` at Active/page 1/newest-first with
-creation filters cleared so newly inserted records are visible. Toast added and
-duplicate counts accurately, including all-duplicate success. Existing paused or
-delivered duplicates may not appear in Active: provide a duplicate-feedback action
-link to All shipments and explain that their previous state/notes were retained.
-Do not claim duplicates were added. On validation/connectivity errors, stay on
-the create page. Warn before discarding a dirty form through in-app navigation.
+Lock editing and repeat submission while pending. On 201, clear reference and notes,
+retain the selected carrier, refresh shipment/overview queries, and show success
+without leaving the current list view. On 200 `existing`, immediately explain that
+the existing notes/status were retained and offer an All shipments action. Validation,
+carrier-race, and connectivity failures retain the draft and use allowlisted field
+messages. Filter/search/tab/sort/page URL changes remain within the view, preserve
+the draft, and do not scroll to the top.
 
 ## Shipment detail
 
@@ -164,7 +158,7 @@ User-action confirmations/errors can toast on any page. Field errors also appear
 beside fields; auth/connectivity problems retain a persistent visible state.
 
 Tracking-change alerts run **only while the exact pathname is `/shipments`**,
-across every tab/page/filter. They are disabled on `/`, `/shipments/new`, and
+across every tab/page/filter. They are disabled on `/` and
 shipment detail/admin/auth routes. The data subscriptions remain live elsewhere.
 Debounce/coalesce bursts into a short summary and one sound, with a close control
 and a sensible maximum of visible toasts. A manual refresh is first "queued";

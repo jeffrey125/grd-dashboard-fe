@@ -10,7 +10,7 @@
 | List behavior  | Backend pagination, search, filtering, counts; newest created first, stable tie-breaker.                  |
 | Tabs           | All shipments, Active, Paused, Delivered, Needs attention; Active is the default.                         |
 | Filters        | Reference/notes search, carrier, latest lookup outcome, created range, estimated-delivery range.          |
-| Creation       | Dedicated page, 1–10 rows, atomic validation, return to list after success.                               |
+| Creation       | Single inline form above `/shipments`; one request at a time, no bulk import/page.                         |
 | Detail         | Dedicated page with Overview and paginated History tabs.                                                  |
 | Actions        | Refresh and valid pause/resume in row menus; note editing/deletion on detail page. Per-shipment only.     |
 | Administration | Admin-only account list/create/detail and carrier list/detail settings pages.                             |
@@ -154,3 +154,19 @@ cleared; calendar selection remains a draft until Apply filters.
 The user also requested a mobile card view. Below the MUI `md` breakpoint (900px),
 use installed MUI Cards with the same server pages, URL sorting and shared row
 actions; desktop retains the Data Grid. No further dependency is required.
+
+## FE-V1-007 interview decisions
+
+Approved on 2026-10-16 and refined by the user: use installed React Hook Form,
+Zod/resolvers, MUI, TanStack Query/Router and Axios with no new dependency. Create
+exactly one shipment from a compact inline form above `/shipments`; remove the
+dedicated creation route and all bulk/import behavior. The first carrier requires
+explicit selection. Identity follows backend trimming and case-sensitive reference
+rules.
+
+Already-saved shipments return immediately as `existing` while preserving their
+notes/status. Lock editing during submission and retain input after failures.
+Success stays in the current list view, clears only
+reference/notes, retains carrier selection, invalidates list/overview data, and
+shows outcome-specific feedback. Search, filter, tab, sort, and pagination URL
+updates preserve scroll position.

@@ -104,7 +104,7 @@ checkout arrangement is unresolved.
 | Group               | Required evidence                                                                                                                                                                                                                                                                                          |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Auth                | Sign-in/out, reload restoration, invalid credentials, throttling, restricted-password redirect, post-change re-login, expired/revoked sessions, role denial, cleanup and no cached cross-user leakage.                                                                                                     |
-| Create              | One/ten rows, 11 rejected, leading zeros/case, duplicate rules, all-duplicate 200, mixed 201, invalid atomic batch, 1-based row errors, disabled carrier, double-click prevention, correct list redirect/toast.                                                                                            |
+| Create              | Single inline item, leading zeros/case, created 201, existing 200 without overwrite, safe field errors, disabled carrier race, draft retention, double-click prevention, and correct toast/query refresh.                                                                                                   |
 | List                | Default Active and created-desc, stable ties, URL navigation, all five controls, full-dataset filtering/sorting, correct overlapping counts, page reset/clamp, 1,000–10,000-record representative backend fixtures.                                                                                        |
 | Detail/actions      | Notes/clear, dirty draft vs live update, valid/invalid pause/resume, threshold refresh, manual-paused/terminal/disabled constraints, coalesced refresh, queued/running/terminal outcomes, safe delete and re-add, verification link safety.                                                                |
 | Read models/history | No snapshot, partial null fields, unchanged success, stale known data after failure, latest completed lookup despite pending run, public UUIDs, history pagination, missing/deleted shipment, no source/internal data leakage.                                                                             |
@@ -159,3 +159,19 @@ The FE-V1-006 follow-up covers calendar selection and malformed-date correction,
 explicit clearing, touch dialogs, date-only preservation in Los Angeles, and
 Day.js leap-year/early-year/DST boundaries. Mobile scenarios exercise cards,
 shared commands, sorting/page controls, long text and resizing back to the grid.
+
+## FE-V1-007 creation verification
+
+Schema/API unit tests cover strict single-item input, blank/NUL/UTF-16 length
+boundaries, literal case/leading zeros, note normalization, created/existing results,
+and safely parsed field-error envelopes. Desktop/mobile browser tests cover inline
+layout, exact request shape, retained carrier, cleared reference/notes, immediate
+existing feedback, pending double-click protection, safe field errors, network and
+carrier failures, and preserved scroll for list-state changes.
+
+`e2e-backend/create-shipments.spec.ts` uses the isolated PostgreSQL harness through
+both direct API and Vite proxy, with mobile layout on the proxy scenario. It verifies
+new and existing outcomes, unchanged existing notes/paused state, blank notes, and
+a real carrier-disable race. Fixture shipments are soft-deleted afterward and the
+carrier's original state is restored. No worker or live carrier
+calls are started. Exact final commands and limitations are in the FE-V1-007 summary.

@@ -15,7 +15,6 @@ import { Route as LoginRouteImport } from './../routes/login';
 import { Route as ShipmentsRouteImport } from './../routes/shipments';
 import { Route as ShipmentsIndexRouteImport } from './../routes/shipments.index';
 import { Route as ShipmentsShipmentIdRouteImport } from './../routes/shipments.$shipmentId';
-import { Route as ShipmentsNewRouteImport } from './../routes/shipments.new';
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -47,11 +46,6 @@ const ShipmentsShipmentIdRoute = ShipmentsShipmentIdRouteImport.update({
   path: '/$shipmentId',
   getParentRoute: () => ShipmentsRoute,
 } as any);
-const ShipmentsNewRoute = ShipmentsNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => ShipmentsRoute,
-} as any);
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
@@ -59,7 +53,6 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute;
   '/shipments': typeof ShipmentsRouteWithChildren;
   '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
-  '/shipments/new': typeof ShipmentsNewRoute;
   '/shipments/': typeof ShipmentsIndexRoute;
 }
 export interface FileRoutesByTo {
@@ -67,7 +60,6 @@ export interface FileRoutesByTo {
   '/change-password': typeof ChangePasswordRoute;
   '/login': typeof LoginRoute;
   '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
-  '/shipments/new': typeof ShipmentsNewRoute;
   '/shipments': typeof ShipmentsIndexRoute;
 }
 export interface FileRoutesById {
@@ -77,7 +69,6 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute;
   '/shipments': typeof ShipmentsRouteWithChildren;
   '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
-  '/shipments/new': typeof ShipmentsNewRoute;
   '/shipments/': typeof ShipmentsIndexRoute;
 }
 export interface FileRouteTypes {
@@ -88,7 +79,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/shipments'
     | '/shipments/$shipmentId'
-    | '/shipments/new'
     | '/shipments/';
   fileRoutesByTo: FileRoutesByTo;
   to:
@@ -96,7 +86,6 @@ export interface FileRouteTypes {
     | '/change-password'
     | '/login'
     | '/shipments/$shipmentId'
-    | '/shipments/new'
     | '/shipments';
   id:
     | '__root__'
@@ -105,7 +94,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/shipments'
     | '/shipments/$shipmentId'
-    | '/shipments/new'
     | '/shipments/';
   fileRoutesById: FileRoutesById;
 }
@@ -160,25 +148,16 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShipmentsShipmentIdRouteImport;
       parentRoute: typeof ShipmentsRoute;
     };
-    '/shipments/new': {
-      id: '/shipments/new';
-      path: '/new';
-      fullPath: '/shipments/new';
-      preLoaderRoute: typeof ShipmentsNewRouteImport;
-      parentRoute: typeof ShipmentsRoute;
-    };
   }
 }
 
 interface ShipmentsRouteChildren {
   ShipmentsShipmentIdRoute: typeof ShipmentsShipmentIdRoute;
-  ShipmentsNewRoute: typeof ShipmentsNewRoute;
   ShipmentsIndexRoute: typeof ShipmentsIndexRoute;
 }
 
 const ShipmentsRouteChildren: ShipmentsRouteChildren = {
   ShipmentsShipmentIdRoute: ShipmentsShipmentIdRoute,
-  ShipmentsNewRoute: ShipmentsNewRoute,
   ShipmentsIndexRoute: ShipmentsIndexRoute,
 };
 

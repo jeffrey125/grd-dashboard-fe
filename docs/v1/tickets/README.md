@@ -14,6 +14,8 @@ FE-V1-005 is **Implemented, locally verified, and committed**.
 See its [summary](../implementation-summary/FE-V1-005-implementation-summary.md).
 FE-V1-006 is implemented and locally verified; commit approval is pending.
 See its [implementation summary](../implementation-summary/FE-V1-006-implementation-summary.md).
+FE-V1-007 is implemented and locally verified; commit approval is pending.
+See its [summary](../implementation-summary/FE-V1-007-implementation-summary.md).
 BE-V1-001 is **Implemented, locally verified, and committed**; deployment is
 pending. See its [summary](../../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-001-implementation-summary.md).
 BE-V1-002 is **Implemented and locally verified**; deployment is pending. See its
@@ -53,7 +55,7 @@ scope per ticket where practical. This plan does not require parallel agents.
 | [FE-V1-004](FE-V1-004-api-and-auth.md)           | FE-V1-003, existing auth API | Axios/session infrastructure, sign-in, replacement, role guards, teardown.           |
 | [FE-V1-005](FE-V1-005-live-synchronization.md)   | FE-V1-004                    | Single SSE lifecycle and race-safe cache invalidation.                               |
 | [FE-V1-006](FE-V1-006-shipment-list.md)          | FE-V1-005, BE-V1-002         | Active-default tabbed list, server queries, URL state, quick row actions.            |
-| [FE-V1-007](FE-V1-007-create-shipments.md)       | FE-V1-006                    | Dedicated 1–10-row creation, errors/duplicates, list redirect.                       |
+| [FE-V1-007](FE-V1-007-create-shipments.md)       | FE-V1-006                    | Inline single-shipment creation and immediate duplicate feedback.                    |
 | [FE-V1-008](FE-V1-008-shipment-details.md)       | FE-V1-006, BE-V1-001         | Dedicated Overview detail, notes, delete, refresh/run feedback.                      |
 | [FE-V1-009](FE-V1-009-shipment-history.md)       | FE-V1-008, BE-V1-003         | Dedicated detail History tab with pagination.                                        |
 | [FE-V1-010](FE-V1-010-overview-homepage.md)      | FE-V1-009, BE-V1-004         | Problem-first homepage with server totals and useful drill-downs.                    |

@@ -77,10 +77,10 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
     const headers = { Origin: origin };
     const created = await context.request.post(`${api}/shipments`, {
       headers,
-      data: { items: [{ carrierExternalId: carrier.externalId, trackingReference: reference }] },
+      data: { carrierExternalId: carrier.externalId, trackingReference: reference },
     });
     expect(created.status()).toBe(201);
-    const shipment = (await created.json()).inserted[0];
+    const shipment = (await created.json()).shipment;
     await page.goto(`${origin}/shipments?q=${reference}`);
     await expect(page.getByRole('tab', { name: 'Active (1)', exact: true })).toBeVisible();
     const openActions = async () => {

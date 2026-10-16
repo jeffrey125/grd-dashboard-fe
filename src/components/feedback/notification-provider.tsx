@@ -1,4 +1,5 @@
 import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
 import Snackbar from '@mui/material/Snackbar';
 import {
   createContext,
@@ -15,9 +16,10 @@ type NotificationSeverity = 'success' | 'info' | 'warning' | 'error';
 type NotificationRequest = {
   message: string;
   severity?: NotificationSeverity;
+  action?: { label: string; onClick: () => void };
 };
 
-type QueuedNotification = Required<NotificationRequest> & { id: number };
+type QueuedNotification = NotificationRequest & { id: number; severity: NotificationSeverity };
 
 type NotificationContextValue = {
   showNotification: (request: NotificationRequest) => void;
@@ -30,11 +32,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const nextId = useRef(1);
   const current = queue[0];
 
-  const showNotification = useCallback(({ message, severity = 'info' }: NotificationRequest) => {
-    const id = nextId.current;
-    nextId.current += 1;
-    setQueue((notifications) => [...notifications, { id, message, severity }].slice(-3));
-  }, []);
+  const showNotification = useCallback(
+    ({ message, severity = 'info', action }: NotificationRequest) => {
+      const id = nextId.current;
+      nextId.current += 1;
+      setQueue((notifications) => [...notifications, { id, message, severity, action }].slice(-3));
+    },
+    [],
+  );
 
   const value = useMemo(() => ({ showNotification }), [showNotification]);
 
@@ -49,7 +54,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       <Snackbar
         key={current?.id}
         open={Boolean(current)}
-        autoHideDuration={4_500}
+        autoHideDuration={current?.action ? null : 4_500}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         onClose={closeCurrent}
       >
@@ -61,6 +66,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             sx={{ width: '100%' }}
           >
             {current.message}
+            {current.action && (
+              <Button
+                color="inherit"
+                onClick={() => {
+                  closeCurrent();
+                  current.action?.onClick();
+                }}
+                sx={{ display: 'block', mt: 1 }}
+              >
+                {current.action.label}
+              </Button>
+            )}
           </Alert>
         ) : undefined}
       </Snackbar>

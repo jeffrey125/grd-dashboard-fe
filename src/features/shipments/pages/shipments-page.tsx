@@ -1,7 +1,9 @@
 import { safeError } from '@api/api';
+import { useNotifications } from '@components/feedback/notification-provider';
 import { PageHeader } from '@components/layout/page-header';
 import { useSession } from '@features/auth';
-import { getCarriers, searchShipments } from '@features/shipments/api';
+import { createShipment, getCarriers, searchShipments } from '@features/shipments/api';
+import { CreateShipmentForm } from '@features/shipments/create-form';
 import { SearchBox, ShipmentFilters } from '@features/shipments/filters';
 import {
   changeSearch,
@@ -21,11 +23,9 @@ import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { createLink, useLocation, useNavigate, useSearch } from '@tanstack/react-router';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useLocation, useNavigate, useSearch } from '@tanstack/react-router';
 import { useCallback, useEffect, useState } from 'react';
-
-const RouterButton = createLink(Button);
 
 export function ShipmentsPage() {
   const [clearRevision, setClearRevision] = useState(0);
@@ -33,12 +33,14 @@ export function ShipmentsPage() {
   const navigate = useNavigate({ from: '/shipments/' });
   const returnTo = useLocation({ select: (location) => location.href });
   const { session } = useSession();
+  const queries = useQueryClient();
+  const { showNotification } = useNotifications();
   const parsed = searchSchema.safeParse(raw);
   const search = parsed.success ? parsed.data : undefined;
   const errors = searchErrors(raw);
   const update = useCallback(
     (next: SearchState, replace = false) => {
-      void navigate({ to: '/shipments', search: next, replace });
+      void navigate({ to: '/shipments', search: next, replace, resetScroll: false });
     },
     [navigate],
   );
@@ -55,6 +57,12 @@ export function ShipmentsPage() {
     queryFn: ({ signal }) => getCarriers(session.client, signal),
     ...liveQuery({ target: { kind: 'carriers' } }),
   });
+  const createMutation = useMutation({
+    mutationFn: (input: Parameters<typeof createShipment>[1]) =>
+      createShipment(session.client, input),
+    retry: false,
+  });
+  const hasEnabledCarrier = carriers.data?.some((carrier) => carrier.isActive) ?? false;
   const data = search ? query.data : undefined;
   const tabLabel = (value: keyof typeof tabs, label: string) =>
     `${label} (${data && !query.isPlaceholderData ? data.tabCounts[value] : '—'})`;
@@ -80,13 +88,41 @@ export function ShipmentsPage() {
         title="Shipments"
         description="Search, monitor, and manage tracked shipments."
         breadcrumbs={[{ label: 'Overview', href: '/' }, { label: 'Shipments' }]}
-        actions={
-          <RouterButton to="/shipments/new" search={{ returnTo }} variant="contained">
-            Add shipments
-          </RouterButton>
-        }
       />
       <Stack spacing={2} sx={{ minWidth: 0 }}>
+        {carriers.isPending && <Alert severity="info">Loading carriers…</Alert>}
+        {carriers.isSuccess && !hasEnabledCarrier && (
+          <Alert severity="warning">
+            No enabled carriers are available. Ask an administrator to enable a carrier.
+          </Alert>
+        )}
+        <CreateShipmentForm
+          carriers={carriers.data ?? []}
+          unavailable={carriers.isPending || carriers.isError || !hasEnabledCarrier}
+          onCreate={createMutation.mutateAsync}
+          onCarrierError={() => {
+            void carriers.refetch();
+          }}
+          onSaved={(result) => {
+            void queries.invalidateQueries({ queryKey: ['shipments'] });
+            void queries.invalidateQueries({ queryKey: ['overview'] });
+            showNotification({
+              message:
+                result.outcome === 'created'
+                  ? 'Shipment added.'
+                  : 'Shipment already exists. Existing notes and status were retained.',
+              severity: result.outcome === 'created' ? 'success' : 'info',
+              ...(result.outcome === 'existing'
+                ? {
+                    action: {
+                      label: 'All shipments',
+                      onClick: () => update(changeSearch(raw, { tab: 'all' })),
+                    },
+                  }
+                : {}),
+            });
+          }}
+        />
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Stack spacing={2}>
             <SearchBox

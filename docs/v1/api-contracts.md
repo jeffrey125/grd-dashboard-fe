@@ -33,7 +33,7 @@ these are not deployed by this plan.
 | Auth      | `POST /auth/sign-in`, `GET /auth/me`, `POST /auth/sign-out`, `POST /auth/change-password`. Profile responses and HttpOnly cookies, not tokens.                                                                                                                                                  |
 | Accounts  | Admin GET list/detail, POST create, PATCH account, POST password under `/admin/accounts`. No account DELETE or emailed invitation/reset.                                                                                                                                                        |
 | Carriers  | GET `/carriers`, GET/PATCH `/carriers/:externalId`; PATCH Admin-only. No create/delete/restore.                                                                                                                                                                                                 |
-| Shipments | GET `/shipments/search` returns paginated/filterable rows and tab counts; GET `/shipments/:externalId/history` returns normalized snapshot history; legacy GET `/shipments` returns an unpaginated array; detail GET; bulk POST; notes-only PATCH; soft DELETE; per-shipment POST pause/resume. |
+| Shipments | GET `/shipments/search` returns paginated/filterable rows and tab counts; GET `/shipments/:externalId/history` returns normalized snapshot history; legacy GET `/shipments` returns an unpaginated array; detail GET; single-item POST; notes-only PATCH; soft DELETE; per-shipment POST pause/resume. |
 | Dashboard | GET `/dashboard/overview` returns consistent state counts and bounded attention, upcoming-delivery, and recent-change panels.                                                                                                                                                                   |
 | Refresh   | POST `/shipments/:externalId/refresh` → 202 run; GET `/tracking-runs/:externalId` → run/attempt outcomes. Current/latest lookup/run also appear on Shipment responses.                                                                                                                          |
 | SSE       | GET `/events`: `resync`, `shipment.changed`, `tracking.changed`, `run.changed`, `heartbeat`; invalidation events, no replay.                                                                                                                                                                    |
@@ -55,11 +55,13 @@ Existing Shipment JSON has `externalId`, Carrier summary, `trackingReference`,
   password change returns 204 and revokes all sessions; sign in again.
 - Staff and Admin can perform Shipment actions. Only Admin manages accounts and
   carrier settings. Server is authoritative; handle protected Admin changes with 409. There is no self-deactivation or self-demotion.
-- Shipment creation accepts 1–10 items atomically. Tracking references are
+- Shipment creation accepts one strict `{ carrierExternalId, trackingReference,
+  notes? }` object per request. Tracking references are
   trimmed nonblank strings, at most 255 UTF-16 code units, no NUL. Preserve leading
   zeros and case. Notes are nullable or trimmed 1–500 code units, no NUL; clearing
-  sends null. Reject unknown fields. In-batch duplicates collapse, last notes win;
-  existing nondeleted duplicates remain unchanged. Row errors are 1-based.
+  sends null. Reject unknown fields. Existing nondeleted duplicates return 200 with
+  `outcome: "existing"` and remain unchanged; new records return 201 with
+  `outcome: "created"`. Validation details use allowlisted field names.
 - Notes are the only editable Shipment field. Carrier/reference correction is
   not a PATCH feature. Delete is soft and 204; re-add creates a new UUID.
 - Pause: active → paused/manual. Resume: paused/manual → active. Threshold-paused
@@ -78,7 +80,7 @@ Existing Shipment JSON has `externalId`, Carrier summary, `trackingReference`,
 ## Implemented locally BE-V1-001: current tracking and lookup projection
 
 These fields are returned consistently from Shipment list/detail, notes,
-pause/resume and inserted/duplicate records. Every existing field and the legacy
+pause/resume and creation records. Every existing field and the legacy
 GET array shape are preserved. Nulls are explicit and meaningful.
 
 ```ts

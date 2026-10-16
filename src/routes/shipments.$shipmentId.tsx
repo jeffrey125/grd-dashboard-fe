@@ -7,5 +7,5 @@ export const Route = createFileRoute('/shipments/$shipmentId')({
   beforeLoad: ({ params }) => {
     if (!z.uuidv4().safeParse(params.shipmentId).success) throw notFound();
   },
-  component: () => <ShipmentPlaceholder detail />,
+  component: ShipmentPlaceholder,
 });

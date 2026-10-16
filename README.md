@@ -156,9 +156,12 @@ expose refresh and valid pause/resume; mobile cards stack those actions as full-
 touch-friendly buttons. Desktop results include Pickup and Delivery date columns;
 mobile uses a full-width Shipment view selector and cards with the same dates,
 sorting, and pagination.
-The Delivery label is the carrier's current estimated-delivery date. `/shipments/new`
-and UUID detail routes are labeled
-placeholders with Back to results until FE-V1-007/008. Staff direct links
+The Delivery label is the carrier's current estimated-delivery date. `/shipments`
+includes a compact single-shipment form above the filters and results. Existing
+shipments are reported immediately without overwriting notes/status; successful
+creation clears the reference and notes while retaining the selected carrier.
+Search, filter, tab, sort, and pagination changes preserve scroll position. UUID
+detail routes remain labeled placeholders until FE-V1-008. Staff direct links
 to `/admin` and descendants show a forbidden state; Admin links currently lead to
 an authenticated not-found screen until administration tickets are implemented.
 Unknown protected paths remain authenticated and offer a return-home link.
