@@ -161,7 +161,20 @@ remaining coordinator owns GRD lock/teardown rules. All requests pass through th
 shared Axios module `src/api/api.ts` and feature `api.ts` functions. Auth forms clear password fields after
 submission; no profile, cookie, token, or password is persisted by application code.
 `Retry-After` is honored when exposed by CORS, with a 60-second fallback on 429.
-Actual SSE connection/invalidation work belongs to FE-V1-005.
+FE-V1-005 now opens one credentialed SSE connection per authenticated tab, handles
+validated resync/shipment/tracking/run events, and closes it on session loss.
+The protected shell shows a quiet stale warning after two seconds; transport
+recovery waits for resync and successful relevant refreshes. HTTP actions remain
+available while the session is confirmed. Failed session checks still lock the app.
+
+Future data queries opt in by spreading `liveQuery({ target })` from
+`@features/tracking-updates` into their TanStack Query options. The coordinator
+coalesces events over 100 ms and retains a trailing refresh during an existing
+request. Inactive caches are invalidated; confirmed shipment 404s clear retained
+detail/history data. Carrier-dependent targets opt into age-aware focus refreshes
+and explicit post-edit invalidation. See [the registration contract](docs/v1/architecture.md#implemented-live-registration-boundary-fe-v1-005).
+The current overview/shipment pages remain placeholders; their queries and UI
+arrive in subsequent tickets. Tracking highlights/audio/toasts remain FE-V1-011.
 
 ## Source boundaries and import aliases
 

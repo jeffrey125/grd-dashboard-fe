@@ -10,6 +10,8 @@ explicit approval. See its
 [summary](../implementation-summary/FE-V1-003-implementation-summary.md).
 FE-V1-004 is **Implemented, locally verified, and committed**. See its
 [summary](../implementation-summary/FE-V1-004-implementation-summary.md).
+FE-V1-005 is **Implemented, locally verified, and committed**.
+See its [summary](../implementation-summary/FE-V1-005-implementation-summary.md).
 BE-V1-001 is **Implemented, locally verified, and committed**; deployment is
 pending. See its [summary](../../../../grd-dashboard-be/docs/v1/implementation-summary/BE-V1-001-implementation-summary.md).
 BE-V1-002 is **Implemented and locally verified**; deployment is pending. See its

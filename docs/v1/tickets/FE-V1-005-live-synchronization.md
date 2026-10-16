@@ -2,7 +2,10 @@
 
 ## Status
 
-Not started. Depends on FE-V1-004.
+Implemented, locally verified, and committed on 2026-10-16 after explicit approval.
+FE-V1-004 is implemented. See the
+[implementation summary](../implementation-summary/FE-V1-005-implementation-summary.md)
+for exact verification and the registration boundary for later feature queries.
 
 ## Target repository
 
@@ -22,7 +25,7 @@ Keep protected data synchronized with one authenticated event connection without
 ## Scope
 
 - Use native credentialed EventSource under the authenticated app lifecycle; subscribe before protected initial data fetches.
-- Handle existing resync, shipment.changed, run.changed, and heartbeat through explicit feature registration/exports. Prepare a typed extension point for BE-V1-005 without pretending the event exists already.
+- Handle existing resync, shipment.changed, tracking.changed, run.changed, and heartbeat through explicit feature registration/exports. BE-V1-005 is implemented; expose its validated payload while deferring tracking alerts/review behavior to FE-V1-011.
 - Coalesce bursts and invalidate relevant detail/list/count/overview/run queries. Guarantee a follow-up fetch or safe cancellation when an event arrives during an in-flight request.
 - Handle reconnect and one backed-off /auth/me check after stream error; close on revoked/restricted sessions and stop old-account work.
 - Refresh displayed carrier data after edits/focus/reconnect because no carrier SSE event exists. Expose honest connection/stale state without noisy repetitive toasts.

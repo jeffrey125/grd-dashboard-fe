@@ -111,3 +111,19 @@ The ticket uses approved Axios and React Hook Form/Zod/resolvers with TanStack
 Query/Router and MUI. FE-V1-004 provides cleanup/recheck interfaces for SSE;
 FE-V1-005 opens and synchronizes the actual stream. Administration pages remain
 in FE-V1-012/013; the root session boundary enforces role denial on Admin URLs now.
+
+## FE-V1-005 interview decisions
+
+Approved on 2026-10-16: native credentialed EventSource, installed TanStack Query,
+Zod and MUI, with feature registration/integration code and no new production
+dependency. Consume the implemented `tracking.changed` payload for quiet refreshes
+and expose it for FE-V1-011; highlights, audio and tracking toasts remain deferred.
+
+Use one protected-shell stale banner, visible after two seconds of staleness.
+Retain data/actions while HTTP confirms the session; use the existing locked
+screen if `/auth/me` cannot confirm access. Resync starts authoritative recovery;
+successful relevant refreshes complete it. Merge events within 100 ms and retain
+one pending follow-up per target during an in-flight fetch. Carrier-dependent
+active queries refresh on visible focus when their last successful fetch is at
+least 30 seconds old; reconnect and local edits bypass that threshold. This
+focus policy does not bound how long externally edited carrier data can be stale.

@@ -91,8 +91,9 @@ UI on session generation changes. Better Auth owns the profile;
 the policy snapshot exposes the validated account for access decisions without
 adding an auth entry to Query. Cross-tab
 `broadcast-channel` messages contain only `lock` or `changed`, never account data.
-Failed logout remains locally locked until Retry confirms revocation. The real SSE
-connection is deliberately implemented by FE-V1-005.
+Failed logout remains locally locked until Retry confirms revocation. FE-V1-005
+connects SSE through the app-owned `LiveSession`, outside the generation-keyed
+notification/router subtree so login does not reopen a just-created stream.
 
 ## Live coordination
 
@@ -107,10 +108,54 @@ a request and guarantee a follow-up fetch or cancellation/replacement; merely
 deduplicating an in-flight query can otherwise lose the later update. Coalesce
 bursts, invalidate page/count/overview caches together, and handle deletion 404s.
 
-The proposed `tracking.changed` event enables accurate alerts for off-page rows.
+The implemented `tracking.changed` event enables accurate alerts for off-page rows.
 Its snapshot UUID is identity/deduplication metadata; it does not replace fetching
 current data. Gate toast/audio behavior on `pathname === '/shipments'`, ignoring
 search parameters. Live data continues updating silently elsewhere.
+
+### Implemented live registration boundary (FE-V1-005)
+
+`features/tracking-updates` exports `liveQuery`, `LiveUpdatesContext`, and the
+validated `LiveEvent` type. Feature query options spread `liveQuery({ target })`;
+feature modules retain their own query keys, HTTP functions, schemas and UI.
+Targets are `shipments` (list/count variants), `overview`, `carriers`, or
+`shipment`/`history`/`run` with an `externalId`. No business reads are fabricated
+for the existing placeholder pages. FE-V1-006–013 must register their actual queries.
+
+Generic and precise shipment events refresh shipment lists, overview and matching
+detail/history queries; run events refresh the matching explicit run. Resync
+refreshes every registered target, including carriers and displayed explicit runs.
+Inactive cached queries are invalidated without background fetching. Use ordinary
+enabled Query queries; `staleTime: 'static'` intentionally prevents refetch and
+is unsuitable for these live targets. Forward Query's AbortSignal through the
+shared API adapter. Router loaders that prefetch protected data must also wait
+for session/stream readiness; the current routes have no such loaders.
+
+Events use a 100 ms fixed coalescing window. Each query retains at most one pending
+refresh while its current request runs, including its initial fetch. A completed
+old response may be displayed transiently, but the pending fetch must settle on
+authoritative data. A failed refresh keeps known data and the stale warning;
+404 for shipment/detail history clears retained data and keeps the error result
+for the feature's missing/deleted screen. An optional active-query `onMissing`
+callback supports route-specific recovery; do not capture an obsolete route in
+long-lived query options. Consumers of `onEvent` unsubscribe on unmount; session
+teardown clears all consumers and timers. Revision events do not yet cause alerts.
+
+Carrier-dependent queries opt in with `carrierDependent: true`. On visible focus,
+registered active carrier targets older than 30 seconds refresh. This is not
+polling or a 30-second freshness guarantee. After successful local carrier edits,
+call `refreshCarriers()` from the live context; it also invalidates inactive
+carrier-dependent caches. Resync bypasses the focus age threshold. The registration
+helper disables Query's independent focus/reconnect triggers to avoid duplicates.
+
+The protected shell displays one quiet stale banner after two seconds. Connection
+opening alone does not establish synchronization: resync plus successful registered
+refreshes clear it. HTTP actions remain usable while the session is confirmed;
+failed auth rechecks retain FE-V1-004's locked-screen policy. Native EventSource
+reconnects when possible; closed streams are recreated after a shared session
+recheck, backed off from 2 to 30 seconds. A 45-second liveness watchdog covers
+stalled streams (the server emits a heartbeat every 15 seconds). No replay,
+missed-change notification, or transport ordering guarantee is inferred.
 
 ## Configuration and delivery
 

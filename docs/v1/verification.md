@@ -39,6 +39,17 @@ The ordinary suite covers desktop/mobile faults and cross-tab behavior using tes
 interception. GitHub-hosted backend testing remains deferred pending an authorized
 checkout arrangement; local success is not production-domain validation.
 
+FE-V1-005 adds deterministic stream/query race tests and desktop/mobile tests for
+one connection across navigation, delayed stale warnings, quiet recovery and auth
+outage locking. `e2e-backend/live.spec.ts` instruments native EventSource while
+retaining the real transport. It verifies cookie credentials, committed shipment
+and run events, notes-only silence, closed-stream recovery, deletion responses,
+and heartbeat-driven revocation without a page reload through both direct API
+access and the Vite proxy. All fixtures use the disposable database and disabled
+worker; they do not call real carriers. Positive tracking payload validation and
+query/404/fetch-race behavior use deterministic registered query consumers; the
+actual shipment/detail/carrier UI does not exist until its later feature tickets.
+
 Biome excludes the generated route tree and supports JS/TS, JSON/JSONC, and CSS;
 Markdown/YAML/HTML/shell/assets are outside that formatter/linter gate. Workflow
 syntax was separately checked with actionlint. Knip's installed framework plugins
