@@ -170,3 +170,32 @@ Success stays in the current list view, clears only
 reference/notes, retains carrier selection, invalidates list/overview data, and
 shows outcome-specific feedback. Search, filter, tab, sort, and pagination URL
 updates preserve scroll position.
+
+## FE-V1-008 interview decisions
+
+Approved on 2026-10-16: use installed MUI, TanStack Router/Query, React Hook Form,
+Zod/resolvers, Axios and Day.js; no new production dependency. Implement the
+dedicated Overview detail page with a non-sticky identity/action header and
+separate Tracking, Monitoring, Latest lookup & run, and Notes sections. Stack
+sections/actions on mobile. History stays absent until FE-V1-009.
+
+Keep Refresh visible with a disabled explanation when unavailable. Show Pause or
+Resume only for valid transitions; explain threshold pause and terminal delivery.
+Use a standard delete dialog identifying carrier/reference, without typed-reference
+entry. If notes are dirty, that same dialog discloses their loss. Delete returns
+to the validated originating list URL, with `/shipments` as the direct-link fallback.
+
+Notes use explicit Edit/Save/Cancel, normalized dirty comparison and null clearing.
+Protect internal navigation with a MUI dialog and reload/tab-close with the native
+browser warning. Session loss discards transient drafts. Live reads preserve dirty
+drafts; a changed server note is shown alongside the draft with Use latest note or
+Save my draft anyway. This is best-effort detection: the existing backend has no
+conditional-save token, and no backend locking feature is introduced here.
+
+Keep the exact accepted manual run as Your refresh in page memory, separately from
+a newer Latest run; merge labels when IDs match. Reload starts from the backend's
+latest run. Live events refetch displayed runs, with 15-second visible-page fallback
+polling only while queued/running; terminal and inaccessible runs stop polling.
+Mutation responses trigger authoritative reads instead of replacing newer cached
+shipment projections. Tracking-change audio/toasts and reviewed highlights remain
+FE-V1-011; user-action notifications remain available.

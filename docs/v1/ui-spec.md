@@ -107,7 +107,7 @@ the draft, and do not scroll to the top.
 
 ## Shipment detail
 
-Header persists across tabs: reference, carrier, monitoring state/reason, valid
+Header persists across future tabs (it is not sticky while scrolling): reference, carrier, monitoring state/reason, valid
 verification link, refresh, valid pause/resume, and delete confirmation. Return
 to the originating list URL; direct links fall back to default `/shipments`.
 
@@ -122,6 +122,22 @@ server refresh must not overwrite an unsaved draft. Delete requires confirmation
 identifying the reference, then returns to the list; disclose removal from active
 views without promising a restore feature. Handle a concurrent delete with a
 clear missing/deleted screen and list link.
+
+FE-V1-008 uses separate Tracking, Monitoring, Latest lookup & run, and Notes cards.
+History navigation is absent until FE-V1-009. Notes start read-only with Edit notes;
+detected concurrent changes show the latest server note while preserving the draft,
+with Use latest note and Save my draft anyway choices. Conditional save/locking is
+not supported by the current API. Internal navigation uses a discard dialog;
+reload/tab close uses the browser warning. A delete dialog also names any unsaved
+note loss, avoiding a second confirmation after successful deletion.
+
+Refresh remains visible with a reason when disabled. Pause/Resume are shown only
+when valid. A requested run remains labeled Your refresh even when another run
+becomes Latest run; duplicate IDs render once. Run summaries describe whole-run
+attempt counts and only this shipment's attempt outcome. Unknown diagnostics have
+safe generic wording. Poll displayed queued/running runs every 15 seconds while
+visible as a fallback to live events; stop periodic work on terminal or inaccessible
+runs. Refresh acceptance may already be terminal and never implies delivery.
 
 **History:** paginated normalized snapshots, newest first. Label initial tracking
 separately from later changes and render readable status/date differences where

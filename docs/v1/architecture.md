@@ -123,9 +123,9 @@ Targets are `shipments` (list/count variants), `overview`, `carriers`, or
 for the existing placeholder pages. FE-V1-006–013 must register their actual queries.
 
 Generic and precise shipment events refresh shipment lists, overview and matching
-detail/history queries; run events refresh the matching explicit run and shipment
-list queries that display latest-run state (FE-V1-006). Run events contain no
-shipment IDs, so the coordinator invalidates all list variants and refetches only
+detail/history queries; run events refresh the matching explicit run, shipment
+detail and list queries that display latest-run state (FE-V1-006/008). Run events contain no
+shipment IDs, so the coordinator invalidates all detail/list variants and refetches only
 active consumers, preserving its existing coalescing and in-flight follow-up rules. Resync
 refreshes every registered target, including carriers and displayed explicit runs.
 Inactive cached queries are invalidated without background fetching. Use ordinary

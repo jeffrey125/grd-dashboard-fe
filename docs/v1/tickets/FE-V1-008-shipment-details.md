@@ -2,7 +2,10 @@
 
 ## Status
 
-Not started. Depends on FE-V1-006 and BE-V1-001.
+Implemented, locally verified and committed on `feature/dashboard-v1`. FE-V1-006 and
+BE-V1-001 prerequisites were verified against source and existing test evidence.
+See the [implementation summary](../implementation-summary/FE-V1-008-implementation-summary.md)
+for exact checks and verification limits.
 
 ## Target repository
 
@@ -21,7 +24,7 @@ Provide a dedicated, shareable shipment page that clearly separates tracking sta
 
 ## Scope
 
-- Implement /shipments/$shipmentId with a persistent identity/action header and Overview as the default tab. Preserve the originating list URL or fall back to default /shipments.
+- Implement /shipments/$shipmentId with a persistent, non-sticky identity/action header and Overview content. History navigation remains absent until FE-V1-009. Preserve the originating list URL or fall back to default /shipments.
 - Render current normalized tracking, partial date/status fields, snapshot recorded time, last attempt/next check, latest completed lookup, and latest/explicitly requested run information.
 - Reuse shared per-shipment refresh/pause/resume mutations and show queued/running/terminal distinctions. Poll/refetch only displayed runs as justified by SSE recovery; stop terminal work.
 - Implement editable notes with save/cancel, null clearing, dirty-navigation protection, and live-refresh isolation from drafts.

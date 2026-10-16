@@ -175,3 +175,32 @@ new and existing outcomes, unchanged existing notes/paused state, blank notes, a
 a real carrier-disable race. Fixture shipments are soft-deleted afterward and the
 carrier's original state is restored. No worker or live carrier
 calls are started. Exact final commands and limitations are in the FE-V1-007 summary.
+
+## FE-V1-008 detail verification
+
+Unit tests cover notes normalization/conflicts, safe verification links, diagnostic
+allowlisting, active/terminal run polling and detail/PATCH/DELETE API boundaries.
+Live-coordinator regression tests cover run-event detail invalidation and deferred
+cache-driven notifications, including 404 recovery.
+
+`e2e/shipment-detail.spec.ts` covers desktop/mobile direct links, preserved return
+URLs, separate state meanings, failed-lookup tracking retention, safe links,
+dirty drafts versus live changes, explicit conflict resolution, failed saves,
+null clearing, pending locks, newer server data versus stale mutation responses,
+Back/reload/sidebar protection, delete/cancel and concurrent deletion, queued and
+terminal refresh responses, coalescing, exact manual-run retention and terminal
+polling cessation. Both themes, long content and Los Angeles browser timezone
+exercise responsive layout and New York/date-only presentation.
+
+`e2e-backend/shipment-detail.spec.ts` verifies real HTTP/SSE and PostgreSQL through
+both production preview/direct API and the development proxy (mobile). It uses
+isolated accounts and records, checks save/clear/conflict/delete/re-add, manual
+pause/resume, threshold refresh, delivered/disabled restrictions, failed-lookup
+retention, real refresh coalescing and database-seeded run states. Worker execution
+and external carrier calls remain disabled. The optional `FE_TEST_API_PORT` override
+is supported by this targeted suite; see README for paired build/test commands.
+
+Final frontend CI passes 112 unit tests and 66 browser cases (22 detail cases).
+The two real-backend detail scenarios pass without development React warnings.
+Exact commands, visual evidence and verification limits are in the
+[FE-V1-008 summary](implementation-summary/FE-V1-008-implementation-summary.md).

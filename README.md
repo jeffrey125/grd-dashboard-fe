@@ -7,7 +7,8 @@ checks, and GitHub Actions. FE-V1-003 supplies the branded shell; FE-V1-004 adds
 real cookie-session authentication, password replacement, role guards, and cross-tab
 session isolation. FE-V1-005 supplies live synchronization; FE-V1-006 supplies the
 server-paginated shipment list, Apply filters, URL validation and quick row actions.
-Creation, detail and administration features remain in the
+FE-V1-007 adds inline creation; FE-V1-008 adds shipment details, protected note
+editing, monitoring actions and run progress. Administration and later features remain in the
 [v1 implementation tickets](docs/v1/tickets/README.md).
 
 ## Local development
@@ -139,6 +140,22 @@ shipment browser checks. The worker remains disabled; no carrier requests occur.
 These literals work only in the disposable fixture database. Stop the harness with
 Ctrl-C to remove that database. A new harness run creates fresh fixtures.
 
+FE-V1-008 adds five run-state scenarios and a second attempt for the mixed-result
+run, plus `frontend-details@example.test` / `details fixture password` in this
+disposable harness only. No worker or real carrier request is started.
+To test detail flows while an existing API occupies port 3000:
+
+```sh
+pnpm --dir ../grd-dashboard-be build
+VITE_API_ORIGIN=http://localhost:3018 pnpm build
+FE_TEST_API_PORT=3018 pnpm exec playwright test --config playwright.backend.config.ts e2e-backend/shipment-detail.spec.ts
+pnpm build
+```
+
+This targeted suite supports the API port override; older backend suites still
+assume port 3000. Ports 4175/4176 must be free. The final build restores the normal
+API origin. Each run creates and removes its own PostgreSQL database and API.
+
 ## Implemented and planned routes
 
 `/login` provides employee sign-in; `/change-password` supports both required and
@@ -161,7 +178,11 @@ includes a compact single-shipment form above the filters and results. Existing
 shipments are reported immediately without overwriting notes/status; successful
 creation clears the reference and notes while retaining the selected carrier.
 Search, filter, tab, sort, and pagination changes preserve scroll position. UUID
-detail routes remain labeled placeholders until FE-V1-008. Staff direct links
+detail routes now show separate Tracking, Monitoring, Latest lookup & run, and
+Notes sections. Drafts survive live updates, detected note conflicts require an
+explicit choice, and dirty navigation is protected. Refresh follows the exact
+accepted run, and reference-specific soft deletion returns to the originating
+list. History stays absent until FE-V1-009. Staff direct links
 to `/admin` and descendants show a forbidden state; Admin links currently lead to
 an authenticated not-found screen until administration tickets are implemented.
 Unknown protected paths remain authenticated and offer a return-home link.
