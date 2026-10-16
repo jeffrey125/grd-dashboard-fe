@@ -4,6 +4,7 @@ import { Session, SessionProvider } from '@features/auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router';
 import { accountFixture } from '@test/auth-fixture';
+import { emptyShipments } from '@test/shipment-fixture';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GrdThemeProvider } from '@theme/theme-provider';
@@ -32,7 +33,12 @@ async function renderRoute(path: string) {
   enforceOptions({ type: 'simulate' });
   const client = new ApiClient('http://localhost:3000');
   client.http.defaults.adapter = async (config) => ({
-    data: accountFixture,
+    data:
+      config.url === '/shipments/search'
+        ? emptyShipments
+        : config.url === '/carriers'
+          ? []
+          : accountFixture,
     status: 200,
     statusText: '',
     headers: {},
@@ -70,7 +76,7 @@ it('shows an honest branded overview without shipment records', async () => {
   expect(screen.queryByRole('table')).not.toBeInTheDocument();
 });
 
-it('navigates to the temporary shipment page without fixture data', async () => {
+it('navigates to the shipment list', async () => {
   const user = userEvent.setup();
   await renderRoute('/');
   const shipmentsLink = (await screen.findAllByRole('link', { name: 'Shipments' })).at(0);
@@ -78,7 +84,7 @@ it('navigates to the temporary shipment page without fixture data', async () => 
   if (!shipmentsLink) throw new Error('The Shipments navigation link is missing.');
   await user.click(shipmentsLink);
   expect(await screen.findByRole('heading', { name: 'Shipments' })).toBeVisible();
-  expect(screen.getByText(/contains no fixture or production shipment data/)).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Apply filters' })).toBeVisible();
   expect(history.location.pathname).toBe('/shipments');
 });
 

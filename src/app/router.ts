@@ -1,3 +1,4 @@
+import { urlSearch } from '@lib/url-search';
 import { QueryClient } from '@tanstack/react-query';
 import { createRouter } from '@tanstack/react-router';
 
@@ -9,6 +10,7 @@ export const queryClient = new QueryClient({
 
 export const router = createRouter({
   routeTree,
+  ...urlSearch,
   context: { queryClient },
 });
 

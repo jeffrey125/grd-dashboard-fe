@@ -1,4 +1,5 @@
 import type { BrowserContext, Page } from '@playwright/test';
+import { emptyShipments } from '@test/shipment-fixture';
 
 declare global {
   interface Window {
@@ -14,6 +15,10 @@ declare global {
 
 /** Deterministic transport only; the backend suite uses the browser's real EventSource. */
 export async function installLiveFixture(surface: BrowserContext | Page) {
+  await surface.route('**/api/v1/shipments/search?*', (route) =>
+    route.fulfill({ json: emptyShipments }),
+  );
+  await surface.route('**/api/v1/carriers', (route) => route.fulfill({ json: [] }));
   await surface.addInitScript(() => {
     const sources = new Set<FixtureSource>();
     window.liveFixture = {

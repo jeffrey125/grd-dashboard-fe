@@ -13,6 +13,9 @@ import { Route as IndexRouteImport } from './../routes/index';
 import { Route as ChangePasswordRouteImport } from './../routes/change-password';
 import { Route as LoginRouteImport } from './../routes/login';
 import { Route as ShipmentsRouteImport } from './../routes/shipments';
+import { Route as ShipmentsIndexRouteImport } from './../routes/shipments.index';
+import { Route as ShipmentsShipmentIdRouteImport } from './../routes/shipments.$shipmentId';
+import { Route as ShipmentsNewRouteImport } from './../routes/shipments.new';
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,39 +37,83 @@ const ShipmentsRoute = ShipmentsRouteImport.update({
   path: '/shipments',
   getParentRoute: () => rootRouteImport,
 } as any);
+const ShipmentsIndexRoute = ShipmentsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ShipmentsRoute,
+} as any);
+const ShipmentsShipmentIdRoute = ShipmentsShipmentIdRouteImport.update({
+  id: '/$shipmentId',
+  path: '/$shipmentId',
+  getParentRoute: () => ShipmentsRoute,
+} as any);
+const ShipmentsNewRoute = ShipmentsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => ShipmentsRoute,
+} as any);
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/change-password': typeof ChangePasswordRoute;
   '/login': typeof LoginRoute;
-  '/shipments': typeof ShipmentsRoute;
+  '/shipments': typeof ShipmentsRouteWithChildren;
+  '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
+  '/shipments/new': typeof ShipmentsNewRoute;
+  '/shipments/': typeof ShipmentsIndexRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/change-password': typeof ChangePasswordRoute;
   '/login': typeof LoginRoute;
-  '/shipments': typeof ShipmentsRoute;
+  '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
+  '/shipments/new': typeof ShipmentsNewRoute;
+  '/shipments': typeof ShipmentsIndexRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   '/': typeof IndexRoute;
   '/change-password': typeof ChangePasswordRoute;
   '/login': typeof LoginRoute;
-  '/shipments': typeof ShipmentsRoute;
+  '/shipments': typeof ShipmentsRouteWithChildren;
+  '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
+  '/shipments/new': typeof ShipmentsNewRoute;
+  '/shipments/': typeof ShipmentsIndexRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: '/' | '/change-password' | '/login' | '/shipments';
+  fullPaths:
+    | '/'
+    | '/change-password'
+    | '/login'
+    | '/shipments'
+    | '/shipments/$shipmentId'
+    | '/shipments/new'
+    | '/shipments/';
   fileRoutesByTo: FileRoutesByTo;
-  to: '/' | '/change-password' | '/login' | '/shipments';
-  id: '__root__' | '/' | '/change-password' | '/login' | '/shipments';
+  to:
+    | '/'
+    | '/change-password'
+    | '/login'
+    | '/shipments/$shipmentId'
+    | '/shipments/new'
+    | '/shipments';
+  id:
+    | '__root__'
+    | '/'
+    | '/change-password'
+    | '/login'
+    | '/shipments'
+    | '/shipments/$shipmentId'
+    | '/shipments/new'
+    | '/shipments/';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   ChangePasswordRoute: typeof ChangePasswordRoute;
   LoginRoute: typeof LoginRoute;
-  ShipmentsRoute: typeof ShipmentsRoute;
+  ShipmentsRoute: typeof ShipmentsRouteWithChildren;
 }
 
 declare module '@tanstack/react-router' {
@@ -99,14 +146,51 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShipmentsRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/shipments/': {
+      id: '/shipments/';
+      path: '/';
+      fullPath: '/shipments/';
+      preLoaderRoute: typeof ShipmentsIndexRouteImport;
+      parentRoute: typeof ShipmentsRoute;
+    };
+    '/shipments/$shipmentId': {
+      id: '/shipments/$shipmentId';
+      path: '/$shipmentId';
+      fullPath: '/shipments/$shipmentId';
+      preLoaderRoute: typeof ShipmentsShipmentIdRouteImport;
+      parentRoute: typeof ShipmentsRoute;
+    };
+    '/shipments/new': {
+      id: '/shipments/new';
+      path: '/new';
+      fullPath: '/shipments/new';
+      preLoaderRoute: typeof ShipmentsNewRouteImport;
+      parentRoute: typeof ShipmentsRoute;
+    };
   }
 }
+
+interface ShipmentsRouteChildren {
+  ShipmentsShipmentIdRoute: typeof ShipmentsShipmentIdRoute;
+  ShipmentsNewRoute: typeof ShipmentsNewRoute;
+  ShipmentsIndexRoute: typeof ShipmentsIndexRoute;
+}
+
+const ShipmentsRouteChildren: ShipmentsRouteChildren = {
+  ShipmentsShipmentIdRoute: ShipmentsShipmentIdRoute,
+  ShipmentsNewRoute: ShipmentsNewRoute,
+  ShipmentsIndexRoute: ShipmentsIndexRoute,
+};
+
+const ShipmentsRouteWithChildren = ShipmentsRoute._addFileChildren(
+  ShipmentsRouteChildren,
+);
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ChangePasswordRoute: ChangePasswordRoute,
   LoginRoute: LoginRoute,
-  ShipmentsRoute: ShipmentsRoute,
+  ShipmentsRoute: ShipmentsRouteWithChildren,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -109,6 +109,8 @@ it('keeps only one pending follow-up while a background fetch runs', async () =>
 
 it('resync refreshes explicit runs, detail/history and aggregates; heartbeat does not fetch', async () => {
   const run = vi.fn(async () => 'run');
+  const list = vi.fn(async () => 'list');
+  observe('list', list);
   const detail = vi.fn(async () => 'detail');
   const history = vi.fn(async () => 'history');
   const overview = vi.fn(async () => 'overview');
@@ -120,6 +122,7 @@ it('resync refreshes explicit runs, detail/history and aggregates; heartbeat doe
   source().emit('run.changed', { externalId: runId });
   await tick();
   expect(run).toHaveBeenCalledTimes(2);
+  expect(list).toHaveBeenCalledTimes(2);
   expect(detail).toHaveBeenCalledTimes(1);
   source().emit('resync');
   await tick();

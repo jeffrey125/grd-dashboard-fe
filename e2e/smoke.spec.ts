@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { accountFixture } from '@test/auth-fixture';
+import { emptyShipments } from '@test/shipment-fixture';
 import { installLiveFixture } from './live-fixture';
 
 test.beforeEach(async ({ page }) => {
@@ -22,6 +23,9 @@ test('built shell supports branding, navigation, themes, and keyboard recovery',
       await route.fulfill({ json: accountFixture });
       return;
     }
+    if (request.url().includes('/api/v1/shipments/search'))
+      return route.fulfill({ json: emptyShipments });
+    if (request.url().endsWith('/api/v1/carriers')) return route.fulfill({ json: [] });
     if (
       new URL(request.url()).origin !== 'http://127.0.0.1:4174' ||
       ['fetch', 'xhr', 'eventsource'].includes(request.resourceType())
@@ -78,7 +82,9 @@ test('built shell supports branding, navigation, themes, and keyboard recovery',
     await page.getByRole('link', { name: 'Shipments' }).click();
   }
   await expect(page.getByRole('heading', { name: 'Shipments' })).toBeVisible();
-  await expect(page.getByText(/contains no fixture or production shipment data/)).toBeVisible();
+  await expect(
+    page.getByText('No shipments match. Change the tab or clear filters.'),
+  ).toBeVisible();
 
   const themeButton = page.getByRole('button', { name: /Choose theme/ });
   await themeButton.click();

@@ -1,5 +1,6 @@
 import { type BrowserContext, expect, type Page, test } from '@playwright/test';
 import { accountFixture } from '@test/auth-fixture';
+import { emptyShipments } from '@test/shipment-fixture';
 import { installLiveFixture } from './live-fixture';
 
 async function authMock(context: BrowserContext) {
@@ -13,6 +14,8 @@ async function authMock(context: BrowserContext) {
   };
   await context.route('http://localhost:3000/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
+    if (path === '/api/v1/shipments/search') return route.fulfill({ json: emptyShipments });
+    if (path === '/api/v1/carriers') return route.fulfill({ json: [] });
     if (path === '/api/v1/auth/me') {
       state.meCalls += 1;
       if (state.offlineMe) return route.abort('connectionrefused');

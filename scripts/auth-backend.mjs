@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { seedShipmentListFixtures } from './shipment-list-fixtures.mjs';
 
 const backend = resolve('../grd-dashboard-be');
 const requireBackend = createRequire(resolve(backend, 'package.json'));
@@ -79,7 +80,7 @@ try {
     newPassword: 'admin fixture password',
   });
   const admin = await principalFor(email, 'admin fixture password');
-  for (const name of ['staff', 'restricted']) {
+  for (const name of ['staff', 'restricted', 'shipments']) {
     const accountEmail = `frontend-${name}@example.test`;
     await auth.createAccount(admin, {
       firstName: 'Frontend',
@@ -88,12 +89,14 @@ try {
       password: 'issued fixture password',
       role: 'staff',
     });
-    if (name === 'staff')
+    if (name !== 'restricted')
       await auth.changePassword(await principalFor(accountEmail, 'issued fixture password'), {
         currentPassword: 'issued fixture password',
-        newPassword: 'staff fixture password',
+        newPassword: `${name} fixture password`,
       });
   }
+  const { DataSource } = requireBackend('typeorm');
+  await seedShipmentListFixtures(app.get(DataSource));
   await app.listen(3000, 'localhost');
   console.log('Isolated auth API ready at http://localhost:3000/api/v1 (worker disabled).');
 } catch {
