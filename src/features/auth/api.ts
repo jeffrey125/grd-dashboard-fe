@@ -15,7 +15,7 @@ const endpoints: Record<string, string> = {
 export function createAuthApi(client: ApiClient) {
   let blockedUntil = 0;
   let sessionFailure: ApiError | undefined;
-  const baseURL = new URL(client.origin, window.location.origin);
+  const baseURL = new URL(client.baseUrl, window.location.origin);
   const basePath = `${baseURL.pathname.replace(/\/$/, '')}/auth`;
   const auth = createAuthClient({
     baseURL: baseURL.origin,

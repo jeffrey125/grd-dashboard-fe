@@ -1,5 +1,7 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
 
+const API_BASE_PATH = '/api/v1';
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -64,9 +66,11 @@ export class ApiClient {
   private controller = new AbortController();
   onAuthError?: (status: number) => void;
   readonly http: AxiosInstance;
+  readonly baseUrl: string;
 
   constructor(readonly origin: string) {
-    this.http = axios.create({ baseURL: origin, withCredentials: true, timeout: 15_000 });
+    this.baseUrl = `${origin}${API_BASE_PATH}`;
+    this.http = axios.create({ baseURL: this.baseUrl, withCredentials: true, timeout: 15_000 });
   }
 
   reset() {

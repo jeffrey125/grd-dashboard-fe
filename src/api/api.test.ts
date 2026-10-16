@@ -15,7 +15,7 @@ function failure(status: number, headers = {}) {
 it('uses credentialed origin requests, JSON and empty 204 responses', async () => {
   const client = new ApiClient('http://localhost:3000');
   client.http.defaults.adapter = async (config) => {
-    expect(config.baseURL).toBe('http://localhost:3000');
+    expect(config.baseURL).toBe('http://localhost:3000/api/v1');
     expect(config.withCredentials).toBe(true);
     expect(config.headers.get('Origin')).toBeUndefined();
     return {

@@ -11,12 +11,12 @@ async function authMock(context: BrowserContext) {
   };
   await context.route('http://localhost:3000/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === '/auth/me') {
+    if (path === '/api/v1/auth/me') {
       state.meCalls += 1;
       if (state.offlineMe) return route.abort('connectionrefused');
       return route.fulfill({ status: state.account ? 200 : 401, json: state.account ?? {} });
     }
-    if (path === '/auth/sign-in') {
+    if (path === '/api/v1/auth/sign-in') {
       const input = route.request().postDataJSON();
       if (state.loginStatus !== 200)
         return route.fulfill({
@@ -31,12 +31,12 @@ async function authMock(context: BrowserContext) {
       };
       return route.fulfill({ json: state.account });
     }
-    if (path === '/auth/sign-out') {
+    if (path === '/api/v1/auth/sign-out') {
       if (state.offlineLogout) return route.abort('connectionrefused');
       state.account = null;
       return route.fulfill({ status: 204 });
     }
-    if (path === '/auth/change-password') {
+    if (path === '/api/v1/auth/change-password') {
       expect(route.request().postDataJSON()).toEqual({
         currentPassword: 'fixture password',
         newPassword: 'new fixture password',
