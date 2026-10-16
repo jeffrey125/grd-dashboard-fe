@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { accountFixture } from '@test/auth-fixture';
+import { installLiveFixture } from './live-fixture';
+
+test.beforeEach(async ({ page }) => {
+  await installLiveFixture(page);
+});
 
 test('built shell supports branding, navigation, themes, and keyboard recovery', async ({
   page,

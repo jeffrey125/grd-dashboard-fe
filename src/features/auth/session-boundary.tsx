@@ -1,5 +1,6 @@
 import { AppShell } from '@components/layout/app-shell';
 import { AuthLayout } from '@features/auth/pages/auth-layout';
+import { LiveStatus } from '@features/tracking-updates';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -58,6 +59,7 @@ export function SessionBoundary({ children }: { children: ReactNode }) {
       user={{ displayName: `${account.firstName} ${account.lastName}`, role: account.role }}
       onSignOut={() => void session.signOut()}
     >
+      <LiveStatus />
       {forbidden ? (
         <Stack spacing={2}>
           <Alert severity="error">You do not have permission to view this page.</Alert>

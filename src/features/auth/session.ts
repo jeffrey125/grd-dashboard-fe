@@ -51,7 +51,7 @@ export class Session {
     };
   };
 
-  /** FE-V1-005 registers its stream cleanup here; no stream is opened by auth. */
+  /** App composition registers stream cleanup here; auth does not own the connection. */
   registerCleanup(cleanup: () => void) {
     this.cleanups.add(cleanup);
     return () => {

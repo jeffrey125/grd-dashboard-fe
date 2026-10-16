@@ -3,16 +3,18 @@ import { SessionProvider, useSession } from '@features/auth';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { GrdThemeProvider } from '@theme/theme-provider';
-
+import { LiveSession } from './live-session';
 import { queryClient, router } from './router';
 import { session } from './session';
 
 function SessionContent() {
   const { generation } = useSession();
   return (
-    <NotificationProvider key={generation}>
-      <RouterProvider router={router} />
-    </NotificationProvider>
+    <LiveSession>
+      <NotificationProvider key={generation}>
+        <RouterProvider router={router} />
+      </NotificationProvider>
+    </LiveSession>
   );
 }
 

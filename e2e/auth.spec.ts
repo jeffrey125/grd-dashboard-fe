@@ -1,7 +1,9 @@
 import { type BrowserContext, expect, type Page, test } from '@playwright/test';
 import { accountFixture } from '@test/auth-fixture';
+import { installLiveFixture } from './live-fixture';
 
 async function authMock(context: BrowserContext) {
+  await installLiveFixture(context);
   const state = {
     account: null as typeof accountFixture | null,
     offlineLogout: false,
