@@ -15,6 +15,9 @@ import { Route as LoginRouteImport } from './../routes/login';
 import { Route as ShipmentsRouteImport } from './../routes/shipments';
 import { Route as ShipmentsIndexRouteImport } from './../routes/shipments.index';
 import { Route as ShipmentsShipmentIdRouteImport } from './../routes/shipments.$shipmentId';
+import { Route as AdminAccountsIndexRouteImport } from './../routes/admin.accounts.index';
+import { Route as AdminAccountsAccountIdRouteImport } from './../routes/admin.accounts.$accountId';
+import { Route as AdminAccountsNewRouteImport } from './../routes/admin.accounts.new';
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +49,21 @@ const ShipmentsShipmentIdRoute = ShipmentsShipmentIdRouteImport.update({
   path: '/$shipmentId',
   getParentRoute: () => ShipmentsRoute,
 } as any);
+const AdminAccountsIndexRoute = AdminAccountsIndexRouteImport.update({
+  id: '/admin/accounts/',
+  path: '/admin/accounts/',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const AdminAccountsAccountIdRoute = AdminAccountsAccountIdRouteImport.update({
+  id: '/admin/accounts/$accountId',
+  path: '/admin/accounts/$accountId',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const AdminAccountsNewRoute = AdminAccountsNewRouteImport.update({
+  id: '/admin/accounts/new',
+  path: '/admin/accounts/new',
+  getParentRoute: () => rootRouteImport,
+} as any);
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
@@ -54,6 +72,9 @@ export interface FileRoutesByFullPath {
   '/shipments': typeof ShipmentsRouteWithChildren;
   '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
   '/shipments/': typeof ShipmentsIndexRoute;
+  '/admin/accounts/$accountId': typeof AdminAccountsAccountIdRoute;
+  '/admin/accounts/new': typeof AdminAccountsNewRoute;
+  '/admin/accounts/': typeof AdminAccountsIndexRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
@@ -61,6 +82,9 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute;
   '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
   '/shipments': typeof ShipmentsIndexRoute;
+  '/admin/accounts/$accountId': typeof AdminAccountsAccountIdRoute;
+  '/admin/accounts/new': typeof AdminAccountsNewRoute;
+  '/admin/accounts': typeof AdminAccountsIndexRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -70,6 +94,9 @@ export interface FileRoutesById {
   '/shipments': typeof ShipmentsRouteWithChildren;
   '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
   '/shipments/': typeof ShipmentsIndexRoute;
+  '/admin/accounts/$accountId': typeof AdminAccountsAccountIdRoute;
+  '/admin/accounts/new': typeof AdminAccountsNewRoute;
+  '/admin/accounts/': typeof AdminAccountsIndexRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
@@ -79,14 +106,20 @@ export interface FileRouteTypes {
     | '/login'
     | '/shipments'
     | '/shipments/$shipmentId'
-    | '/shipments/';
+    | '/shipments/'
+    | '/admin/accounts/$accountId'
+    | '/admin/accounts/new'
+    | '/admin/accounts/';
   fileRoutesByTo: FileRoutesByTo;
   to:
     | '/'
     | '/change-password'
     | '/login'
     | '/shipments/$shipmentId'
-    | '/shipments';
+    | '/shipments'
+    | '/admin/accounts/$accountId'
+    | '/admin/accounts/new'
+    | '/admin/accounts';
   id:
     | '__root__'
     | '/'
@@ -94,7 +127,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/shipments'
     | '/shipments/$shipmentId'
-    | '/shipments/';
+    | '/shipments/'
+    | '/admin/accounts/$accountId'
+    | '/admin/accounts/new'
+    | '/admin/accounts/';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -102,6 +138,9 @@ export interface RootRouteChildren {
   ChangePasswordRoute: typeof ChangePasswordRoute;
   LoginRoute: typeof LoginRoute;
   ShipmentsRoute: typeof ShipmentsRouteWithChildren;
+  AdminAccountsAccountIdRoute: typeof AdminAccountsAccountIdRoute;
+  AdminAccountsNewRoute: typeof AdminAccountsNewRoute;
+  AdminAccountsIndexRoute: typeof AdminAccountsIndexRoute;
 }
 
 declare module '@tanstack/react-router' {
@@ -148,6 +187,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShipmentsShipmentIdRouteImport;
       parentRoute: typeof ShipmentsRoute;
     };
+    '/admin/accounts/': {
+      id: '/admin/accounts/';
+      path: '/admin/accounts';
+      fullPath: '/admin/accounts/';
+      preLoaderRoute: typeof AdminAccountsIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/admin/accounts/$accountId': {
+      id: '/admin/accounts/$accountId';
+      path: '/admin/accounts/$accountId';
+      fullPath: '/admin/accounts/$accountId';
+      preLoaderRoute: typeof AdminAccountsAccountIdRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/admin/accounts/new': {
+      id: '/admin/accounts/new';
+      path: '/admin/accounts/new';
+      fullPath: '/admin/accounts/new';
+      preLoaderRoute: typeof AdminAccountsNewRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
   }
 }
 
@@ -170,6 +230,9 @@ const rootRouteChildren: RootRouteChildren = {
   ChangePasswordRoute: ChangePasswordRoute,
   LoginRoute: LoginRoute,
   ShipmentsRoute: ShipmentsRouteWithChildren,
+  AdminAccountsAccountIdRoute: AdminAccountsAccountIdRoute,
+  AdminAccountsNewRoute: AdminAccountsNewRoute,
+  AdminAccountsIndexRoute: AdminAccountsIndexRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

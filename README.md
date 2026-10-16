@@ -13,7 +13,8 @@ tab, normalized snapshot comparisons and shared requested-run progress.
 FE-V1-010 adds the operational overview with server counts, problem-first panels,
 silent live updates and one-minute visible-page polling.
 FE-V1-011 adds tracking-change alerts, optional sound and persistent review highlights.
-Administration and later features remain in the
+FE-V1-012 adds Admin-only account list/create/detail pages, profile editing and
+confirmed access/password actions. Carrier administration and later features remain in the
 [v1 implementation tickets](docs/v1/tickets/README.md).
 
 ## Local development
@@ -204,9 +205,24 @@ notice when the page's records/count change. New records can shift offset pages.
 Switching tabs requires confirmation before discarding dirty notes. A requested
 refresh remains visible above both tabs. Invalid detail URL values block content
 until explicitly reset; valid out-of-range pages clamp after a successful response.
-Staff direct links
-to `/admin` and descendants show a forbidden state; Admin links currently lead to
-an authenticated not-found screen until administration tickets are implemented.
+Staff direct links to `/admin` and descendants show a forbidden state.
+Admins can use `/admin/accounts`, `/admin/accounts/new`, and
+`/admin/accounts/$accountId`. The full account list supports local name/email search
+and 25/50/100-row pages, with URL state and mobile cards. Details start read-only;
+Edit/Save/Cancel changes first name, last name and role. Email is shown in a disabled
+field after creation. Role changes, activation/deactivation and password resets require
+confirmation. Admins cannot demote/deactivate themselves; their password action
+opens the existing Better Auth-backed Change password flow. Existing backend
+session-revocation policies are unchanged.
+
+Account drafts survive background refreshes and failed saves. Navigation protects
+unsaved input; session loss discards it. There are no concurrent-edit warnings or
+save locks; PATCH sends only changed fields, and simultaneous edits to the same
+field remain last-write-wins. Account reads refresh on focus/reconnect; no account
+SSE event exists. Issued passwords stay in local form/request memory, never Query's
+mutation cache. Success/cancellation clears them. Admins deliver credentials
+privately; no email is sent. Required replacement is displayed on list and detail.
+Carrier Admin links remain authenticated placeholders until FE-V1-013.
 Unknown protected paths remain authenticated and offer a return-home link.
 
 Logout immediately hides protected content, cancels requests, clears Query and

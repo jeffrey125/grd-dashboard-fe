@@ -2,7 +2,9 @@
 
 ## Status
 
-Not started. Depends on FE-V1-004 and the existing account API.
+Implemented, locally verified, and committed on `feature/dashboard-v1`. FE-V1-004 and the
+existing account API were verified in source and through the real backend.
+See the [implementation summary](../implementation-summary/FE-V1-012-implementation-summary.md).
 
 ## Target repository
 
@@ -26,6 +28,19 @@ Let Admins create and manage employee access through dedicated pages using the i
 - Implement confirmed activation/deactivation and Admin password reset with the existing password endpoint. Explain out-of-band delivery and forced replacement.
 - Enforce helpful UI restrictions on self-deactivation/demotion while handling authoritative 409 protections and stale role/account changes.
 - Invalidate account/session state correctly after mutations, preserve failed forms, and provide safe action feedback with no password disclosure.
+
+## Interview refinements
+
+- All pages/actions remain Admin-only. Details start read-only; Edit/Save/Cancel
+  edits first name, last name and role. Email is disabled after creation in this UI.
+- Confirm role changes as well as activation/deactivation and password reset.
+  Self-demotion/deactivation stay disabled. The current Admin uses Change password.
+- Retain existing session revocation for password changes/resets. Better Auth
+  remains the session owner through the existing adapter; no auth policy changes.
+- Preserve failed/dirty drafts, but do not add concurrent-edit warnings or save
+  blocking. PATCH only changed fields; simultaneous same-field saves can overwrite.
+- Reuse the installed approved libraries. Credential-bearing submissions stay out
+  of Query's mutation cache; there is no new production dependency.
 
 ## Acceptance criteria
 

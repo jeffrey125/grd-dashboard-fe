@@ -255,3 +255,22 @@ Bound each shipment to 32 unresolved identities and the sound-claim ledger to 25
 snapshot UUIDs. Serialized storage is capped at four million characters. Storage
 or lock failures retain in-memory review state with a warning; sound pauses when
 durable cross-tab coordination is unavailable. Reload can lose memory-only changes.
+
+## FE-V1-012 interview decisions
+
+Approved through the ticket interview: all account pages/actions remain Admin-only.
+Details start read-only with Edit/Save/Cancel for first name, last name and role.
+Email is disabled after creation in this frontend. Role changes, activation/
+deactivation and Admin password resets require target/effect confirmation.
+Self-demotion/deactivation remain unavailable; the current Admin uses the existing
+Change password page. Retain all implemented password/session revocation policies.
+No concurrent-edit warning or save blocking is wanted. Preserve local drafts,
+send only changed profile fields, and retain the API's last-write-wins limitation.
+
+The user explicitly required Better Auth. Reuse its installed session adapter and
+refresh own-profile edits through it, with the existing cross-tab invalidation.
+Use installed MUI/Data Grid, React Hook Form/Zod/resolvers, TanStack Query/Router,
+Axios and Day.js. Admin operations use the implemented GRD account endpoints;
+do not install a Better Auth Admin plugin or call nonexistent generic Admin routes.
+No new dependency is needed. Credential-bearing mutations use local async/form
+state rather than Query's mutation cache; account reads remain Query-owned.

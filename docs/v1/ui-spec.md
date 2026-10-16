@@ -165,11 +165,17 @@ creation requires replacement at next sign-in. Explain out-of-band credential
 delivery; no email is sent by this UI/backend. Never put passwords in URLs,
 browser storage, telemetry, toasts, or logs.
 
-**Account detail:** edit supported fields; explicit confirmations for activation
-changes and password reset, and clear messaging for role changes. Disable
+**Account detail:** start read-only with Edit/Save/Cancel for first name, last name
+and role. Email is displayed in a disabled field after creation. All administration is Admin-only.
+Require explicit confirmations for role and activation changes and password reset. Disable
 self-deactivation/demotion, handle backend protection conflicts, and respond to
 session revocation. Reset uses an Admin-entered password, not a nonexistent
 email-reset endpoint. Show password feedback inline without echoing it elsewhere.
+For the current Admin, use the existing Change password page instead of an Admin
+reset. Keep the implemented sign-out behavior for every password change/reset.
+Preserve drafts on failed saves/background refreshes; protect dirty navigation.
+The interview explicitly omitted concurrent-edit warnings/save blocking. Submit
+only changed profile fields; the API has no conditional-write guarantee.
 
 **Carriers list/detail:** view code/name/active status and configured tracking
 settings. Edit only mutable supported fields; show carrier-specific fetch modes

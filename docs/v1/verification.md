@@ -267,3 +267,28 @@ UUID before committing a normalized snapshot/pointer change there. Native SSE an
 the real API drive the browser; no worker, live carrier or production data is involved.
 It also verifies reload persistence and visible-detail acknowledgement. Exact commands,
 results and limitations are in the FE-V1-011 implementation summary.
+
+## FE-V1-012 account administration verification
+
+Schema/API tests cover normalized names/email, password limits and preservation,
+confirmation matching, disabled-email edit boundaries, changed-field-only PATCH,
+safe allowlisted conflicts and malformed/mismatched responses. Component tests
+inspect shared Query/Mutation caches during pending and successful create/reset
+submissions and verify that passwords never enter them or application storage.
+The session test confirms that own-profile changes recheck through Better Auth,
+even during its ordinary application-level cooldown.
+
+`e2e/accounts.spec.ts` covers desktop/mobile list/search/details, both themes,
+failed/dirty draft retention, background focus refresh without overwriting drafts,
+role confirmation/cancellation, activation/reset/cancellation, protected-Admin
+conflict messaging, duplicate-email preservation, self restrictions, session loss,
+Staff direct-URL denial without Admin reads, invalid UUIDs and missing accounts.
+
+`e2e-backend/accounts.spec.ts` verifies real PostgreSQL/API/Better Auth cookies:
+Admin create and name edit, normalized duplicate email, forced replacement, Staff
+read/write/route denial, role/deactivation/reset session revocation, reactivation,
+password replacement after reset, own-name profile refresh and protected-self 409s.
+It uses disposable fixture accounts and never starts the worker or live carriers.
+The suite supports `FE_TEST_API_PORT`; build with the same `VITE_API_ORIGIN` first.
+See the [FE-V1-012 summary](implementation-summary/FE-V1-012-implementation-summary.md)
+for exact commands, results, manual URLs and limitations.

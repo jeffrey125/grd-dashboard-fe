@@ -95,6 +95,15 @@ Failed logout remains locally locked until Retry confirms revocation. FE-V1-005
 connects SSE through the app-owned `LiveSession`, outside the generation-keyed
 notification/router subtree so login does not reopen a just-created stream.
 
+FE-V1-012 exposes the shared public account schema through auth's feature export.
+Its account list/detail records are separate business queries under `accounts`,
+with ordinary focus/reconnect refresh (there is no account SSE event). Own-name
+edits call `Session.accountChanged()` for an authoritative Better Auth recheck and
+the existing cross-tab changed signal. No direct session-atom writes or parallel
+session implementation are added. Credential-bearing create/reset submissions use
+feature-local async state, keeping passwords out of MutationCache as well as query
+data. Successful changes invalidate account queries; dirty drafts are preserved.
+
 ## Live coordination
 
 Open one credentialed EventSource per unrestricted authenticated browser app.
