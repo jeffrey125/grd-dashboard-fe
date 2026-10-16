@@ -324,9 +324,11 @@ the next login. Names, notes, credentials and server-response caches are not sto
 Versioned local storage retains up to 10,000 shipment records per account. Reviewed
 records are evicted first; unseen records do not expire. Each record holds at most
 32 unresolved snapshot IDs. Capacity or storage failure shows a warning; in-memory
-fallback lasts until the tab closes. Sound is paused if durable storage or Web Locks
-is unavailable, preserving the one-sound rule. Browser suspension can delay or miss
-alerts; there is no historical event replay or cross-device review synchronization.
+fallback lasts until the tab closes. When Web Locks are unavailable,
+BroadcastChannel coordination and leader election still keep review updates and
+one-sound playback usable; sound pauses only when durable storage or the channel
+itself is unavailable. Browser suspension can delay or miss alerts; there is no
+historical event replay or cross-device review synchronization.
 
 ## Source boundaries and import aliases
 

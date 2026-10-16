@@ -151,9 +151,12 @@ export class ReviewStore {
           return mutate();
         }
       }
-      this.warn(
-        'Cross-tab coordination is unavailable. Sound is paused; review changes may not synchronize.',
-      );
+      if (!this.channel) {
+        this.coordinated = false;
+        this.warn(
+          'Cross-tab coordination is unavailable. Sound is paused; review changes may not synchronize.',
+        );
+      }
       return mutate();
     };
     const result = this.serial.then(work);
@@ -252,8 +255,7 @@ export class ReviewStore {
   }
   claimSound(snapshotIds: string[]) {
     return this.change(() => {
-      if (!this.durable || !this.coordinated || !this.locks || !this.channel || !this.state.sound)
-        return false;
+      if (!this.durable || !this.coordinated || !this.channel || !this.state.sound) return false;
       const fresh = snapshotIds.filter((id) => !this.state.sounded.includes(id));
       if (!fresh.length) return false;
       this.state.sounded = [...this.state.sounded, ...fresh].slice(-256);

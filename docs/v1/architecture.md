@@ -180,8 +180,9 @@ the review runtime, its channels, timers and requests.
 
 `ReviewStore` persists only public identities, pending IDs, review flags, random
 compare-and-swap tokens and retention metadata. Web Locks serialize storage
-read/modify/write across tabs; installed `broadcast-channel` announces changes and
-confirmed alert identities. `ReviewController` reconciles at most four reads at
+read/modify/write across tabs when available; installed `broadcast-channel`
+announces changes and supplies the coordination fallback when Web Locks are
+unavailable. `ReviewController` reconciles at most four reads at
 once, with 100 ms queue coalescing. Authoritative current-snapshot reads and storage
 tokens protect against delayed events, stale reads and acknowledgement races;
 neither UUID lexical order nor `observedAt` is treated as a revision sequence.
@@ -194,8 +195,10 @@ notifications, with a close button and six-second timeout. Route departure disca
 pending summaries. A two-second burst counts distinct shipments; the sound consumer
 uses package leader election plus atomic, bounded sound claims to avoid duplicate
 playback across tabs. Stored consent does not bypass browser autoplay policies.
-Missing Web Locks/durable storage pauses automatic audio rather than sounding once
-per disconnected tab. Browser/OS suspension remains outside the replay guarantee.
+Missing Web Locks alone does not pause automatic audio: the channel and its leader
+election continue to coordinate eligible tabs. Durable storage or channel failure
+still pauses automatic audio rather than sounding once per disconnected tab.
+Browser/OS suspension remains outside the replay guarantee.
 
 Displayed-page acknowledgement and visible detail acknowledgement re-read current
 identity before clearing marks. The displayed UUID must match; the record's token

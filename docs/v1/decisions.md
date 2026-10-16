@@ -275,8 +275,10 @@ Retain at most 10,000 shipment review records per account. Evict reviewed record
 before unseen ones; unseen records do not automatically expire. Warn at capacity.
 Bound each shipment to 32 unresolved identities and the sound-claim ledger to 256
 snapshot UUIDs. Serialized storage is capped at four million characters. Storage
-or lock failures retain in-memory review state with a warning; sound pauses when
-durable cross-tab coordination is unavailable. Reload can lose memory-only changes.
+Storage failures retain in-memory review state with a warning; missing Web Locks
+use the installed BroadcastChannel/leader-election fallback. Sound pauses only
+when durable storage or channel coordination is unavailable. Reload can lose
+memory-only changes.
 
 ## FE-V1-012 interview decisions
 

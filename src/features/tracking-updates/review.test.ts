@@ -39,6 +39,18 @@ afterEach(() => {
 });
 
 describe('persistent review identities', () => {
+  it('keeps cross-tab review coordination available when Web Locks are unavailable', async () => {
+    const store = new ReviewStore(account, localStorage, undefined);
+    stores.push(store);
+    store.connect();
+    await store.observe(shipment, first);
+    expect(store.getSnapshot().warning).not.toContain(
+      'Cross-tab coordination is unavailable. Sound is paused; review changes may not synchronize.',
+    );
+    await store.setSound(true);
+    expect(await store.claimSound([first])).toBe(true);
+  });
+
   it('retries an event arriving during reconciliation instead of accepting the older response', async () => {
     vi.useFakeTimers();
     let finish: (id: string) => void = () => undefined;
