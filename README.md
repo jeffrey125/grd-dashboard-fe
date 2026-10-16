@@ -14,7 +14,9 @@ FE-V1-010 adds the operational overview with server counts, problem-first panels
 silent live updates and one-minute visible-page polling.
 FE-V1-011 adds tracking-change alerts, optional sound and persistent review highlights.
 FE-V1-012 adds Admin-only account list/create/detail pages, profile editing and
-confirmed access/password actions. Carrier administration and later features remain in the
+confirmed access/password actions. FE-V1-013 adds Admin carrier settings with protected
+drafts, conflict choices, disable confirmation and dependent-data refresh. Upcoming
+deliveries is restored with its matching filtered shipment destination. Later features remain in the
 [v1 implementation tickets](docs/v1/tickets/README.md).
 
 ## Local development
@@ -224,7 +226,27 @@ field remain last-write-wins. Account reads refresh on focus/reconnect; no accou
 SSE event exists. Issued passwords stay in local form/request memory, never Query's
 mutation cache. Success/cancellation clears them. Admins deliver credentials
 privately; no email is sent. Required replacement is displayed on list and detail.
-Carrier Admin links remain authenticated placeholders until FE-V1-013.
+Admins can use `/admin/carriers` and `/admin/carriers/$carrierId`. The three-carrier
+catalog uses a desktop table and mobile cards. Details start read-only, with
+Edit/Save/Cancel for name, active state, fetch mode, not-found threshold, interval
+and nullable RPM. Code/UUID stay read-only; only RPM can be cleared. UPS supports
+request mode; EchoShip/FFE support request/browser. Disabling requires confirmation
+and does not hide existing shipments. Timing guidance explains provider minimums
+and approximate worker scheduling.
+
+Carrier drafts survive failed saves and background reads. Detected changes show
+the latest changed fields and require Use latest settings or Keep my draft; saving
+over a detected conflict requires confirmation. PATCH sends only fields changed
+from the editing baseline. This is best-effort detection, not atomic concurrency
+control. Failed reads block saving until recovery. Internal navigation and reload
+protect dirty input; session loss discards it. Saved settings invalidate carrier,
+creation, shipment and overview data through the existing live coordinator.
+Displayed carrier data refreshes on focus after 30 seconds and on reconnect/resync;
+there is no carrier SSE event or promise of immediate cross-tab propagation.
+
+Shipment filters now support estimated-delivery from/through calendar dates and
+undelivered-only, applied explicitly alongside carrier selection. Upcoming View all
+uses All shipments, the server date window, undelivered-only and delivery ascending.
 Unknown protected paths remain authenticated and offer a return-home link.
 
 Logout immediately hides protected content, cancels requests, clears Query and

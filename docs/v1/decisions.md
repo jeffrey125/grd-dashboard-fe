@@ -1,5 +1,27 @@
 # Approved decisions
 
+## FE-V1-013 interview and Upcoming restoration (2026-10-17)
+
+Approved through the interview and explicit proceed: reuse installed MUI,
+TanStack Query/Router, Axios, React Hook Form/Zod/resolvers and Day.js; backend
+uses installed NestJS, Zod and TypeORM/PostgreSQL. No new production dependency.
+
+Carrier list: compact desktop table/mobile cards with name/code, active state,
+fetch mode and interval. Details: read-only followed by Edit/Save/Cancel; immutable
+code/UUID, exact existing validation and null only for RPM. Confirm disabling on
+Save. Preserve drafts on failed/background reads and protect dirty navigation.
+Detected conflicts offer Use latest settings or Keep my draft; the latter requires
+save confirmation. Submit only baseline-changed fields. A newer read invalidates
+an older confirmation. Failed refreshes block saving until recovery. Existing
+focus/reconnect and dependent-query invalidation behavior is reused.
+
+Also restore Upcoming deliveries below Needs attention, showing five earliest
+undelivered shipments from New York today through day +6 and the matching View all
+destination. Restore backend aggregate/window and ETA/undelivered search filters,
+with explicit frontend Apply controls. This supersedes FE-V1-010's earlier decision
+to omit Upcoming. Recent tracking changes stays omitted. This is a read-model
+restoration; no database migration or new provider calls are needed.
+
 ## Product and pages
 
 | Decision       | Approved outcome                                                                                          |

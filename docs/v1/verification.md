@@ -292,3 +292,28 @@ It uses disposable fixture accounts and never starts the worker or live carriers
 The suite supports `FE_TEST_API_PORT`; build with the same `VITE_API_ORIGIN` first.
 See the [FE-V1-012 summary](implementation-summary/FE-V1-012-implementation-summary.md)
 for exact commands, results, manual URLs and limitations.
+
+## FE-V1-013 and Upcoming restoration verification
+
+Carrier schema/API tests check exact numeric/null/mode boundaries, immutable fields,
+changed-only PATCH, cancellation and malformed/mismatched responses. The existing
+live-coordinator tests cover carrier-dependent invalidation and focus/resync timing.
+`e2e/carriers.spec.ts` covers desktop/mobile lists, read-only identity, forms,
+conflict choices/confirmation, failed reads/saves, dirty navigation, pending locks,
+disable/cancel and previously cached shipment/creation eligibility, focus/reconnect,
+Staff denial, invalid/missing UUIDs and session teardown. Both themes are rendered.
+
+`e2e-backend/carriers.spec.ts` verifies real Admin cookies, allowed/disallowed fields,
+mode/range/null cases, changed-field retention, Staff reads/write denial, carrier
+disable effects and browser editing through preview/direct API and mobile Vite proxy.
+Fixtures restore carrier settings and remove created shipments afterward.
+
+Upcoming tests validate server windows, panel bounds, empty/error/stale handling,
+date-only rendering and filtered View all URLs. The real backend suite compares
+aggregate/search totals and exercises the filtered destination. Backend PostgreSQL
+tests cover inclusive dates around both DST boundaries, null/deleted/disabled/
+completed records, full totals, five-row caps, tie ordering and the one-statement
+10,000-shipment plan. No worker or external carrier requests run.
+
+Exact commands/results are in the [carrier summary](implementation-summary/FE-V1-013-implementation-summary.md)
+and [Upcoming restoration summary](implementation-summary/FE-V1-010-upcoming-restoration.md).

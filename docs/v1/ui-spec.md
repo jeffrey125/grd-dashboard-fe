@@ -192,6 +192,21 @@ and interval caveats. Confirm disabling because it affects future tracking.
 No create/delete/restore action. Handle concurrent changes safely and invalidate
 carrier-dependent forms, lists, and details after saving.
 
+The three-carrier list uses a compact desktop table/mobile cards, without search
+or pagination. Detail starts read-only with Edit/Save/Cancel. Confirm disabling
+on Save, including other changed settings. Show immutable code/UUID and exact API
+limits; blank RPM sends null, never zero. Polling guidance includes UPS production
+30-minute/test 60-minute minimum and EchoShip/FFE five-minute minimum, plus worker
+and quota delays.
+
+Preserve drafts on background refresh and failed saves. Show detected server
+changes and offer Use latest settings or Keep my draft. Keeping a draft requires
+confirmation before saving changed fields over current values; this has no atomic
+locking guarantee. New server changes invalidate an earlier confirmation. Failed
+reads block Save until Retry succeeds; missing data remains unavailable for writes.
+Protect dirty navigation/reload, and discard drafts on session loss. Focus refresh
+uses the existing 30-second age policy; reconnect/resync bypasses it.
+
 ## Alerts, sound, and review state
 
 User-action confirmations/errors can toast on any page. Field errors also appear

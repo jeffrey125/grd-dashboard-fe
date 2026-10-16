@@ -18,6 +18,8 @@ import { Route as ShipmentsShipmentIdRouteImport } from './../routes/shipments.$
 import { Route as AdminAccountsIndexRouteImport } from './../routes/admin.accounts.index';
 import { Route as AdminAccountsAccountIdRouteImport } from './../routes/admin.accounts.$accountId';
 import { Route as AdminAccountsNewRouteImport } from './../routes/admin.accounts.new';
+import { Route as AdminCarriersIndexRouteImport } from './../routes/admin.carriers.index';
+import { Route as AdminCarriersCarrierIdRouteImport } from './../routes/admin.carriers.$carrierId';
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -64,6 +66,16 @@ const AdminAccountsNewRoute = AdminAccountsNewRouteImport.update({
   path: '/admin/accounts/new',
   getParentRoute: () => rootRouteImport,
 } as any);
+const AdminCarriersIndexRoute = AdminCarriersIndexRouteImport.update({
+  id: '/admin/carriers/',
+  path: '/admin/carriers/',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const AdminCarriersCarrierIdRoute = AdminCarriersCarrierIdRouteImport.update({
+  id: '/admin/carriers/$carrierId',
+  path: '/admin/carriers/$carrierId',
+  getParentRoute: () => rootRouteImport,
+} as any);
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
@@ -74,7 +86,9 @@ export interface FileRoutesByFullPath {
   '/shipments/': typeof ShipmentsIndexRoute;
   '/admin/accounts/$accountId': typeof AdminAccountsAccountIdRoute;
   '/admin/accounts/new': typeof AdminAccountsNewRoute;
+  '/admin/carriers/$carrierId': typeof AdminCarriersCarrierIdRoute;
   '/admin/accounts/': typeof AdminAccountsIndexRoute;
+  '/admin/carriers/': typeof AdminCarriersIndexRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
@@ -84,7 +98,9 @@ export interface FileRoutesByTo {
   '/shipments': typeof ShipmentsIndexRoute;
   '/admin/accounts/$accountId': typeof AdminAccountsAccountIdRoute;
   '/admin/accounts/new': typeof AdminAccountsNewRoute;
+  '/admin/carriers/$carrierId': typeof AdminCarriersCarrierIdRoute;
   '/admin/accounts': typeof AdminAccountsIndexRoute;
+  '/admin/carriers': typeof AdminCarriersIndexRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -96,7 +112,9 @@ export interface FileRoutesById {
   '/shipments/': typeof ShipmentsIndexRoute;
   '/admin/accounts/$accountId': typeof AdminAccountsAccountIdRoute;
   '/admin/accounts/new': typeof AdminAccountsNewRoute;
+  '/admin/carriers/$carrierId': typeof AdminCarriersCarrierIdRoute;
   '/admin/accounts/': typeof AdminAccountsIndexRoute;
+  '/admin/carriers/': typeof AdminCarriersIndexRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
@@ -109,7 +127,9 @@ export interface FileRouteTypes {
     | '/shipments/'
     | '/admin/accounts/$accountId'
     | '/admin/accounts/new'
-    | '/admin/accounts/';
+    | '/admin/carriers/$carrierId'
+    | '/admin/accounts/'
+    | '/admin/carriers/';
   fileRoutesByTo: FileRoutesByTo;
   to:
     | '/'
@@ -119,7 +139,9 @@ export interface FileRouteTypes {
     | '/shipments'
     | '/admin/accounts/$accountId'
     | '/admin/accounts/new'
-    | '/admin/accounts';
+    | '/admin/carriers/$carrierId'
+    | '/admin/accounts'
+    | '/admin/carriers';
   id:
     | '__root__'
     | '/'
@@ -130,7 +152,9 @@ export interface FileRouteTypes {
     | '/shipments/'
     | '/admin/accounts/$accountId'
     | '/admin/accounts/new'
-    | '/admin/accounts/';
+    | '/admin/carriers/$carrierId'
+    | '/admin/accounts/'
+    | '/admin/carriers/';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -140,7 +164,9 @@ export interface RootRouteChildren {
   ShipmentsRoute: typeof ShipmentsRouteWithChildren;
   AdminAccountsAccountIdRoute: typeof AdminAccountsAccountIdRoute;
   AdminAccountsNewRoute: typeof AdminAccountsNewRoute;
+  AdminCarriersCarrierIdRoute: typeof AdminCarriersCarrierIdRoute;
   AdminAccountsIndexRoute: typeof AdminAccountsIndexRoute;
+  AdminCarriersIndexRoute: typeof AdminCarriersIndexRoute;
 }
 
 declare module '@tanstack/react-router' {
@@ -208,6 +234,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAccountsNewRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/admin/carriers/': {
+      id: '/admin/carriers/';
+      path: '/admin/carriers';
+      fullPath: '/admin/carriers/';
+      preLoaderRoute: typeof AdminCarriersIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/admin/carriers/$carrierId': {
+      id: '/admin/carriers/$carrierId';
+      path: '/admin/carriers/$carrierId';
+      fullPath: '/admin/carriers/$carrierId';
+      preLoaderRoute: typeof AdminCarriersCarrierIdRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
   }
 }
 
@@ -232,7 +272,9 @@ const rootRouteChildren: RootRouteChildren = {
   ShipmentsRoute: ShipmentsRouteWithChildren,
   AdminAccountsAccountIdRoute: AdminAccountsAccountIdRoute,
   AdminAccountsNewRoute: AdminAccountsNewRoute,
+  AdminCarriersCarrierIdRoute: AdminCarriersCarrierIdRoute,
   AdminAccountsIndexRoute: AdminAccountsIndexRoute,
+  AdminCarriersIndexRoute: AdminCarriersIndexRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

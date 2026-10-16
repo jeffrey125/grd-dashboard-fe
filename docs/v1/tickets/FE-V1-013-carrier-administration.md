@@ -2,7 +2,9 @@
 
 ## Status
 
-Not started. Depends on FE-V1-004 and the existing carrier API.
+Implemented and locally verified. FE-V1-004 guards/session teardown and the real
+carrier API were verified in code and browser/HTTP tests. Commit approval is pending.
+See the [implementation summary](../implementation-summary/FE-V1-013-implementation-summary.md).
 
 ## Target repository
 
