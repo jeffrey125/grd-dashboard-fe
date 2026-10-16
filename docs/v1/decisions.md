@@ -8,8 +8,8 @@
 | Homepage       | Separate operational overview at `/`, problems first; performance analytics deferred.                     |
 | Scale          | Plan for 1,000–10,000 retained shipments, including completed records.                                    |
 | List behavior  | Backend pagination, search, filtering, counts; newest created first, stable tie-breaker.                  |
-| Tabs           | All shipments, Active, Paused, Delivered, Needs attention; Active is the default.                         |
-| Filters        | Reference/notes search, carrier, latest lookup outcome, created range, estimated-delivery range.          |
+| Tabs           | All, Active, Delivered, Needs attention; the latter three partition All and paused Shipments need attention. |
+| Filters        | Reference/notes search and carrier.                                                               |
 | Creation       | Single inline form above `/shipments`; one request at a time, no bulk import/page.                         |
 | Detail         | Dedicated page with Overview and paginated History tabs.                                                  |
 | Actions        | Refresh and valid pause/resume in row menus; note editing/deletion on detail page. Per-shipment only.     |
@@ -77,12 +77,10 @@ record any material behavior change and obtain direction if it changes user inte
   in `America/New_York`; keep calendar dates as `YYYY-MM-DD` without timezone
   conversion. Validate calendar input before parsing to reject silent rollover.
   Existing unrelated date code can migrate when touched; no wholesale migration is required.
-- List/history pages default to 25 rows, with 25/50/100 options; the server caps at 100. Overview lists show at most 10 items and link to the full filtered list.
+- List/history pages default to 25 rows, with 25/50/100 options; the server caps at 100. Overview lists show at most 5 items and link to the full filtered list.
 - Shipment list filtering remains in explicit MUI controls and TanStack Router URL
   state rather than MUI X's built-in filter panel. The Data Grid receives already
   filtered server pages; this keeps simultaneous v1 filters within the Community tier.
-- Upcoming deliveries means today through the next six calendar days in the
-  business timezone; no assumed ETA when a carrier omits it.
 - Use an additive paginated search endpoint and preserve the existing array-returning
   shipment list. Proposed API names and fields are specified in api-contracts.md.
 - A newly acquired first tracking snapshot is a meaningful live update. Existing
@@ -137,7 +135,7 @@ focus policy does not bound how long externally edited carrier data can be stale
 
 Approved on 2026-10-16: implement the tabbed list using MUI X Data Grid Community
 9.15.0, with installed MUI, TanStack Router/Query, Axios, React Hook Form and Zod.
-Carrier, lookup outcome and date filters require **Apply filters**; reference/notes
+Carrier filters require **Apply filters**; reference/notes
 search remains debounced. Invalid bookmarked URL values remain editable and block
 shipment requests until staff correct or explicitly clear them. Valid filters are
 not silently dropped. Draft filters survive live refreshes and search changes.
@@ -221,16 +219,39 @@ history for missed-event recovery.
 
 ## FE-V1-010 interview decisions
 
-Approved through the ticket interview: five server-count cards, full-width Needs
-attention on desktop, then Upcoming deliveries and Recent tracking changes in
-two columns. Stack panels on mobile. Use the installed MUI, TanStack Query/Router,
+Approved through the ticket interview, then revised by the user: four server-count
+cards followed by Needs attention. Upcoming deliveries and Recent tracking changes
+are not shown. Use the installed MUI, TanStack Query/Router,
 Axios, Zod and Day.js; no new dependency. Query's built-in interval refreshes every
 60 seconds while visible, alongside shared live synchronization and its existing
 age-aware focus refresh. No midnight timer or tracking-change alert is added.
 
 Retain known data and a warning through unsuccessful refreshes and in-flight
 retries; only a successful read clears the local warning. Use server `asOf`,
-timezone, totals and date boundaries. Overview detail/history links return to `/`;
-list-origin links retain their filtered list. Upcoming references open detail,
-and its view-all link opens All shipments with the server date window,
-`undeliveredOnly=true` and ETA ascending. Recent entries open shipment History.
+timezone and totals. Overview detail links return to `/`; list-origin links retain
+their filtered list.
+
+## FE-V1-011 interview decisions
+
+Approved through the ticket interview: tracking toasts/audio remain restricted to
+exact `/shipments`, including background browser tabs, every shipment view and
+off-page/filtered-out updates. Coordinate one sound across eligible tabs; each
+eligible tab may show its own bounded summary. Group bursts for two seconds.
+Only visible detail pages automatically acknowledge the actual revision displayed;
+background detail pages do not mark changes reviewed. Manual acknowledgement covers
+the current results page, including rows requiring scrolling, not other pages.
+
+Reuse installed React, MUI, TanStack Query/Router, Zod and `broadcast-channel`, with
+native browser audio, local storage and Web Locks. Application-specific pending
+revision/CAS logic is approved; no new dependency is needed. The project owner
+approved reuse of the original `kieffy-meow.m4a`; provenance/hash are recorded in
+`public/sounds/README.md`. Sound defaults off. Saved consent survives reload, but
+browser playback permission still applies; denial disarms the tab until explicit
+retry, without repeated automatic playback errors.
+
+Retain at most 10,000 shipment review records per account. Evict reviewed records
+before unseen ones; unseen records do not automatically expire. Warn at capacity.
+Bound each shipment to 32 unresolved identities and the sound-claim ledger to 256
+snapshot UUIDs. Serialized storage is capped at four million characters. Storage
+or lock failures retain in-memory review state with a warning; sound pauses when
+durable cross-tab coordination is unavailable. Reload can lose memory-only changes.

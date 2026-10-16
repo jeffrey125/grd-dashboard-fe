@@ -28,53 +28,47 @@ session is unrestricted. Layout follows Tom's desktop sidebar/mobile drawer patt
 
 ## Overview homepage
 
-Summary cards: All, Active, Paused, Delivered, Needs attention. Cards link to the
-matching shipment tab. Counts exclude soft-deleted shipments, overlap as defined
-in the API contract, and are not computed from the current table page.
+Summary cards: All, Active, Delivered, Needs attention. Cards link to the
+matching shipment tab. Active, Delivered, and Needs attention partition All so
+the visible category counts total the shipment count. Counts exclude soft-deleted
+shipments and are not computed from the current table page.
 
-Primary section: **Needs attention**, using the exact backend predicate. Explain
-failed lookup versus threshold pause without claiming a shipment is late. Show
-reference, carrier, reason, last known tracking status, and a link to detail.
+The first panel is **Needs attention**, including every paused Shipment and active
+Shipments whose latest lookup failed. Explain the reason without claiming a
+shipment is late. Show reference, carrier, reason, last known tracking status, and
+a link to detail.
 
-Secondary sections: **Upcoming deliveries** (today plus six days, known ETA only)
-and **Recent tracking changes** (app-recorded snapshots). Show at most 10 items per
-section. Upcoming reference links open detail and return to Overview; link view-all
-to All shipments with the ETA range and
-`undeliveredOnly=true`; show the latter as a removable active-filter indicator.
-The backend applies this constraint before pagination. Recent changes link directly to the shipment history;
-there is no new global history page in v1.
+Show at most 5 Needs attention items. Reference links open detail and return to
+Overview; the view-all link opens the Needs attention shipment view.
 
 Display business timezone and last successful aggregate refresh. Loading, empty,
 error, and stale/reconnecting states remain distinct. Avoid inventing zeros on a
 failed request. Refresh silently; tracking-change audio/toasts do not run here.
 Refresh every minute while visible, alongside existing live synchronization.
-Needs attention spans the desktop width; the secondary panels use two columns.
-Mobile stacks all three panels. Retain stale data and its warning during retries.
+Retain stale data and its warning during retries.
 
 ## Shipment list
 
 Default `/shipments` state: `tab=active`, page 1, 25 rows, `createdAt desc`.
-Tabs: **All shipments**, **Active**, **Paused**, **Delivered**, **Needs attention**.
+Tabs: **All shipments**, **Active**, **Delivered**, **Needs attention**. Needs attention
+includes paused Shipments and active Shipments whose latest lookup failed; those
+failed rows are excluded from Active. Legacy `tab=paused` URLs redirect to Needs attention.
 Respect explicit valid URL state on navigation/reload/back. Search and filters
 apply within the selected tab; filter/sort/tab changes reset page to 1. Include
 clear filters and empty-result guidance. Searches are debounced and cancelled when
 superseded. Invalid URL values remain visible and block shipment requests until
 staff correct or explicitly clear them. Do not silently remove invalid filters.
-Date fields use MUI calendar pickers backed by Day.js. Preserve malformed URL
-values in visible error text until staff choose a valid date or explicitly clear
-the field. Date-only strings never undergo timezone conversion.
-Carrier, outcome and date controls apply together through **Apply filters** with
-inline validation. Search remains independently debounced; unapplied filter drafts
+Carrier applies through **Apply filters** with inline validation. Search remains
+independently debounced; unapplied filter drafts
 survive search changes and live refreshes. Clear filters also discards drafts.
 
-Approved controls: reference/notes search, carrier, latest completed lookup
-outcome (including never checked), created date range, estimated-delivery range.
+Approved controls: reference/notes search and carrier.
 Use the server's counts. Column sorting is limited to the API allowlist; don't
 suggest sorting on a field the server ignores. Never client-sort/filter only the
 loaded page while presenting it as a full-dataset result.
 
 Suggested default columns: reference/carrier, carrier status, monitoring state,
-pickup, delivery, latest lookup, created time, notes preview, row actions. The
+pickup, delivery, created time, notes preview, row actions. The
 list's concise Delivery label displays the carrier's estimated-delivery date;
 actual delivery remains a separate detail/history value.
 Detail shows full status text and pickup/delivery fields. Keep an explicit
@@ -216,6 +210,22 @@ are not promised as alerts. History remains the place to inspect past observatio
 Deleted highlighted records are removed when their deletion is confirmed. Browser
 storage is bounded/versioned and may fall back to memory; persistence is not a
 shared/team acknowledgement or cross-device feature.
+
+FE-V1-011 uses two-second burst summaries and one sound across browser tabs, including
+background `/shipments` tabs. Sound controls sit below the page title. Only visible
+detail views auto-review; a background detail page retains incoming highlights.
+History auto-review requires the current snapshot on the first history page.
+The mark-seen button covers the current results page, including rows below the
+scroll position; it is unavailable while results are fetching, failed or placeholder
+data. Acknowledgement confirms the displayed snapshot through a fresh authoritative
+read, and newer concurrent updates remain unseen. Initial/reconnect reads stay quiet.
+
+Sound defaults off and reuses the approved bundled Kieffy meow; enabling previews
+the asset. Saved preference survives reload, subject to browser playback permission.
+The explicit per-tab sound button permits preview/re-enabling after denial. A denied
+playback produces one persistent warning and pauses further automatic attempts in
+that tab until retry. Storage/coordination failure pauses automatic sound and keeps
+the dashboard usable with a warning and in-memory review state.
 
 ## Dates and usability
 

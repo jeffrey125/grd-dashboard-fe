@@ -142,7 +142,8 @@ authoritative data. A failed refresh keeps known data and the stale warning;
 for the feature's missing/deleted screen. An optional active-query `onMissing`
 callback supports route-specific recovery; do not capture an obsolete route in
 long-lived query options. Consumers of `onEvent` unsubscribe on unmount; session
-teardown clears all consumers and timers. Revision events do not yet cause alerts.
+teardown clears all consumers and timers. FE-V1-011 consumes precise revision events
+separately for alerts and review state.
 
 Carrier-dependent queries opt in with `carrierDependent: true`. On visible focus,
 registered active carrier targets older than 30 seconds refresh. This is not
@@ -159,6 +160,46 @@ reconnects when possible; closed streams are recreated after a shared session
 recheck, backed off from 2 to 30 seconds. A 45-second liveness watchdog covers
 stalled streams (the server emits a heartbeat every 15 seconds). No replay,
 missed-change notification, or transport ordering guarantee is inferred.
+
+### Implemented review boundary (FE-V1-011)
+
+App-owned `TrackingReview` adapts the public Shipment read function to a current
+snapshot identity reader, injected into the tracking feature. Router's `InnerWrap`
+mounts it inside router context; no route or shared infrastructure imports a
+business feature's private module. Account/session changes recreate and tear down
+the review runtime, its channels, timers and requests.
+
+`ReviewStore` persists only public identities, pending IDs, review flags, random
+compare-and-swap tokens and retention metadata. Web Locks serialize storage
+read/modify/write across tabs; installed `broadcast-channel` announces changes and
+confirmed alert identities. `ReviewController` reconciles at most four reads at
+once, with 100 ms queue coalescing. Authoritative current-snapshot reads and storage
+tokens protect against delayed events, stale reads and acknowledgement races;
+neither UUID lexical order nor `observedAt` is treated as a revision sequence.
+Pending observed identities survive failed HTTP reads and reload. Resync reconciles
+quietly, including deletion checks for unseen records. Generic events check deletion
+without installing a new baseline that could swallow a later precise event.
+
+The UI shows one tracking Snackbar per eligible tab, separate from user-action
+notifications, with a close button and six-second timeout. Route departure discards
+pending summaries. A two-second burst counts distinct shipments; the sound consumer
+uses package leader election plus atomic, bounded sound claims to avoid duplicate
+playback across tabs. Stored consent does not bypass browser autoplay policies.
+Missing Web Locks/durable storage pauses automatic audio rather than sounding once
+per disconnected tab. Browser/OS suspension remains outside the replay guarantee.
+
+Displayed-page acknowledgement and visible detail acknowledgement re-read current
+identity before clearing marks. The displayed UUID must match; the record's token
+must still match the pre-read token. History auto-review is limited to the current
+snapshot actually shown on its first page. Older pages never silently acknowledge
+an undisplayed current snapshot. Deleted records are removed on confirmed 404.
+
+Storage limits: 10,000 shipments/account, 32 pending IDs/shipment, 256 sound-claim
+IDs and four million serialized characters. Evict oldest reviewed records first;
+never silently expire unseen records. At a full unseen capacity, existing marks
+remain and a warning explains that additional highlights cannot be retained.
+Storage parse/version/quota failures use isolated in-memory state with a visible
+warning; reload can lose memory-only marks. No names, notes or API caches persist.
 
 ## Configuration and delivery
 

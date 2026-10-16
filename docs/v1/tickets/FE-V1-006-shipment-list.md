@@ -26,7 +26,7 @@ Deliver a responsive shipment workspace with server-owned queries and reliable q
 
 - Replace FE-V1-003's temporary `/shipments` page with MUI X Data Grid Community; use the implemented paginated endpoint, not the legacy array endpoint. Keep simultaneous filters in external MUI controls and URL state rather than relying on Pro-only built-in multi-filtering.
 - Implement All/Active/Paused/Delivered/Needs attention tabs and server counts, default Active, page size controls, and createdAt desc with stable server ties.
-- Store tab/search/carrier/outcome/date ranges/page/sort in validated Router URL state. Support the overview's undelivered-only drill-down with a visible removable filter indicator.
+- Store tab/search/carrier/page/sort in validated Router URL state.
 - Debounce search, cancel obsolete requests, reset page for changed filters/sort/tab, and clamp pages after deletion/state changes.
 - Implement reference/detail links, a reserved inline creation area, useful columns/status distinctions, and per-row refresh plus valid pause/resume using shared feature mutations.
 
@@ -52,13 +52,13 @@ Keep hosting, publishing, and deployment deferred.
 
 ## Interview refinements
 
-Carrier/outcome/date filters require Apply filters. Invalid URL values stay visible
+Carrier filters require Apply filters. Invalid URL values stay visible
 and block shipment requests until staff correct or explicitly clear them. Creation
 and detail links open labeled placeholders retaining the list return URL; full
 creation/detail remain FE-V1-007/008. MUI X Data Grid Community 9.15.0 is installed.
 
-Approved follow-up: use MUI X Date Pickers with Day.js for all four date filters,
-retain invalid URL values until correction, and use Day.js for future date work.
+The later product revision removes lookup-outcome and all date filter controls;
+removed URL fields remain invalid and explicitly clearable.
 Render MUI shipment cards below 900px with the same data, URL state and commands;
 replace the tab strip with a full-width Shipment view selector and show card commands
 as stacked full-width touch-friendly buttons instead of an overflow menu.

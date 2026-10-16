@@ -2,7 +2,10 @@
 
 ## Status
 
-Not started. Depends on FE-V1-008 and BE-V1-005; FE-V1-005 synchronization is already a transitive prerequisite.
+Implemented and locally verified. Commit approval is pending. Dependencies
+FE-V1-008, FE-V1-005 and BE-V1-005 were confirmed from source and their verification
+evidence. See the [implementation summary](../implementation-summary/FE-V1-011-implementation-summary.md)
+for exact checks, limits, file manifest and proposed commits.
 
 ## Target repository
 

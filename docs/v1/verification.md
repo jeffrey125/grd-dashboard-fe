@@ -105,7 +105,7 @@ checkout arrangement is unresolved.
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Auth                | Sign-in/out, reload restoration, invalid credentials, throttling, restricted-password redirect, post-change re-login, expired/revoked sessions, role denial, cleanup and no cached cross-user leakage.                                                                                                     |
 | Create              | Single inline item, leading zeros/case, created 201, existing 200 without overwrite, safe field errors, disabled carrier race, draft retention, double-click prevention, and correct toast/query refresh.                                                                                                   |
-| List                | Default Active and created-desc, stable ties, URL navigation, all five controls, full-dataset filtering/sorting, correct overlapping counts, page reset/clamp, 1,000–10,000-record representative backend fixtures.                                                                                        |
+| List                | Default Active and created-desc, stable ties, URL navigation, all four views, full-dataset filtering/sorting, partitioned visible counts, page reset/clamp, 1,000–10,000-record representative backend fixtures.                                                                                           |
 | Detail/actions      | Notes/clear, dirty draft vs live update, valid/invalid pause/resume, threshold refresh, manual-paused/terminal/disabled constraints, coalesced refresh, queued/running/terminal outcomes, safe delete and re-add, verification link safety.                                                                |
 | Read models/history | No snapshot, partial null fields, unchanged success, stale known data after failure, latest completed lookup despite pending run, public UUIDs, history pagination, missing/deleted shipment, no source/internal data leakage.                                                                             |
 | Overview            | Server aggregates independent of page, problem-first layout, exact attention predicate, upcoming date boundaries, recent changes, honest empty/error/stale states, card links.                                                                                                                             |
@@ -147,17 +147,16 @@ previous-page states, request cancellation, page clamping, eligibility, conflict
 and a row disappearing while its menu is open on desktop and 375px Chromium.
 
 The isolated backend harness seeds 1,000 shipments through a test-only fixture
-module: 800 Active, 100 manually paused, 50 threshold paused, 50 Delivered, and
-two active shipments with failed lookups. All have tied creation timestamps and
-known ETA. The browser suite verifies stable pagination, off-page notes search,
-overlapping counts, carrier/outcome/date/undelivered combinations, and row actions
+module: 800 actively monitored, 100 manually paused, 50 threshold paused, 50
+Delivered, and two actively monitored shipments with failed lookups. The visible
+views are therefore 798 Active, 152 Needs attention, and 50 Delivered. All have
+tied creation timestamps and known ETA. The browser suite verifies stable pagination,
+off-page notes search, partitioned visible counts, carrier filtering, and row actions
 through both direct API access and the Vite proxy. Its dedicated employee account
 avoids exhausting the auth suite's per-email login allowance. No worker or real
 carrier calls are involved. See the FE-V1-006 implementation summary for results.
 
-The FE-V1-006 follow-up covers calendar selection and malformed-date correction,
-explicit clearing, touch dialogs, date-only preservation in Los Angeles, and
-Day.js leap-year/early-year/DST boundaries. Mobile scenarios exercise cards,
+Removed filter URLs are rejected and remain explicitly clearable. Mobile scenarios exercise cards,
 shared commands, sorting/page controls, long text and resizing back to the grid.
 
 ## FE-V1-007 creation verification
@@ -245,3 +244,26 @@ The backend's existing overview integration suite separately checks controlled
 date boundaries, null/deleted/disabled records, concurrent reads and bounded panels.
 No worker or live carrier requests are used. See the
 [FE-V1-010 summary](implementation-summary/FE-V1-010-implementation-summary.md).
+
+## FE-V1-011 alerts and review verification
+
+Unit coverage exercises revision deduplication, authoritative ordering rather than
+timestamps, events arriving during reads, acknowledgement races, hidden/unmounted
+detail guards, displayed-only acknowledgement, malformed/old/blocked/quota storage,
+lock denial, account isolation, capacity, quiet recovery, deletion and session teardown.
+
+`e2e/tracking-review.spec.ts` covers desktop/mobile summaries, off-view deliveries,
+duplicate/out-of-order events, reload persistence, saved sound consent, two background
+tabs with one sound, synchronized review state, hidden detail retention, exact-route
+gating, route departure, deletion, reconnect, denied playback and retry, account changes,
+and a real bundled M4A decode/play following a user gesture. Light/dark screenshots
+are captured for visual review; deterministic audio tests count playback calls.
+
+`e2e-backend/tracking-review.spec.ts` verifies notes-only silence and real committed
+snapshot alerts through both production preview/direct API and mobile Vite proxy.
+The harness labels its disposable PostgreSQL container with its API port. The test
+requires exactly one matching container and validates the newly created shipment's
+UUID before committing a normalized snapshot/pointer change there. Native SSE and
+the real API drive the browser; no worker, live carrier or production data is involved.
+It also verifies reload persistence and visible-detail acknowledgement. Exact commands,
+results and limitations are in the FE-V1-011 implementation summary.

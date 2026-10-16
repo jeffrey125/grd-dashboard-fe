@@ -12,6 +12,7 @@ editing, monitoring actions and run progress. FE-V1-009 adds the paginated Histo
 tab, normalized snapshot comparisons and shared requested-run progress.
 FE-V1-010 adds the operational overview with server counts, problem-first panels,
 silent live updates and one-minute visible-page polling.
+FE-V1-011 adds tracking-change alerts, optional sound and persistent review highlights.
 Administration and later features remain in the
 [v1 implementation tickets](docs/v1/tickets/README.md).
 
@@ -137,8 +138,8 @@ in one terminal, and run `pnpm dev` in another. The test-only accounts are
 `frontend-admin@example.test` / `admin fixture password`,
 `frontend-staff@example.test` / `staff fixture password`, and
 `frontend-restricted@example.test` / `issued fixture password`.
-The harness also seeds 1,000 deterministic shipment records (800 Active, 150
-Paused, 50 Delivered; 52 overlapping Needs attention) and a dedicated
+The harness also seeds 1,000 deterministic shipment records (798 Active, 150
+Paused through the compatibility API, 50 Delivered, and 152 Needs attention) and a dedicated
 `frontend-shipments@example.test` / `shipments fixture password` account for
 shipment browser checks. The worker remains disabled; no carrier requests occur.
 These literals work only in the disposable fixture database. Stop the harness with
@@ -168,24 +169,24 @@ requires re-login. Safe internal return URLs retain query parameters. Restricted
 accounts see password replacement and sign-out only.
 
 Unrestricted Staff/Admin sessions see the branded shell at `/` and `/shipments`.
-The overview uses `/dashboard/overview` for five summary cards and bounded Needs
-attention, Upcoming deliveries and Recent tracking changes panels. Needs attention
-spans the desktop width, with the other two panels beneath it; mobile stacks them.
+The overview uses `/dashboard/overview` for four summary cards and a bounded Needs
+attention panel.
 Counts and date windows come from the server. Upcoming view-all applies the server
 ETA range and undelivered filter. Detail/history links return to Overview when
 opened there. Failed refreshes retain known data with a persistent warning and
 Retry; the last successful server timestamp remains visible. The page refreshes
 every minute while visible, plus existing live/focus/reconnect synchronization.
 `/shipments` now queries the real paginated
-endpoint, defaults to Active/newest created first, and supports five shipment views,
-server counts, 25/50/100-row pages, reference/notes search, carrier/outcome/date filters
-and allowlisted sorting. Carrier/outcome/date edits require Apply filters; invalid
+endpoint, defaults to Active/newest created first, and supports four shipment views,
+server counts, 25/50/100-row pages, reference/notes search, carrier filtering
+and allowlisted sorting. Carrier edits require Apply filters; invalid
 URL filters pause results until corrected or explicitly cleared. Desktop row menus
 expose refresh and valid pause/resume; mobile cards stack those actions as full-width
 touch-friendly buttons. Desktop results include Pickup and Delivery date columns;
 mobile uses a full-width Shipment view selector and cards with the same dates,
 sorting, and pagination.
-The Delivery label is the carrier's current estimated-delivery date. `/shipments`
+The Delivery label is the carrier's current estimated-delivery date. Latest lookup
+and last attempted remain available on detail rather than in list results. `/shipments`
 includes a compact single-shipment form above the filters and results. Existing
 shipments are reported immediately without overwriting notes/status; successful
 creation clears the reference and notes while retaining the selected carrier.
@@ -236,7 +237,27 @@ request. Inactive caches are invalidated; confirmed shipment 404s clear retained
 detail/history data. Carrier-dependent targets opt into age-aware focus refreshes
 and explicit post-edit invalidation. See [the registration contract](docs/v1/architecture.md#implemented-live-registration-boundary-fe-v1-005).
 Shipment and overview queries register with the live coordinator, including
-carrier-dependent refreshes. Tracking highlights/audio/toasts remain FE-V1-011.
+carrier-dependent refreshes. Tracking changes now highlight desktop rows/mobile cards
+until reviewed. Tracking toasts and optional sound run only on exact `/shipments`,
+including background tabs and filtered-out shipments. Two-second bursts produce one
+summary per eligible tab and one sound across tabs. Sound defaults off, remembers
+the account/browser preference, and uses the approved bundled Kieffy meow. Browser
+playback denial pauses that tab's automatic audio until an explicit retry.
+
+“Mark displayed changes as seen” covers the current results page. A visible detail
+Overview or first History page automatically reviews only a successfully displayed,
+authoritatively confirmed current snapshot. Background detail pages, failed reads,
+older history pages and newer concurrent revisions do not clear unseen changes.
+Review state and preferences synchronize across tabs of the same account; logout
+clears in-memory state, with minimal account-scoped review identities retained for
+the next login. Names, notes, credentials and server-response caches are not stored.
+
+Versioned local storage retains up to 10,000 shipment records per account. Reviewed
+records are evicted first; unseen records do not expire. Each record holds at most
+32 unresolved snapshot IDs. Capacity or storage failure shows a warning; in-memory
+fallback lasts until the tab closes. Sound is paused if durable storage or Web Locks
+is unavailable, preserving the one-sound rule. Browser suspension can delay or miss
+alerts; there is no historical event replay or cross-device review synchronization.
 
 ## Source boundaries and import aliases
 

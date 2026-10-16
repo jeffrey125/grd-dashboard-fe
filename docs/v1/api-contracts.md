@@ -146,16 +146,12 @@ the new frontend uses the new route for its list.
 | `tab`                                          | `all`, `active` (default), `paused`, `delivered`, `attention`                                                                         |
 | `q`                                            | Optional trimmed literal case-insensitive substring of reference or notes; max 255 code units; wildcard characters treated literally. |
 | `carrierExternalId`                            | Optional carrier UUIDv4; one carrier initially.                                                                                       |
-| `lookupOutcome`                                | Optional `never_checked`, `found`, `not_found`, `failed`, `skipped`; based on latest completed attempt.                               |
-| `createdFrom`, `createdTo`                     | Optional inclusive calendar dates, interpreted in `America/New_York`; SQL uses inclusive start and exclusive next-day boundary.       |
-| `estimatedDeliveryFrom`, `estimatedDeliveryTo` | Optional inclusive date-only range; unknown ETA excluded when this filter is active.                                                  |
-| `undeliveredOnly`                              | Optional boolean, default false; supports the upcoming-deliveries drill-down without including completed/delivered records.           |
 | `page`, `pageSize`                             | Positive page, default 1; page sizes 25/50/100, default 25, cap 100.                                                                  |
-| `sortBy`, `sortDirection`                      | Default `createdAt`, `desc`; allowlisted `createdAt`, `trackingReference`, `estimatedDeliveryOn`, `lastAttemptedAt`; `asc`/`desc`.    |
+| `sortBy`, `sortDirection`                      | Default `createdAt`, `desc`; allowlisted `createdAt`, `trackingReference`, `estimatedDeliveryOn`; `asc`/`desc`.                       |
 
 `createdAt desc` maps to SQL `created_at DESC, id DESC`; the internal ID is never
 returned. Other sorts have deterministic secondary ordering and explicit nulls-last
-behavior. Reject unknown/invalid query fields, reversed ranges, and invalid dates.
+behavior. Reject unknown or invalid query fields.
 Search/filter/sort apply to the full dataset **before** pagination.
 
 ```ts
@@ -174,12 +170,14 @@ type ShipmentSearchResponse = {
 };
 ```
 
-Tab counts apply the other query filters but ignore the selected tab. Attention
-overlaps other tabs; totals must not sum all tab counts. All excludes soft-deleted
-Shipments. Delivered means completed/delivered. Attention means **not completed**
-and either latest completed lookup failed or paused/not_found_threshold. An active
-shipment with a disabled carrier stays Active; show its disabled-carrier warning
-without silently redefining the approved Attention tab.
+Tab counts apply the other query filters but ignore the selected tab. The visible
+Active, Delivered, and Attention counts partition All. The compatibility-only
+Paused count is a subset of Attention, so consumers must not add all five fields.
+All excludes soft-deleted Shipments. Delivered means completed/delivered. Attention
+means any paused Shipment or a non-completed Shipment whose latest completed lookup
+failed. Active means actively monitored without a failed latest completed lookup.
+An otherwise Active shipment with a disabled carrier stays Active; show its
+disabled-carrier warning.
 
 `never_checked` means no completed attempt, even if a run is pending. Query counts
 and page items must use a consistent read snapshot so concurrent worker updates
@@ -217,7 +215,6 @@ Add **GET `/dashboard/overview`** with unrestricted Staff/Admin policy:
 type OverviewResponse = {
   asOf: string; // ISO timestamp for this consistent aggregate read.
   timezone: "America/New_York";
-  upcomingWindow: { from: string; to: string }; // Date-only inclusive boundaries.
   counts: {
     all: number;
     active: number;
@@ -226,31 +223,21 @@ type OverviewResponse = {
     attention: number;
   };
   attention: { total: number; items: ShipmentWithTracking[] };
-  upcomingDeliveries: { total: number; items: ShipmentWithTracking[] };
-  recentChanges: Array<{
-    shipmentExternalId: string;
-    trackingReference: string;
-    carrier: { externalId: string; code: string; name: string };
-    snapshot: TrackingSnapshot;
-  }>;
 };
 ```
 
 Compute all aggregates on the server from nondeleted shipments. Attention follows
-the search predicate and shows newest created first. Upcoming is undelivered with
-known ETA from business-today through day +6, ordered by ETA then stable creation
-order. Recent changes are the 10 most recently recorded snapshots belonging to
-nondeleted shipments, including initial observations, ordered deterministically.
-Cap each panel at 10 items and expose full totals where indicated. Counts refer
+the search predicate, shows newest created first, and is capped at 5 items while
+retaining its full total. Counts refer
 to current monitoring state, not delivered-today or a performance KPI. Use one
 consistent read snapshot; specify cache behavior (`no-store` initially). No
 on-time-rate, transit-average, or carrier-ranking calculation is added.
 
 The backend implements this contract with one parameterized PostgreSQL statement
 and `Cache-Control: no-store`. The response reuses the public Shipment projection
-and search predicates. Disposable PostgreSQL verification covers New York DST
-boundaries, empty/null/disabled/deleted rows, drill-down parity, concurrent writes,
-panel ordering/caps, and a 10,000-Shipment plan. No schema migration or dependency
+and search predicates. Disposable PostgreSQL verification covers
+empty/null/disabled/deleted rows, drill-down parity, concurrent writes,
+attention ordering/caps, and a 10,000-Shipment plan. No schema migration or dependency
 was added.
 
 ## Implemented BE-V1-005: precise tracking-change signal

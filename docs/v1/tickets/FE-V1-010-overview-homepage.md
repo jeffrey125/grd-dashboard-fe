@@ -13,7 +13,7 @@ This frontend repository, `grd-dashboard-fe`.
 
 ## Objective
 
-Make / an actionable operational homepage using backend aggregates, with problems more prominent than upcoming deliveries.
+Make / an actionable operational homepage using backend aggregates, led by problems requiring attention.
 
 ## Required reading
 
@@ -25,23 +25,22 @@ Make / an actionable operational homepage using backend aggregates, with problem
 
 ## Scope
 
-- Render summary cards from server counts, followed by Needs attention as the primary panel, then Upcoming deliveries and Recent tracking changes.
-- Use the backend's asOf, timezone, upcoming window, bounded items, and totals; avoid deriving aggregates from loaded shipment pages.
-- Link cards and view-all actions to matching query-aware shipment tabs/filters; link recent changes to dedicated history.
+- Render four summary cards from server counts followed by Needs attention; omit Upcoming deliveries and Recent tracking changes.
+- Use the backend's asOf, timezone, bounded attention items, and totals; avoid deriving aggregates from loaded shipment pages.
+- Link cards and the Needs attention view-all action to matching shipment views.
 - Show clear distinction between failed tracking and late delivery, current completed count and daily delivery metrics.
 - Refresh silently through shared live synchronization, with honest loading/empty/error/stale states in both themes and responsive layouts.
 
 ## Acceptance criteria
 
 - The homepage is separate from /shipments, problems lead after summary cards, and no performance analytics/charts or unsupported KPIs appear.
-- Aggregate and drill-down predicates agree, including undelivered-only upcoming dates and overlapping Attention counts.
-- Unknown ETAs are not classified as upcoming; date boundaries use headquarters time with DST and preserve calendar dates.
+- Aggregate and drill-down predicates agree for partitioned Attention counts.
 - Failed aggregate requests do not become fake zeros or remove a visible stale-data warning.
 - Tracking-change sound/toasts remain silent on / while live data still refreshes.
 
 ## Verification
 
-Run aggregate rendering/drill-down tests and real-backend count/date-window comparisons, plus browser responsive/theme/keyboard and stale/error scenarios. Verify midnight and DST cases with controlled clocks. Run quality gates.
+Run aggregate rendering/drill-down tests and real-backend count comparisons, plus browser responsive/theme/keyboard and stale/error scenarios. Run quality gates.
 
 ## Review notes and completion
 
