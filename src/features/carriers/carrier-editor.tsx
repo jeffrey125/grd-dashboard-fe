@@ -44,10 +44,16 @@ export function CarrierEditor({
   const [keptVersion, setKeptVersion] = useState('');
   const [confirmation, setConfirmation] = useState<{ input: Settings; version: string }>();
   const busy = useRef(false);
+  const edited = useRef(false);
   const form = useForm<Settings>({
     resolver: zodResolver(settingsFor(carrier.code)),
     defaultValues: baseline,
   });
+  const markEdited = () => {
+    queueMicrotask(() => {
+      edited.current = settingsVersion(form.getValues()) !== settingsVersion(baseline);
+    });
+  };
   const draft = form.watch();
   const dirty = settingsVersion(draft) !== settingsVersion(baseline);
   const version = settingsVersion(carrier);
@@ -66,13 +72,19 @@ export function CarrierEditor({
     withResolver: true,
   });
   useEffect(() => {
-    if (!dirty && !pending && !blocked) {
-      const latest = settings(carrier);
+    const latest = settings(carrier);
+
+    if (settingsVersion(latest) === settingsVersion(baseline)) return;
+
+    const hasCurrentDraft = settingsVersion(form.getValues()) !== settingsVersion(baseline);
+
+    if (!edited.current && !hasCurrentDraft && !pending && !blocked) {
+      edited.current = false;
       setBaseline(latest);
       form.reset(latest);
       setKeptVersion('');
     }
-  }, [dirty, pending, blocked, carrier, form]);
+  }, [pending, blocked, carrier, form, baseline]);
   // A confirmation applies only to the server values that were actually shown.
   useEffect(() => {
     if (confirmation && confirmation.version !== version) setConfirmation(undefined);
@@ -86,6 +98,7 @@ export function CarrierEditor({
       if (session.getSnapshot().generation !== generation) return;
       live?.refreshCarriers();
       void queries.invalidateQueries({ queryKey: ['carrier-settings'] });
+      edited.current = false;
       form.reset(input);
       setBaseline(input);
       showNotification({ message: 'Carrier settings saved.', severity: 'success' });
@@ -136,6 +149,7 @@ export function CarrierEditor({
               disabled={pending || blocked}
               onClick={() => {
                 const latest = settings(carrier);
+                edited.current = false;
                 setBaseline(latest);
                 form.reset(latest);
                 setKeptVersion('');
@@ -158,7 +172,7 @@ export function CarrierEditor({
         )}
         <TextField
           label="Name"
-          {...form.register('name')}
+          {...form.register('name', { onChange: markEdited })}
           disabled={locked}
           error={!!form.formState.errors.name}
           helperText={form.formState.errors.name?.message}
@@ -167,6 +181,7 @@ export function CarrierEditor({
           label="Active"
           select
           {...form.register('isActive', {
+            onChange: markEdited,
             setValueAs: (value) => value === true || value === 'true',
           })}
           disabled={locked}
@@ -178,7 +193,7 @@ export function CarrierEditor({
         <TextField
           label="Fetch mode"
           select
-          {...form.register('fetchMode')}
+          {...form.register('fetchMode', { onChange: markEdited })}
           disabled={locked || carrier.code === 'ups'}
           slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
           helperText={
@@ -198,6 +213,7 @@ export function CarrierEditor({
               type="number"
               disabled={locked}
               {...form.register(field, {
+                onChange: markEdited,
                 setValueAs: (value: string | number | null) =>
                   value === '' || value === null
                     ? field === 'rateLimitPerMinute'

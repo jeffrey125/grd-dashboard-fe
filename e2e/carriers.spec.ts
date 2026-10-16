@@ -15,6 +15,7 @@ async function setup(page: Page) {
     revoked: false,
     patches: [] as Record<string, unknown>[],
     hold: undefined as Promise<void> | undefined,
+    readHold: undefined as Promise<void> | undefined,
   };
   await page.route('**/api/v1/auth/me', (route) =>
     route.fulfill({
@@ -31,6 +32,7 @@ async function setup(page: Page) {
       return route.fulfill({ json: state.row });
     }
     state.reads++;
+    await state.readHold;
     if (state.readStatus !== 200) return route.fulfill({ status: state.readStatus, json: {} });
     return route.fulfill({
       json: new URL(route.request().url()).pathname.endsWith('/carriers') ? [state.row] : state.row,
@@ -178,13 +180,20 @@ test('focus and reconnect refresh settings without replacing dirty input; browse
   const state = await setup(page);
   state.row.code = 'ffe';
   await detail(page);
-  await page.getByLabel('Fetch mode', { exact: true }).selectOption('browser');
   const reads = state.reads;
   state.row.name = 'FFE newest';
+  let releaseRead = () => {};
+  state.readHold = new Promise<void>((resolve) => {
+    releaseRead = resolve;
+  });
   await page.clock.runFor(31_000);
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await page.clock.runFor(200);
   await expect.poll(() => state.reads).toBeGreaterThan(reads);
+  await page.getByLabel('Fetch mode', { exact: true }).selectOption('browser');
+  releaseRead();
+  state.readHold = undefined;
+  await expect(page.getByText('Latest Name: FFE newest')).toBeVisible();
   await expect(page.getByLabel('Fetch mode', { exact: true })).toHaveValue('browser');
   await page.getByRole('button', { name: 'Use latest settings' }).click();
   state.row.pollIntervalMinutes = 60;
