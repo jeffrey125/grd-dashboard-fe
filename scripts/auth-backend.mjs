@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { seedShipmentDetailFixtures } from './shipment-detail-fixtures.mjs';
+import { seedShipmentHistoryFixtures } from './shipment-history-fixtures.mjs';
 import { seedShipmentListFixtures } from './shipment-list-fixtures.mjs';
 
 const backend = resolve('../grd-dashboard-be');
@@ -84,7 +85,7 @@ try {
     newPassword: 'admin fixture password',
   });
   const admin = await principalFor(email, 'admin fixture password');
-  for (const name of ['staff', 'restricted', 'shipments', 'details']) {
+  for (const name of ['staff', 'restricted', 'shipments', 'details', 'history']) {
     const accountEmail = `frontend-${name}@example.test`;
     await auth.createAccount(admin, {
       firstName: 'Frontend',
@@ -102,6 +103,14 @@ try {
   const { DataSource } = requireBackend('typeorm');
   await seedShipmentListFixtures(app.get(DataSource));
   await seedShipmentDetailFixtures(app.get(DataSource));
+  const { TrackingService } = await backendModule('modules/tracking/tracking.service.js');
+  const { TypeOrmTrackingRepository } = await backendModule(
+    'modules/tracking/typeorm-tracking.repository.js',
+  );
+  await seedShipmentHistoryFixtures(
+    app.get(DataSource),
+    new TrackingService(new TypeOrmTrackingRepository(app.get(DataSource))),
+  );
   await app.listen(apiPort, 'localhost');
   console.log(`Isolated auth API ready at http://localhost:${apiPort}/api/v1 (worker disabled).`);
 } catch (error) {
