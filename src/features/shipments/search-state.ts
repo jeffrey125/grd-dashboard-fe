@@ -17,10 +17,12 @@ export const sorts = {
   createdAt: 'Created',
   trackingReference: 'Reference',
   estimatedDeliveryOn: 'Delivery',
+  followUpOn: 'Follow Up',
 } as const;
 export type SearchState = Record<string, string>;
 const optionalText = (schema: z.ZodType<string>) =>
   z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
+const calendarDate = z.iso.date().refine((value) => !value.startsWith('0000'));
 const integer = z
   .string()
   .regex(/^[1-9]\d*$/, 'Use a positive whole number.')
@@ -40,8 +42,9 @@ export const searchSchema = z
         .refine((value) => !value.includes('\0'), 'Remove null characters.'),
     ),
     carrierExternalId: optionalText(z.uuidv4()),
-    estimatedDeliveryFrom: optionalText(z.iso.date().refine((value) => !value.startsWith('0000'))),
-    estimatedDeliveryTo: optionalText(z.iso.date().refine((value) => !value.startsWith('0000'))),
+    salesRepExternalId: optionalText(z.union([z.uuidv4(), z.literal('unassigned')])),
+    estimatedDeliveryFrom: optionalText(calendarDate),
+    estimatedDeliveryTo: optionalText(calendarDate),
     undeliveredOnly: optionalText(z.enum(['true', 'false'])).transform((value) =>
       value === undefined ? undefined : value === 'true',
     ),
@@ -49,11 +52,15 @@ export const searchSchema = z
     pageSize: z.enum(['25', '50', '100']).default('25').transform(Number),
     sortBy: z.preprocess(
       (value) => (value === 'lastAttemptedAt' ? 'createdAt' : value),
-      z.enum(['createdAt', 'trackingReference', 'estimatedDeliveryOn']).default('createdAt'),
+      z
+        .enum(['createdAt', 'trackingReference', 'estimatedDeliveryOn', 'followUpOn'])
+        .default('createdAt'),
     ),
     sortDirection: z.enum(['asc', 'desc']).default('desc'),
   })
   .superRefine((value, context) => {
+    if (!Number.isSafeInteger((value.page - 1) * value.pageSize))
+      context.addIssue({ code: 'custom', path: ['page'], message: 'Page is too large.' });
     if (
       value.estimatedDeliveryFrom &&
       value.estimatedDeliveryTo &&
@@ -62,10 +69,8 @@ export const searchSchema = z
       context.addIssue({
         code: 'custom',
         path: ['estimatedDeliveryTo'],
-        message: 'End date must not precede start date.',
+        message: 'End date must be on or after the start date.',
       });
-    if (!Number.isSafeInteger((value.page - 1) * value.pageSize))
-      context.addIssue({ code: 'custom', path: ['page'], message: 'Page is too large.' });
   });
 export type ShipmentSearch = z.infer<typeof searchSchema>;
 

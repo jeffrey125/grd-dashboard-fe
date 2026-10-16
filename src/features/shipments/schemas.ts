@@ -33,6 +33,17 @@ export const carrierSchema = z.object({
   name: z.string(),
   isActive: z.boolean(),
 });
+export const salesRepSchema = z.object({
+  externalId: z.uuidv4(),
+  firstName: z.string(),
+  lastName: z.string(),
+  active: z.boolean(),
+});
+export const employeeSummarySchema = z.object({
+  externalId: z.uuidv4(),
+  firstName: z.string(),
+  lastName: z.string(),
+});
 const trackingSnapshotSchema = z.object({
   externalId: z.uuidv4(),
   carrierStatus: z.string().nullable(),
@@ -54,6 +65,12 @@ export const shipmentSchema = z.object({
   carrier: carrierSchema,
   trackingReference: z.string(),
   notes: z.string().nullable(),
+  salesRep: salesRepSchema.nullable(),
+  followUpOn: date,
+  createdBy: employeeSummarySchema.nullable(),
+  updatedBy: employeeSummarySchema.nullable(),
+  recordUpdatedAt: timestamp.nullable(),
+  recordUpdatedBy: employeeSummarySchema.nullable(),
   verificationUrl: z.string().nullable(),
   monitoringStatus: z.enum(['active', 'paused', 'completed']),
   monitoringReason: z.enum(['manual', 'not_found_threshold', 'delivered']).nullable(),

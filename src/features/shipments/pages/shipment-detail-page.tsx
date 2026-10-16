@@ -2,7 +2,8 @@ import { ApiError, SessionCancelled, safeError } from '@api/api';
 import { useNotifications } from '@components/feedback/notification-provider';
 import { useSession } from '@features/auth';
 import { actionRules, useShipmentCommand } from '@features/shipments/actions';
-import { deleteShipment, getShipment } from '@features/shipments/api';
+import { deleteShipment, getSalesReps, getShipment } from '@features/shipments/api';
+import { AssignmentSection } from '@features/shipments/assignment-section';
 import {
   diagnosticMessage,
   monitoringLabel,
@@ -50,6 +51,9 @@ function Fields({ values }: { values: Record<string, string> }) {
     </Box>
   );
 }
+function employeeName(employee: { firstName: string; lastName: string } | null) {
+  return employee ? `${employee.firstName} ${employee.lastName}` : 'Not attributed';
+}
 export function ShipmentDetailPage() {
   const { shipmentId } = useParams({ from: '/shipments/$shipmentId' });
   const { returnTo } = useSearch({ from: '/shipments/$shipmentId' });
@@ -63,7 +67,8 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
   const navigate = useNavigate();
   const { showNotification } = useNotifications();
   const [missing, setMissing] = useState(false);
-  const [dirty, setDirty] = useState(false);
+  const [notesDirty, setNotesDirty] = useState(false);
+  const [assignmentDirty, setAssignmentDirty] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [requestedRun, setRequestedRun] = useState<TrackingRun | null>(null);
   const bypassNavigation = useRef(false);
@@ -84,11 +89,18 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
   });
   const command = useShipmentCommand(id, { onRefresh: setRequestedRun, onMissing });
   const notesPending = useIsMutating({ mutationKey: ['shipment-notes', id] }) > 0;
+  const assignmentPending = useIsMutating({ mutationKey: ['shipment-assignment', id] }) > 0;
+  const salesReps = useQuery({
+    queryKey: ['sales-reps'],
+    queryFn: ({ signal }) => getSalesReps(session.client, signal),
+    staleTime: 5 * 60_000,
+  });
   const removal = useMutation({
     mutationFn: () => deleteShipment(session.client, id),
     retry: false,
   });
   const row = query.data;
+  const dirty = notesDirty || assignmentDirty;
   useDisplayedRevision(
     row?.currentTracking
       ? { shipmentId: id, snapshotId: row.currentTracking.externalId }
@@ -164,7 +176,7 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
     );
   const rules = actionRules(row);
   const verification = verificationLink(row.verificationUrl);
-  const busy = command.pending || notesPending || removal.isPending;
+  const busy = command.pending || notesPending || assignmentPending || removal.isPending;
   const snapshot = row.currentTracking;
   return (
     <Stack spacing={3} sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
@@ -281,14 +293,14 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
           aria-controls="overview-panel"
           value="overview"
           label="Overview"
-          disabled={notesPending || removal.isPending}
+          disabled={notesPending || assignmentPending || removal.isPending}
         />
         <Tab
           id="history-tab"
           aria-controls="history-panel"
           value="history"
           label="History"
-          disabled={notesPending || removal.isPending}
+          disabled={notesPending || assignmentPending || removal.isPending}
         />
       </Tabs>
       <Typography variant="caption" color="text.secondary">
@@ -428,12 +440,39 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
               </Stack>
             </Paper>
           </Box>
+          <Paper component="section" aria-labelledby="audit-title" variant="outlined" sx={{ p: 2 }}>
+            <Typography id="audit-title" component="h2" variant="h6" sx={{ mb: 2 }}>
+              Shipment audit
+            </Typography>
+            <Fields
+              values={{
+                'Added by': employeeName(row.createdBy),
+                'Added at': businessTimestamp(row.createdAt),
+                'Last database update': businessTimestamp(row.updatedAt),
+                'Last database update by': employeeName(row.updatedBy),
+                'Assignment/follow-up update': businessTimestamp(row.recordUpdatedAt),
+                'Assignment/follow-up updated by': employeeName(row.recordUpdatedBy),
+              }}
+            />
+          </Paper>
+          {salesReps.isError && (
+            <Alert severity="warning">
+              Sales Rep options could not refresh. The current assignment remains available.
+            </Alert>
+          )}
+          <AssignmentSection
+            shipment={row}
+            salesReps={salesReps.data ?? []}
+            disabled={command.pending || notesPending || removal.isPending || confirmDelete}
+            onMissing={onMissing}
+            onDirty={setAssignmentDirty}
+          />
           <NotesSection
             shipment={row}
             disabled={command.pending || removal.isPending || confirmDelete}
             bypassNavigation={bypassNavigation}
             onMissing={onMissing}
-            onDirty={setDirty}
+            onDirty={setNotesDirty}
           />
         </Stack>
       )}
@@ -455,7 +494,7 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
           </Typography>
           {dirty && (
             <Typography sx={{ mt: 2 }}>
-              Your unsaved note changes will also be discarded.
+              Your unsaved shipment changes will also be discarded.
             </Typography>
           )}
           {removal.isError && <Alert severity="error">{safeError(removal.error).message}</Alert>}

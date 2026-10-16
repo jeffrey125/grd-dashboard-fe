@@ -17,6 +17,14 @@ export const createShipmentSchema = z.strictObject({
     'Enter a tracking reference.',
   ),
   notes: literal(500).transform((value) => value || null),
+  salesRepExternalId: z
+    .union([z.uuidv4(), z.literal('')])
+    .optional()
+    .transform((value) => (value === '' ? null : value)),
+  followUpOn: z
+    .union([z.iso.date(), z.literal('')])
+    .optional()
+    .transform((value) => (value === '' ? null : value)),
 });
 
 export type ShipmentDraft = z.input<typeof createShipmentSchema>;
@@ -27,7 +35,14 @@ const fieldErrorsSchema = z.object({
   details: z
     .array(
       z.object({
-        field: z.enum(['carrierExternalId', 'trackingReference', 'notes', 'shipment']),
+        field: z.enum([
+          'carrierExternalId',
+          'trackingReference',
+          'notes',
+          'salesRepExternalId',
+          'followUpOn',
+          'shipment',
+        ]),
       }),
     )
     .min(1)
@@ -50,5 +65,7 @@ export const fieldErrorMessages = {
   carrierExternalId: 'Carrier is unavailable. Choose an enabled carrier.',
   trackingReference: 'Check this tracking reference.',
   notes: 'Check these notes.',
+  salesRepExternalId: 'Choose an active Sales Rep.',
+  followUpOn: 'Choose today or a future date.',
   shipment: 'Check this shipment.',
 } as const;

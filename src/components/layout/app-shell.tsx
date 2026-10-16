@@ -1,4 +1,5 @@
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
+import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
@@ -39,6 +40,7 @@ const primaryNavigation = [
 const adminNavigation = [
   { href: '/admin/accounts', label: 'Accounts', Icon: PeopleOutlineIcon },
   { href: '/admin/carriers', label: 'Carriers', Icon: Inventory2OutlinedIcon },
+  { href: '/admin/sales-reps', label: 'Sales Reps', Icon: BadgeOutlinedIcon },
 ] as const;
 
 export type AppShellUser = {

@@ -10,8 +10,7 @@ import { changeSearch, type SearchState, searchErrors } from './search-state';
 
 const filterLabels = {
   carrierExternalId: 'Carrier',
-  estimatedDeliveryFrom: 'Delivery from (YYYY-MM-DD)',
-  estimatedDeliveryTo: 'Delivery through (YYYY-MM-DD)',
+  salesRepExternalId: 'Sales Rep',
   undeliveredOnly: 'Delivery state',
 };
 export function SearchBox({
@@ -44,11 +43,13 @@ export function SearchBox({
 export function ShipmentFilters({
   raw,
   carriers,
+  salesReps = [],
   onApply,
   onClear,
 }: {
   raw: SearchState;
   carriers: Array<{ externalId: string; name: string; isActive: boolean }>;
+  salesReps?: Array<{ externalId: string; firstName: string; lastName: string; active: boolean }>;
   onApply: (next: SearchState) => void;
   onClear: () => void;
 }) {
@@ -117,15 +118,25 @@ export function ShipmentFilters({
             </option>
           ))}
         </TextField>
-        {(['estimatedDeliveryFrom', 'estimatedDeliveryTo'] as const).map((key) => (
-          <TextField
-            key={key}
-            label={filterLabels[key]}
-            {...form.register(key)}
-            error={!!errors[key]}
-            helperText={errors[key] ?? 'Carrier calendar date, e.g. 2026-10-17.'}
-          />
-        ))}
+        <TextField
+          label={filterLabels.salesRepExternalId}
+          select
+          {...form.register('salesRepExternalId')}
+          defaultValue={raw.salesRepExternalId ?? ''}
+          slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+          error={!!errors.salesRepExternalId}
+          helperText={errors.salesRepExternalId}
+        >
+          <option value="">Any</option>
+          <option value="unassigned">Unassigned</option>
+          {salesReps
+            .filter((rep) => rep.active)
+            .map((rep) => (
+              <option key={rep.externalId} value={rep.externalId}>
+                {rep.firstName} {rep.lastName}
+              </option>
+            ))}
+        </TextField>
         <TextField
           label="Delivery state"
           select

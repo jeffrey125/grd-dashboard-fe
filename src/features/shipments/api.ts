@@ -6,6 +6,7 @@ import {
   historyResponseSchema,
   runSchema,
   runStatusSchema,
+  salesRepSchema,
   searchResponseSchema,
   shipmentSchema,
 } from './schemas';
@@ -29,6 +30,9 @@ export async function searchShipments(
 }
 export async function getCarriers(client: ApiClient, signal: AbortSignal) {
   return parse(z.array(carrierSchema), await client.request({ url: '/carriers', signal }));
+}
+export async function getSalesReps(client: ApiClient, signal: AbortSignal) {
+  return parse(z.array(salesRepSchema), await client.request({ url: '/sales-reps', signal }));
 }
 export async function getShipment(client: ApiClient, id: string, signal: AbortSignal) {
   return parse(shipmentSchema, await client.request({ url: `/shipments/${id}`, signal }));
@@ -63,6 +67,19 @@ export async function saveShipmentNotes(client: ApiClient, id: string, notes: st
       method: 'PATCH',
       data: { notes },
     }),
+  );
+}
+export async function updateShipment(
+  client: ApiClient,
+  id: string,
+  input: {
+    salesRepExternalId?: string | null;
+    followUpOn?: string | null;
+  },
+) {
+  return parse(
+    shipmentSchema,
+    await client.request({ url: `/shipments/${id}`, method: 'PATCH', data: input }),
   );
 }
 export async function deleteShipment(client: ApiClient, id: string) {

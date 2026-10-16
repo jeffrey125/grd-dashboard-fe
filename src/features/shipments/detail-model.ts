@@ -1,4 +1,5 @@
 import { ApiError } from '@api/api';
+import { businessCalendarDate, parseCalendarDate } from '@lib/dates';
 import { createShipmentSchema } from './create-schema';
 import type { Shipment, TrackingRun } from './schemas';
 
@@ -25,6 +26,15 @@ export function monitoringLabel(row: Shipment) {
   if (row.monitoringStatus === 'completed') return 'Delivered';
   if (row.monitoringStatus === 'active') return 'Active';
   return row.monitoringReason === 'manual' ? 'Paused manually' : 'Paused: not found';
+}
+export function salesRepLabel(row: Shipment) {
+  return row.salesRep ? row.salesRep.firstName : '—';
+}
+export function followUpLabel(value: string | null) {
+  return value ? parseCalendarDate(value).format('MMM D, YYYY') : '—';
+}
+export function followUpDue(value: string | null) {
+  return value !== null && value <= businessCalendarDate();
 }
 export function activeRun(run: TrackingRun) {
   return run.status === 'queued' || run.status === 'running';

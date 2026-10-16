@@ -20,3 +20,7 @@ export function businessTimestamp(value: string | null) {
     ? dayjs(value).tz('America/New_York').format('MMM D, YYYY, h:mm A')
     : 'Not available';
 }
+
+export function businessCalendarDate(value = new Date()) {
+  return dayjs(value).tz('America/New_York').format('YYYY-MM-DD');
+}

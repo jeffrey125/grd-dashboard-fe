@@ -1,5 +1,6 @@
 import { SessionCancelled, safeError } from '@api/api';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { businessCalendarDate } from '@lib/dates';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -23,16 +24,20 @@ const emptyShipment = (carrierExternalId = ''): ShipmentDraft => ({
   carrierExternalId,
   trackingReference: '',
   notes: '',
+  salesRepExternalId: '',
+  followUpOn: '',
 });
 
 export function CreateShipmentForm({
   carriers,
+  salesReps,
   unavailable,
   onCreate,
   onSaved,
   onCarrierError,
 }: {
   carriers: z.infer<typeof carrierSchema>[];
+  salesReps: Array<{ externalId: string; firstName: string; lastName: string; active: boolean }>;
   unavailable: boolean;
   onCreate: (input: CreateShipmentInput) => Promise<CreateShipmentResult>;
   onSaved: (result: CreateShipmentResult) => void;
@@ -110,7 +115,7 @@ export function CreateShipmentForm({
           alignItems: 'start',
           gridTemplateColumns: {
             xs: '1fr',
-            md: 'minmax(12rem, 0.9fr) minmax(14rem, 1.25fr) minmax(14rem, 1.35fr) auto',
+            md: 'repeat(3, minmax(12rem, 1fr)) repeat(2, minmax(12rem, 1fr)) auto',
           },
         }}
       >
@@ -149,6 +154,38 @@ export function CreateShipmentForm({
           disabled={pending}
           error={!!errors.notes}
           helperText={errors.notes?.message}
+        />
+        <TextField
+          select
+          fullWidth
+          label="Assigned Sales Rep (optional)"
+          {...register('salesRepExternalId')}
+          slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+          disabled={pending}
+          error={!!errors.salesRepExternalId}
+          helperText={errors.salesRepExternalId?.message}
+        >
+          <option value="">Unassigned</option>
+          {salesReps
+            .filter((rep) => rep.active)
+            .map((rep) => (
+              <option key={rep.externalId} value={rep.externalId}>
+                {rep.firstName} {rep.lastName}
+              </option>
+            ))}
+        </TextField>
+        <TextField
+          fullWidth
+          type="date"
+          label="Date to Follow Up (optional)"
+          {...register('followUpOn')}
+          slotProps={{
+            inputLabel: { shrink: true },
+            htmlInput: { min: businessCalendarDate() },
+          }}
+          disabled={pending}
+          error={!!errors.followUpOn}
+          helperText={errors.followUpOn?.message}
         />
         <Button
           type="submit"

@@ -19,7 +19,7 @@ import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { createLink, Link } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { actionRules, useShipmentCommand } from './actions';
-import { monitoringLabel } from './detail-model';
+import { followUpDue, followUpLabel, monitoringLabel, salesRepLabel } from './detail-model';
 import type { Shipment } from './schemas';
 import { type ShipmentSearch, sorts } from './search-state';
 
@@ -258,6 +258,23 @@ export function ShipmentGrid({
         ),
       },
       {
+        field: 'salesRep',
+        headerName: 'Sales Rep',
+        width: 130,
+        sortable: false,
+        valueGetter: (_value, row) => salesRepLabel(row),
+      },
+      {
+        field: 'followUpOn',
+        headerName: 'Follow Up',
+        width: 150,
+        renderCell: ({ row }) => (
+          <Typography color={followUpDue(row.followUpOn) ? 'warning.main' : undefined}>
+            {followUpLabel(row.followUpOn)}
+          </Typography>
+        ),
+      },
+      {
         field: 'pickedUpOn',
         headerName: 'Pickup',
         width: 140,
@@ -376,6 +393,8 @@ export function ShipmentGrid({
                 {Object.entries({
                   'Carrier status': row.currentTracking?.carrierStatus ?? 'Not available',
                   Monitoring: monitoringLabel(row),
+                  'Sales Rep': salesRepLabel(row),
+                  'Follow Up': followUpLabel(row.followUpOn),
                   Pickup: row.currentTracking?.pickedUpOn ?? 'Not available',
                   Delivery: row.currentTracking?.estimatedDeliveryOn ?? 'Not available',
                   Created: businessTimestamp(row.createdAt),

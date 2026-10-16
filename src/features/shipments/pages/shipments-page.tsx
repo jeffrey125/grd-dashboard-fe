@@ -2,7 +2,12 @@ import { safeError } from '@api/api';
 import { useNotifications } from '@components/feedback/notification-provider';
 import { PageHeader } from '@components/layout/page-header';
 import { useSession } from '@features/auth';
-import { createShipment, getCarriers, searchShipments } from '@features/shipments/api';
+import {
+  createShipment,
+  getCarriers,
+  getSalesReps,
+  searchShipments,
+} from '@features/shipments/api';
 import { CreateShipmentForm } from '@features/shipments/create-form';
 import { SearchBox, ShipmentFilters } from '@features/shipments/filters';
 import {
@@ -14,6 +19,7 @@ import {
 } from '@features/shipments/search-state';
 import { ShipmentGrid } from '@features/shipments/shipment-grid';
 import { liveQuery, ReviewControls } from '@features/tracking-updates';
+import { businessCalendarDate } from '@lib/dates';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
@@ -56,6 +62,11 @@ export function ShipmentsPage() {
     queryFn: ({ signal }) => getCarriers(session.client, signal),
     ...liveQuery({ target: { kind: 'carriers' } }),
   });
+  const salesReps = useQuery({
+    queryKey: ['sales-reps'],
+    queryFn: ({ signal }) => getSalesReps(session.client, signal),
+    staleTime: 5 * 60_000,
+  });
   const createMutation = useMutation({
     mutationFn: (input: Parameters<typeof createShipment>[1]) =>
       createShipment(session.client, input),
@@ -72,6 +83,17 @@ export function ShipmentsPage() {
     if (raw.sortBy === 'lastAttemptedAt')
       update(changeSearch(raw, { sortBy: 'createdAt' }, false), true);
   }, [raw, update]);
+  useEffect(() => {
+    let lastDate = businessCalendarDate();
+    const timer = setInterval(() => {
+      const nextDate = businessCalendarDate();
+      if (nextDate === lastDate) return;
+      lastDate = nextDate;
+      void queries.invalidateQueries({ queryKey: ['shipments'] });
+      void queries.invalidateQueries({ queryKey: ['overview'] });
+    }, 30_000);
+    return () => clearInterval(timer);
+  }, [queries]);
   useEffect(() => {
     if (!search || !data || query.isPlaceholderData || query.isFetching || query.isError) return;
     const last = Math.max(1, Math.ceil(data.total / search.pageSize));
@@ -112,6 +134,7 @@ export function ShipmentsPage() {
         )}
         <CreateShipmentForm
           carriers={carriers.data ?? []}
+          salesReps={salesReps.data ?? []}
           unavailable={carriers.isPending || carriers.isError || !hasEnabledCarrier}
           onCreate={createMutation.mutateAsync}
           onCarrierError={() => {
@@ -163,6 +186,7 @@ export function ShipmentsPage() {
               key={filterKey}
               raw={raw}
               carriers={carriers.data ?? []}
+              salesReps={salesReps.data ?? []}
               onApply={update}
               onClear={() => {
                 setClearRevision((value) => value + 1);
@@ -209,9 +233,10 @@ export function ShipmentsPage() {
           ))}
         </Tabs>
         <Typography variant="caption">
-          Active, Delivered, and Needs attention partition All shipments. Needs attention includes
-          paused shipments and failed lookups. Timestamps: America/New_York. Carrier delivery dates
-          are calendar dates.
+          Active, Delivered, and Needs attention are independent views. Needs attention includes
+          paused shipments, failed lookups, and shipments due for follow-up; a delivered shipment
+          can also need attention. Timestamps: America/New_York. Carrier delivery dates are calendar
+          dates.
         </Typography>
         {search && query.isError && (
           <Alert
