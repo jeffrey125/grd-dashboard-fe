@@ -113,6 +113,7 @@ export function changeSearch(
   );
 }
 export function listReturnTo(value: unknown) {
+  if (value === '/') return '/';
   if (typeof value !== 'string') return '/shipments';
   try {
     const url = new URL(value, 'https://internal.invalid');

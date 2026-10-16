@@ -38,7 +38,8 @@ reference, carrier, reason, last known tracking status, and a link to detail.
 
 Secondary sections: **Upcoming deliveries** (today plus six days, known ETA only)
 and **Recent tracking changes** (app-recorded snapshots). Show at most 10 items per
-section. Link upcoming items/view-all to All shipments with the ETA range and
+section. Upcoming reference links open detail and return to Overview; link view-all
+to All shipments with the ETA range and
 `undeliveredOnly=true`; show the latter as a removable active-filter indicator.
 The backend applies this constraint before pagination. Recent changes link directly to the shipment history;
 there is no new global history page in v1.
@@ -46,6 +47,9 @@ there is no new global history page in v1.
 Display business timezone and last successful aggregate refresh. Loading, empty,
 error, and stale/reconnecting states remain distinct. Avoid inventing zeros on a
 failed request. Refresh silently; tracking-change audio/toasts do not run here.
+Refresh every minute while visible, alongside existing live synchronization.
+Needs attention spans the desktop width; the secondary panels use two columns.
+Mobile stacks all three panels. Retain stale data and its warning during retries.
 
 ## Shipment list
 
@@ -109,7 +113,8 @@ the draft, and do not scroll to the top.
 
 Header persists across future tabs (it is not sticky while scrolling): reference, carrier, monitoring state/reason, valid
 verification link, refresh, valid pause/resume, and delete confirmation. Return
-to the originating list URL; direct links fall back to default `/shipments`.
+to the originating list URL or Overview for homepage-origin links; direct links
+fall back to default `/shipments`.
 
 **Overview:** current carrier status/detail, pickup/estimated/actual delivery
 dates, snapshot-recorded time, last attempted/next-check times, latest completed

@@ -218,3 +218,19 @@ switching to History. The accepted manual run stays above both tabs, without
 duplicating the same run in Overview. Existing live coordination handles
 coalescing, trailing reads and deletion; terminal displayed runs also invalidate
 history for missed-event recovery.
+
+## FE-V1-010 interview decisions
+
+Approved through the ticket interview: five server-count cards, full-width Needs
+attention on desktop, then Upcoming deliveries and Recent tracking changes in
+two columns. Stack panels on mobile. Use the installed MUI, TanStack Query/Router,
+Axios, Zod and Day.js; no new dependency. Query's built-in interval refreshes every
+60 seconds while visible, alongside shared live synchronization and its existing
+age-aware focus refresh. No midnight timer or tracking-change alert is added.
+
+Retain known data and a warning through unsuccessful refreshes and in-flight
+retries; only a successful read clears the local warning. Use server `asOf`,
+timezone, totals and date boundaries. Overview detail/history links return to `/`;
+list-origin links retain their filtered list. Upcoming references open detail,
+and its view-all link opens All shipments with the server date window,
+`undeliveredOnly=true` and ETA ascending. Recent entries open shipment History.

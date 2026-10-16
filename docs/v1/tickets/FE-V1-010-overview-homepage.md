@@ -2,7 +2,10 @@
 
 ## Status
 
-Not started. Depends on FE-V1-009 and BE-V1-004.
+Implemented and locally verified.
+FE-V1-009 and BE-V1-004 prerequisites were checked against their implementation;
+the real overview API and its PostgreSQL tests were exercised locally.
+See the [implementation summary](../implementation-summary/FE-V1-010-implementation-summary.md).
 
 ## Target repository
 

@@ -4,6 +4,7 @@ import { Session, SessionProvider } from '@features/auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router';
 import { accountFixture } from '@test/auth-fixture';
+import { emptyOverview } from '@test/overview-fixture';
 import { emptyShipments } from '@test/shipment-fixture';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -34,11 +35,13 @@ async function renderRoute(path: string) {
   const client = new ApiClient('http://localhost:3000');
   client.http.defaults.adapter = async (config) => ({
     data:
-      config.url === '/shipments/search'
-        ? emptyShipments
-        : config.url === '/carriers'
-          ? []
-          : accountFixture,
+      config.url === '/dashboard/overview'
+        ? emptyOverview
+        : config.url === '/shipments/search'
+          ? emptyShipments
+          : config.url === '/carriers'
+            ? []
+            : accountFixture,
     status: 200,
     statusText: '',
     headers: {},
@@ -72,7 +75,7 @@ it('shows an honest branded overview without shipment records', async () => {
   expect(logo).toBeDefined();
   if (!logo) throw new Error('The GRD logo is missing.');
   expect(logo).toHaveAttribute('src', '/brand/grd-logo.svg');
-  expect(screen.getByText(/No shipment data is being inferred or fabricated/)).toBeVisible();
+  expect(await screen.findByText('No shipments need attention.')).toBeVisible();
   expect(screen.queryByRole('table')).not.toBeInTheDocument();
 });
 

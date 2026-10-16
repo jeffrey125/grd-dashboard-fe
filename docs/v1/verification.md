@@ -225,3 +225,23 @@ The history suite supports the same `FE_TEST_API_PORT` override as detail tests.
 The isolated account is `frontend-history@example.test` / `history fixture password`.
 See the [FE-V1-009 summary](implementation-summary/FE-V1-009-implementation-summary.md)
 for final commands and results.
+
+## FE-V1-010 overview verification
+
+Unit checks cover the aggregate schema, cancellation, literal references, rejected
+malformed responses, safe return destinations and unchanged server date windows.
+Desktop/mobile browser tests cover server totals, panel hierarchy, matching links,
+detail/history return navigation, both themes, keyboard activation, loading/error/
+empty/stale states, warning retention during retry, visible-only minute polling,
+quiet tracking events and controlled-clock New York midnight around both DST dates.
+
+`e2e-backend/overview.spec.ts` uses the existing disposable PostgreSQL harness with
+over 1,000 shipments through direct API/preview and the mobile Vite proxy. It checks
+all tab counts, attention membership, server date windows, full upcoming filtered
+membership, calendar dates, history links and no-store responses. Upcoming equal-ETA
+tie-breakers differ between the overview (creation/id) and search (id), so the test
+checks matching membership and totals rather than identical first-page order.
+The backend's existing overview integration suite separately checks controlled
+date boundaries, null/deleted/disabled records, concurrent reads and bounded panels.
+No worker or live carrier requests are used. See the
+[FE-V1-010 summary](implementation-summary/FE-V1-010-implementation-summary.md).

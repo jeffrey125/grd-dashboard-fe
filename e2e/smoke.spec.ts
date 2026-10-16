@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { accountFixture } from '@test/auth-fixture';
+import { emptyOverview } from '@test/overview-fixture';
 import { emptyShipments } from '@test/shipment-fixture';
 import { installLiveFixture } from './live-fixture';
 
@@ -26,6 +27,8 @@ test('built shell supports branding, navigation, themes, and keyboard recovery',
     if (request.url().includes('/api/v1/shipments/search'))
       return route.fulfill({ json: emptyShipments });
     if (request.url().endsWith('/api/v1/carriers')) return route.fulfill({ json: [] });
+    if (request.url().endsWith('/api/v1/dashboard/overview'))
+      return route.fulfill({ json: emptyOverview });
     if (
       new URL(request.url()).origin !== 'http://127.0.0.1:4174' ||
       ['fetch', 'xhr', 'eventsource'].includes(request.resourceType())
@@ -72,14 +75,14 @@ test('built shell supports branding, navigation, themes, and keyboard recovery',
     await menuButton.focus();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible();
-    await page.getByRole('link', { name: 'Shipments' }).focus();
+    await page.getByRole('link', { name: 'Shipments', exact: true }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('button', { name: 'Open navigation' })).toHaveAttribute(
       'aria-expanded',
       'false',
     );
   } else {
-    await page.getByRole('link', { name: 'Shipments' }).click();
+    await page.getByRole('link', { name: 'Shipments', exact: true }).click();
   }
   await expect(page.getByRole('heading', { name: 'Shipments' })).toBeVisible();
   await expect(

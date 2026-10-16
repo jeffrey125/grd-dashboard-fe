@@ -40,13 +40,17 @@ describe('shipment URL contract', () => {
     });
     expect(changeSearch({}, { page: '3' }, false)).toEqual({ page: '3' });
   });
-  it('accepts only the originating internal list as a return destination', () => {
+  it('accepts only the overview or originating internal list as a return destination', () => {
+    expect(listReturnTo('/')).toBe('/');
     expect(listReturnTo('/shipments?tab=paused&page=3')).toBe('/shipments?tab=paused&page=3');
     for (const value of [
       'https://evil.example/shipments',
       '//evil.example/shipments',
       '/shipments/new',
       '/login',
+      '/?redirect=https://evil.example',
+      '//evil.example',
+      '/\\evil.example',
     ])
       expect(listReturnTo(value)).toBe('/shipments');
   });

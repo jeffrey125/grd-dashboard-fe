@@ -91,7 +91,7 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
   const row = query.data;
   const back = (
     <RouterButton to={returnTo} sx={{ alignSelf: 'flex-start' }}>
-      Back to results
+      {returnTo === '/' ? 'Back to Overview' : 'Back to results'}
     </RouterButton>
   );
   const remove = async () => {

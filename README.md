@@ -10,6 +10,8 @@ server-paginated shipment list, Apply filters, URL validation and quick row acti
 FE-V1-007 adds inline creation; FE-V1-008 adds shipment details, protected note
 editing, monitoring actions and run progress. FE-V1-009 adds the paginated History
 tab, normalized snapshot comparisons and shared requested-run progress.
+FE-V1-010 adds the operational overview with server counts, problem-first panels,
+silent live updates and one-minute visible-page polling.
 Administration and later features remain in the
 [v1 implementation tickets](docs/v1/tickets/README.md).
 
@@ -166,7 +168,15 @@ requires re-login. Safe internal return URLs retain query parameters. Restricted
 accounts see password replacement and sign-out only.
 
 Unrestricted Staff/Admin sessions see the branded shell at `/` and `/shipments`.
-The overview remains a placeholder. `/shipments` now queries the real paginated
+The overview uses `/dashboard/overview` for five summary cards and bounded Needs
+attention, Upcoming deliveries and Recent tracking changes panels. Needs attention
+spans the desktop width, with the other two panels beneath it; mobile stacks them.
+Counts and date windows come from the server. Upcoming view-all applies the server
+ETA range and undelivered filter. Detail/history links return to Overview when
+opened there. Failed refreshes retain known data with a persistent warning and
+Retry; the last successful server timestamp remains visible. The page refreshes
+every minute while visible, plus existing live/focus/reconnect synchronization.
+`/shipments` now queries the real paginated
 endpoint, defaults to Active/newest created first, and supports five shipment views,
 server counts, 25/50/100-row pages, reference/notes search, carrier/outcome/date filters
 and allowlisted sorting. Carrier/outcome/date edits require Apply filters; invalid
@@ -225,8 +235,8 @@ coalesces events over 100 ms and retains a trailing refresh during an existing
 request. Inactive caches are invalidated; confirmed shipment 404s clear retained
 detail/history data. Carrier-dependent targets opt into age-aware focus refreshes
 and explicit post-edit invalidation. See [the registration contract](docs/v1/architecture.md#implemented-live-registration-boundary-fe-v1-005).
-Shipment queries register with the live coordinator, including carrier-dependent
-refreshes; the overview remains a placeholder. Tracking highlights/audio/toasts remain FE-V1-011.
+Shipment and overview queries register with the live coordinator, including
+carrier-dependent refreshes. Tracking highlights/audio/toasts remain FE-V1-011.
 
 ## Source boundaries and import aliases
 
