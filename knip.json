@@ -1,4 +1,10 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "project": ["src/**/*.{ts,tsx}", "e2e/**/*.ts", "*.config.{ts,mjs}"]
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "e2e/**/*.ts",
+    "*.config.{ts,mjs}",
+    "e2e-backend/**/*.ts",
+    "scripts/**/*.mjs"
+  ]
 }
