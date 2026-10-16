@@ -23,6 +23,7 @@ export async function installLiveFixture(surface: BrowserContext | Page) {
     route.fulfill({ json: emptyShipments }),
   );
   await surface.route('**/api/v1/carriers', (route) => route.fulfill({ json: [] }));
+  await surface.route('**/api/v1/sales-reps', (route) => route.fulfill({ json: [] }));
   await surface.addInitScript(() => {
     const sources = new Set<FixtureSource>();
     window.liveFixture = {

@@ -9,7 +9,7 @@ const name = z
 
 const timestamp = z.iso.datetime({ offset: true });
 
-export const salesRepSchema = z.object({
+const salesRepSchema = z.object({
   externalId: z.uuidv4(),
   firstName: z.string(),
   lastName: z.string(),

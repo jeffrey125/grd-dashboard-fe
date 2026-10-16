@@ -494,7 +494,8 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
           </Typography>
           {dirty && (
             <Typography sx={{ mt: 2 }}>
-              Your unsaved shipment changes will also be discarded.
+              Your unsaved note changes will also be discarded. Assignment/follow-up changes will
+              also be discarded.
             </Typography>
           )}
           {removal.isError && <Alert severity="error">{safeError(removal.error).message}</Alert>}

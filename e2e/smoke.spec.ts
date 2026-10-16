@@ -27,6 +27,7 @@ test('built shell supports branding, navigation, themes, and keyboard recovery',
     if (request.url().includes('/api/v1/shipments/search'))
       return route.fulfill({ json: emptyShipments });
     if (request.url().endsWith('/api/v1/carriers')) return route.fulfill({ json: [] });
+    if (request.url().endsWith('/api/v1/sales-reps')) return route.fulfill({ json: [] });
     if (request.url().endsWith('/api/v1/dashboard/overview'))
       return route.fulfill({ json: emptyOverview });
     if (

@@ -57,12 +57,10 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
     const upcomingData = searchResponseSchema.parse(await upcomingResult.json());
     expect(upcomingData.total).toBe(data.upcomingDeliveries.total);
     await page.getByRole('link', { name: 'View all upcoming deliveries' }).click();
-    await expect(page.getByLabel('Delivery from (YYYY-MM-DD)', { exact: true })).toHaveValue(
-      data.upcomingWindow.from,
-    );
-    await expect(page.getByLabel('Delivery through (YYYY-MM-DD)', { exact: true })).toHaveValue(
-      data.upcomingWindow.to,
-    );
+    await expect(page).toHaveURL(new RegExp(`estimatedDeliveryFrom=${data.upcomingWindow.from}`));
+    await expect(page).toHaveURL(new RegExp(`estimatedDeliveryTo=${data.upcomingWindow.to}`));
+    await expect(page.getByLabel('Delivery from (YYYY-MM-DD)', { exact: true })).toHaveCount(0);
+    await expect(page.getByLabel('Delivery through (YYYY-MM-DD)', { exact: true })).toHaveCount(0);
     await expect(page.getByLabel('Delivery state', { exact: true })).toHaveValue('true');
     await expect(page.getByText('Results are paused.', { exact: false })).toHaveCount(0);
     await expect(page.getByRole('region', { name: 'Recent tracking changes' })).toHaveCount(0);

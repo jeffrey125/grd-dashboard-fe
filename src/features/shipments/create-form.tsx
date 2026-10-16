@@ -115,7 +115,8 @@ export function CreateShipmentForm({
           alignItems: 'start',
           gridTemplateColumns: {
             xs: '1fr',
-            md: 'repeat(3, minmax(12rem, 1fr)) repeat(2, minmax(12rem, 1fr)) auto',
+            sm: 'repeat(2, minmax(0, 1fr))',
+            lg: 'repeat(3, minmax(0, 1fr))',
           },
         }}
       >

@@ -39,7 +39,7 @@ export const salesRepSchema = z.object({
   lastName: z.string(),
   active: z.boolean(),
 });
-export const employeeSummarySchema = z.object({
+const employeeSummarySchema = z.object({
   externalId: z.uuidv4(),
   firstName: z.string(),
   lastName: z.string(),

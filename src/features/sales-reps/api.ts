@@ -1,11 +1,6 @@
 import { type ApiClient, ApiError } from '@api/api';
 import { z } from 'zod';
-import {
-  adminSalesRepSchema,
-  type SalesRepInput,
-  salesRepInputSchema,
-  salesRepSchema,
-} from './schemas';
+import { adminSalesRepSchema, type SalesRepInput, salesRepInputSchema } from './schemas';
 
 function parse<T>(schema: z.ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);
@@ -60,5 +55,3 @@ export async function restoreSalesRep(client: ApiClient, id: string) {
     }),
   );
 }
-
-export { salesRepSchema };

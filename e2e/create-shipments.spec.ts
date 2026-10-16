@@ -27,6 +27,8 @@ test('adds one shipment inline, sends the single-item contract and keeps the car
       carrierExternalId: carrier.externalId,
       trackingReference: '001aB',
       notes: null,
+      salesRepExternalId: null,
+      followUpOn: null,
     });
     await route.fulfill({
       status: 201,
