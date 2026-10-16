@@ -35,6 +35,9 @@
 | HTTP                 | Axios, explicitly selected over native fetch; credentialed requests.              |
 | Notifications        | Shared MUI Snackbar/Alert queue for action and grouped tracking feedback.          |
 | Icons                | Material Icons through `@mui/icons-material`; use direct imports.                  |
+| Auth client | Better Auth 1.7.7, explicitly selected in the FE-V1-004 follow-up; an `api.ts` adapter preserves the existing backend facade. |
+| Development proxy | Vite built-in `/api/v1` proxy, forwarded unchanged; built assets use the configured API origin plus `/api/v1`. |
+| Cross-tab sessions   | `broadcast-channel`, explicitly approved during FE-V1-004; signal invalidation only, never synchronize credentials or cached records. |
 | Forms                | React Hook Form + Zod + `@hookform/resolvers`.                                    |
 | Validation boundary  | Separate frontend schemas aligned with the backend; no shared package initially.  |
 | Formatting/lint      | Biome.                                                                            |
@@ -53,8 +56,12 @@ The user replaced the earlier Tailwind/shadcn/Radix/Sonner/Lucide and TanStack
 Table plan during the FE-V1-003 implementation interview on 2026-10-16. Material
 UI core, Emotion, Material Icons, and MUI X Data Grid Community are the approved
 replacements. MUI X Pro/Premium is not approved; advanced commercial features
-require a separate dependency and license decision. No Zustand, charting library,
-Better Auth browser client, date library, or font npm package is approved.
+require a separate dependency and license decision. No Zustand, charting library, date library, or font npm package is approved.
+The user subsequently approved the Better Auth client and Vite development proxy
+on 2026-10-16; this supersedes the original browser-client exclusion. The final
+route decision uses the Nest global `/api/v1` prefix for every backend endpoint,
+including health, without legacy aliases. Backend implementation is owned by a
+separate session; this repository supplies the versioned frontend integration.
 
 ## Implementation defaults within the approved scope
 
@@ -85,7 +92,22 @@ record any material behavior change and obtain direction if it changes user inte
 
 ## Explicit differences from the original frontend
 
-The new backend uses UUID routes, cookie sessions, different event names, and no
-`/api` prefix. Its worker starts automatically. The old updated-time sorting is
+The new backend uses UUID routes, cookie sessions, and different event names.
+The later approved API versioning decision uses `/api/v1`. Its worker starts automatically. The old updated-time sorting is
 replaced by created-time descending. The old direct proxy, scheduler controls,
 auth assumptions, and data response types are not reuse candidates.
+
+## FE-V1-004 interview decisions
+
+Approved on 2026-10-16: failed logout hides protected content with a persistent
+error and Retry until revocation is confirmed. Other open dashboard tabs lock
+when logout is requested; successful logout, sign-in, and password replacement
+trigger authoritative session rechecks. Use the `broadcast-channel` package,
+including its compatibility fallbacks, instead of implementing a custom messaging
+fallback. Browser suspension and blocked storage can delay delivery; focus/online
+rechecks remain available. Discard transient forms/notifications on session loss.
+
+The ticket uses approved Axios and React Hook Form/Zod/resolvers with TanStack
+Query/Router and MUI. FE-V1-004 provides cleanup/recheck interfaces for SSE;
+FE-V1-005 opens and synchronizes the actual stream. Administration pages remain
+in FE-V1-012/013; the root session boundary enforces role denial on Admin URLs now.

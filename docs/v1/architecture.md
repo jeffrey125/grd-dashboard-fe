@@ -46,6 +46,7 @@ pass-through wrappers for ordinary MUI controls.
 | ---------------------------------------------------------------------- | --------------------------------------------------------------- |
 | Server responses, overview totals, shipments, runs, accounts, carriers | TanStack Query                                                  |
 | Shipment tab, search, filters, pagination, sort, detail tab            | TanStack Router URL state                                       |
+| Authentication session/profile | Better Auth client, adapted to the existing cookie facade |
 | Forms and row validation                                               | React Hook Form + feature Zod schemas                           |
 | Dialogs, pending local edits, transient presentation                   | React state/reducer                                             |
 | Theme and sound preferences; per-account reviewed revisions            | Versioned browser storage behind a small feature-owned boundary |
@@ -61,15 +62,37 @@ to in-memory behavior without breaking the dashboard.
 Use one configured Axios client with `withCredentials: true`, the configured API
 origin, cancellation support, safe error normalization, and correct 204 handling.
 Feature functions own endpoint shapes; Zod validates relevant boundaries. Never
-set browser Origin manually or send actor IDs/auth tokens. Do not install a Better
-Auth client against the backend's application facade.
+set browser Origin manually or send actor IDs/auth tokens.
 
-Deduplicate `/auth/me` rechecks after concurrent auth errors. A 401 closes events,
+Backend requests are centralized in `src/api/api.ts` (Axios) and feature `api.ts`
+modules. Auth's `api.ts` uses Better Auth 1.7.7, matching the backend, with its
+`customFetchImpl` extension to map `/get-session` to the relative `/auth/me` path and `/sign-in/email`
+to `/auth/sign-in`; the transport prefixes every backend request with `/api/v1`. It adapts the public account to a minimal `{ user }` session
+view and anonymous 401 to `null`; no session token/metadata is synthesized.
+Sign-out/password-change preserve the backend's 204 and revocation policies.
+Better Auth owns session storage, subscriptions, visibility/online revalidation,
+and cancellation of superseded session fetches. The adapter is deliberately the
+only module aware of this compatibility mapping and the library's session atom.
+
+Development calls use `/api/v1`; Vite forwards to `VITE_API_ORIGIN` with the
+prefix unchanged. Built assets use `${VITE_API_ORIGIN}/api/v1` directly. Vite's development
+proxy does not establish a production reverse-proxy deployment.
+
+Deduplicate `/api/v1/auth/me` rechecks after concurrent auth errors. A 401 closes events,
 cancels in-flight requests, clears query data and transient UI, and routes to
 sign-in. A business 403 triggers one session recheck to distinguish role denial
 from mandatory password replacement. Prevent previous-account responses from
 repopulating the next account's cache with cancellation plus a session generation
 guard. Do not automatically retry non-idempotent mutations or auth failures.
+
+The implemented auth coordinator exposes `registerCleanup` for live resources
+and `recheck` for business/SSE auth failures. App composition recreates transient
+UI on session generation changes. Better Auth owns the profile;
+the policy snapshot exposes the validated account for access decisions without
+adding an auth entry to Query. Cross-tab
+`broadcast-channel` messages contain only `lock` or `changed`, never account data.
+Failed logout remains locally locked until Retry confirms revocation. The real SSE
+connection is deliberately implemented by FE-V1-005.
 
 ## Live coordination
 

@@ -59,11 +59,13 @@ choices. Use pnpm and its lockfile after approval.
   Define aliases in `tsconfig.json`; Vite reads them with `resolve.tsconfigPaths`.
   Add area aliases as folders gain code. Generated route imports and tooling
   bootstrap imports may remain relative. See README for the current mappings.
-- TanStack Query owns server data; Router owns URL filters/page/sort; React owns
+- Better Auth owns the auth session through the feature `api.ts` adapter; TanStack
+  Query owns business server data; Router owns URL filters/page/sort; React owns
   local interaction state. Do not duplicate server data into a global store.
 - Feature-local frontend Zod schemas mirror the public API. Never import NestJS,
   TypeORM entities, or backend source into the browser bundle.
-- Keep backend access in Axios infrastructure and feature API functions. SSE uses
+- Keep backend access in `src/api/api.ts` and feature `api.ts` functions.
+  API requests use `/api/v1`; Vite forwards that prefix unchanged in development. SSE uses
   the browser's credentialed EventSource, coordinated with the same auth lifecycle.
 
 ## Product invariants

@@ -17,9 +17,14 @@ history, the operational overview endpoint, and the precise `tracking.changed`
 event. Deployment is pending. Naming refinements must update this document,
 backend docs, and consumers together.
 
-API base: `http://localhost:3000` locally, no `/api` prefix. Intended production
-origins remain `https://api.globalresourcesdirect.com` and
-`https://dashboard.globalresourcesdirect.com`; these are not deployed by this plan.
+Approved API base: `http://localhost:3000/api/v1` locally. The backend exposes
+this prefix and the frontend targets this contract only.
+Vite development requests use `/api/v1/*` and retain the prefix when forwarding.
+Health checks use `/api/v1/health/*`; unversioned backend routes must return 404.
+All endpoint paths below are relative to this API base; frontend page routes such
+as `/shipments` are unchanged. Intended production origins remain
+`https://api.globalresourcesdirect.com` and `https://dashboard.globalresourcesdirect.com`;
+these are not deployed by this plan.
 
 ## Implemented surface
 
@@ -43,7 +48,9 @@ Existing Shipment JSON has `externalId`, Carrier summary, `trackingReference`,
 
 - API calls use Axios `withCredentials: true`; EventSource uses
   `{ withCredentials: true }`. Browser supplies Origin. No actor IDs, tokens in
-  browser storage, arbitrary auth headers, or Better Auth generic client routes.
+  browser storage or arbitrary auth headers. The Better Auth client maps its
+  operations in `features/auth/api.ts`; generic Better Auth routes never reach
+  the backend.
 - Mandatory password replacement permits only replacement/sign-out. Successful
   password change returns 204 and revokes all sessions; sign in again.
 - Staff and Admin can perform Shipment actions. Only Admin manages accounts and

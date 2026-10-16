@@ -3,7 +3,9 @@
 React/TypeScript/Vite foundation for the GRD shipment-monitoring dashboard.
 FE-V1-001 supplies application composition, routing, a shared Query client, and
 validated public configuration. FE-V1-002 adds quality gates, isolated tests, staged
-checks, and GitHub Actions. Business features remain in the
+checks, and GitHub Actions. FE-V1-003 supplies the branded shell; FE-V1-004 adds
+real cookie-session authentication, password replacement, role guards, and cross-tab
+session isolation. Shipment and administration features remain in the
 [v1 implementation tickets](docs/v1/tickets/README.md).
 
 ## Local development
@@ -18,8 +20,13 @@ pnpm dev
 ```
 
 Open **http://localhost:5173**. The separate backend's default origin is
-**http://localhost:3000**; this scaffold makes no API requests and does not start
-the backend. Ports are strict: an occupied port produces an error instead of
+**http://localhost:3000**; the app restores sessions through `/api/v1/auth/me` and requires the API for access.
+All backend requests use `/api/v1`. During `pnpm dev`, browser requests use that
+prefix on the frontend origin; Vite forwards it unchanged to `VITE_API_ORIGIN`.
+Built/preview assets use `${VITE_API_ORIGIN}/api/v1` directly. The environment
+value remains an origin without a path. There are no fallbacks to unversioned
+API routes. The development proxy is not a production deployment configuration.
+`pnpm dev` does not start the backend. Ports are strict: an occupied port produces an error instead of
 silently switching to a different origin.
 
 No environment file is required for these defaults. To customize public
@@ -72,8 +79,10 @@ On a supported Linux runner that also needs browser system libraries, use
 `pnpm exec playwright install --with-deps chromium`. Playwright owns a strict
 preview server at **http://127.0.0.1:4174** and stops it after the suite. It refuses
 to reuse an occupied port, avoiding stale builds or a developer's running server.
-Browser tests verify `/`, nested unknown URLs/reloads, keyboard recovery/back
-navigation, official assets, narrow layout, and absence of API requests/errors.
+Browser tests verify authentication, role guards, restricted-password flow,
+outages, throttling, cross-tab locking, shell navigation, themes, and assets.
+The ordinary suite intercepts auth responses; it does not establish backend parity.
+Network traces are disabled so password submissions and cookies are not saved.
 
 ## Quality scope and CI
 
@@ -107,24 +116,52 @@ browser failure diagnostics have seven-day retention. No production secrets,
 backend checkout, publishing, or deployment jobs are used. Branch protection must
 be configured separately once a GitHub remote/default branch is selected.
 
-`pnpm test:e2e:backend` is **not implemented** and is not a passing placeholder.
-The current frontend has no API/auth integration. Real-backend tests remain
-separate future work; fixture/browser success does not establish backend parity.
-Fixtures must stay in tests and use Playwright interception when API behavior
-arrives. No temporary shipment dataset or local CRUD preview is included.
+`pnpm test:e2e:backend` builds the installed sibling `../grd-dashboard-be`, builds
+this frontend, and runs a separate Chromium suite against the real API. It requires
+Docker, the backend's installed dependencies, Chromium, and free ports **3000** and
+**4175**, and **4176** (Vite proxy verification). `scripts/auth-backend.mjs` creates disposable PostgreSQL 18.3, applies the
+backend migrations, seeds isolated employee accounts through its auth service, and
+starts the API without a worker. Playwright stops the API and database after tests.
+It refuses to reuse existing servers. No developer database or account is reset.
+This remains a local check; GitHub CI has no authorized backend checkout arrangement.
+
+For a manual isolated session, build the backend, run `node scripts/auth-backend.mjs`
+in one terminal, and run `pnpm dev` in another. The test-only accounts are
+`frontend-admin@example.test` / `admin fixture password`,
+`frontend-staff@example.test` / `staff fixture password`, and
+`frontend-restricted@example.test` / `issued fixture password`.
+These literals work only in the disposable fixture database. Stop the harness with
+Ctrl-C to remove that database. A new harness run creates fresh fixtures.
 
 ## Implemented and planned routes
 
-`/` now renders the responsive branded application shell and an honest overview
-placeholder without shipment data or authentication. `/shipments` is a temporary
-shell-only placeholder that FE-V1-006 must replace. Unknown paths render a
-shell-integrated not-found page with a working link home. The official logo, SVG
-favicon, and ICO fallback are reused without modifying their source assets.
+`/login` provides employee sign-in; `/change-password` supports both required and
+voluntary replacement. Successful replacement revokes every server session and
+requires re-login. Safe internal return URLs retain query parameters. Restricted
+accounts see password replacement and sign-out only.
 
-The authenticated operational overview, `/login`, `/change-password`, shipment
-data/actions, shipment creation/details/history, and account/carrier
-administration remain planned. The full route contract is in
-[ui-spec.md](docs/v1/ui-spec.md); neither placeholder fabricates business data.
+Unrestricted Staff/Admin sessions see the branded shell at `/` and `/shipments`.
+Both pages remain honest placeholders until their data tickets. Staff direct links
+to `/admin` and descendants show a forbidden state; Admin links currently lead to
+an authenticated not-found screen until administration tickets are implemented.
+Unknown protected paths remain authenticated and offer a return-home link.
+
+Logout immediately hides protected content, cancels requests, clears Query and
+transient UI state, and broadcasts a non-sensitive lock signal to other tabs using
+`broadcast-channel`. Failed logout stays locked with Retry; it does not claim the
+server cookie was revoked. Completed auth changes make other tabs recheck `/api/v1/auth/me`.
+Better Auth visibility/online revalidation remains available if browser messaging/storage is blocked.
+Suspended tabs process messages when the browser resumes them.
+
+Concurrent business 403 and future SSE error callbacks share a deduplicated,
+backed-off session check; 401 clears the current session. Old requests are rejected
+through cancellation and a generation guard. Better Auth owns the session profile,
+subscriptions and browser revalidation through `src/features/auth/api.ts`; the
+remaining coordinator owns GRD lock/teardown rules. All requests pass through the
+shared Axios module `src/api/api.ts` and feature `api.ts` functions. Auth forms clear password fields after
+submission; no profile, cookie, token, or password is persisted by application code.
+`Retry-After` is honored when exposed by CORS, with a 60-second fallback on 429.
+Actual SSE connection/invalidation work belongs to FE-V1-005.
 
 ## Source boundaries and import aliases
 
@@ -140,6 +177,8 @@ within a directory** convention, adapted to the frontend layout:
 
 | Alias | Directory |
 | --- | --- |
+| `@api/*` | `src/api/*` |
+| `@test/*` | `src/test/*` |
 | `@app/*` | `src/app/*` |
 | `@components/*` | `src/components/*` |
 | `@features/*` | `src/features/*` |
@@ -189,13 +228,15 @@ Quality tooling adds development-only `@biomejs/biome`, `vitest`,
 
 Material UI replaces the superseded Tailwind/shadcn/Radix/Sonner plan. The shared
 notification module uses MUI Snackbar/Alert. MUI X Data Grid Community is approved
-for FE-V1-006 but remains uninstalled until that ticket uses it. Axios and form
-packages remain approved future-ticket choices, installed when used. No font,
-state-store, hosting, or backend-client helper package was added.
+for FE-V1-006 but remains uninstalled until that ticket uses it. FE-V1-004 installs
+Axios 1.20.0, React Hook Form 7.90.0, resolvers 5.9.1, and the additionally approved
+broadcast-channel 7.4.0. The follow-up adds the user-selected Better Auth 1.7.7
+client, matching the installed backend. Zod remains the feature schema boundary.
+No font, standalone state-store, or hosting package was added.
 
 Implementation uses the user-selected `feature/dashboard-v1` branch from the
 existing `master` history. A future switch of the default branch to `main` remains
 pending. See [AGENTS.md](AGENTS.md) and
 [agent-workflow.md](docs/v1/agent-workflow.md) for commit approval and release rules.
-Hosting, publishing, deployment, authentication, and backend integration are
-outside this scaffold's completion claim.
+Hosting, publishing, and deployment remain deferred. Local auth integration
+evidence is recorded in the FE-V1-004 implementation summary.

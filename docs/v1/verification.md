@@ -23,9 +23,21 @@ local `pnpm run ci` does not install/run the secret scanner. With the pinned
 Gitleaks 8.30.1 binary installed, the matching local command is
 `gitleaks git --redact --no-banner --log-opts="--all" .`.
 
-`pnpm test:e2e:backend` remains a future command until frontend API/auth integration
-exists. No empty or always-passing backend suite is installed. BE-V1-001–005 being
-implemented does not mean the frontend is wired to them.
+`pnpm test:e2e:backend` now builds the sibling backend and frontend and runs the
+separate real-browser auth suite. It requires Docker and the backend's installed
+dependencies; a disposable PostgreSQL container receives real migrations and
+fixture accounts. The API runs without the worker, on localhost:3000, and the
+browser frontend on localhost:4175 and Vite development server on localhost:4176. It verifies credentialed CORS/HttpOnly cookies,
+login/reload/logout, Staff denial, password replacement, Admin protection conflict,
+and revoked sessions. A second scenario verifies login, reload, HttpOnly cookies,
+and logout through the `/api/v1` development proxy, preserving the backend prefix. The local
+harness calls the backend's shared `configureApiRoutes` bootstrap helper; versioned health succeeds and
+unversioned auth/health return 404. This verifies frontend compatibility with the same helper imported by backend
+`main.ts`; the backend session owns its remaining checks and commit. It never resets existing developer accounts/databases.
+Network traces are disabled in both suites to avoid recording auth request bodies.
+The ordinary suite covers desktop/mobile faults and cross-tab behavior using test
+interception. GitHub-hosted backend testing remains deferred pending an authorized
+checkout arrangement; local success is not production-domain validation.
 
 Biome excludes the generated route tree and supports JS/TS, JSON/JSONC, and CSS;
 Markdown/YAML/HTML/shell/assets are outside that formatter/linter gate. Workflow
