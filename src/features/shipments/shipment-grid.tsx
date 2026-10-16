@@ -1,3 +1,4 @@
+import { useTrackingReview } from '@features/tracking-updates';
 import { businessTimestamp } from '@lib/dates';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Box from '@mui/material/Box';
@@ -195,6 +196,7 @@ export function ShipmentGrid({
   onSort: (field: string, direction: string) => void;
 }) {
   const theme = useTheme();
+  const { isUnseen } = useTrackingReview();
   const mobile = useMediaQuery(theme.breakpoints.down('md'));
   const sortModel = useMemo(
     () => [{ field: search.sortBy, sort: search.sortDirection }],
@@ -216,6 +218,11 @@ export function ShipmentGrid({
             >
               {row.trackingReference}
             </Link>
+            {isUnseen(row.externalId) && (
+              <Typography variant="caption" color="info.main" sx={{ fontWeight: 700 }}>
+                ● Updated
+              </Typography>
+            )}
             <Typography variant="caption">
               {row.carrier.name}
               {row.carrier.isActive ? '' : ' — Carrier disabled'}
@@ -309,7 +316,7 @@ export function ShipmentGrid({
         ),
       },
     ],
-    [returnTo, placeholder],
+    [returnTo, placeholder, isUnseen],
   );
   if (mobile)
     return (
@@ -347,7 +354,10 @@ export function ShipmentGrid({
             component="article"
             variant="outlined"
             aria-label={`Shipment ${row.trackingReference}`}
-            sx={{ overflowWrap: 'anywhere' }}
+            sx={{
+              overflowWrap: 'anywhere',
+              ...(isUnseen(row.externalId) ? { borderColor: 'info.main', borderLeftWidth: 4 } : {}),
+            }}
           >
             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               <Stack
@@ -372,6 +382,9 @@ export function ShipmentGrid({
                   </Typography>
                 </Box>
               </Stack>
+              {isUnseen(row.externalId) && (
+                <Chip size="small" label="Updated" color="info" variant="outlined" sx={{ mt: 1 }} />
+              )}
               <Box
                 component="dl"
                 sx={{
@@ -456,6 +469,7 @@ export function ShipmentGrid({
         rows={rows}
         columns={columns}
         getRowId={(row) => row.externalId}
+        getRowClassName={({ row }) => (isUnseen(row.externalId) ? 'tracking-updated' : '')}
         rowHeight={64}
         rowCount={total}
         loading={loading}
@@ -481,6 +495,10 @@ export function ShipmentGrid({
         sx={{
           bgcolor: 'background.paper',
           '& .MuiDataGrid-cell:focus-within': { outlineOffset: -2 },
+          '& .tracking-updated': {
+            boxShadow: (theme) => `inset 4px 0 ${theme.vars.palette.info.main}`,
+            bgcolor: 'action.hover',
+          },
         }}
       />
     </Box>

@@ -1,6 +1,6 @@
 import { safeError } from '@api/api';
 import { useSession } from '@features/auth';
-import { liveQuery } from '@features/tracking-updates';
+import { liveQuery, useDisplayedRevision } from '@features/tracking-updates';
 import { businessTimestamp } from '@lib/dates';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -35,6 +35,10 @@ export function HistorySection({
     ...liveQuery({ target: { kind: 'history', externalId: id }, onMissing }),
   });
   const data = query.data;
+  useDisplayedRevision(
+    data?.items[0] ? { shipmentId: id, snapshotId: data.items[0].externalId } : undefined,
+    query.isSuccess && !query.isFetching && page === 1,
+  );
   const previous = useRef<string | undefined>(undefined);
   const [updated, setUpdated] = useState(false);
   const changePage = (next: number, size: number) =>

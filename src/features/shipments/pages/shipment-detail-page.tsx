@@ -14,7 +14,7 @@ import { NotesSection } from '@features/shipments/notes-section';
 import { RunPanel } from '@features/shipments/run-panel';
 import type { TrackingRun } from '@features/shipments/schemas';
 import { outcomes } from '@features/shipments/search-state';
-import { liveQuery } from '@features/tracking-updates';
+import { liveQuery, useDisplayedRevision } from '@features/tracking-updates';
 import { businessTimestamp } from '@lib/dates';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -89,6 +89,16 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
     retry: false,
   });
   const row = query.data;
+  useDisplayedRevision(
+    row?.currentTracking
+      ? { shipmentId: id, snapshotId: row.currentTracking.externalId }
+      : undefined,
+    query.isSuccess &&
+      !query.isFetching &&
+      !missing &&
+      detailState.success &&
+      detailState.data.tab === 'overview',
+  );
   const back = (
     <RouterButton to={returnTo} sx={{ alignSelf: 'flex-start' }}>
       {returnTo === '/' ? 'Back to Overview' : 'Back to results'}

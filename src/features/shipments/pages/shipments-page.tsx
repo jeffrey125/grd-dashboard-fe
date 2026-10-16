@@ -13,7 +13,7 @@ import {
   tabs,
 } from '@features/shipments/search-state';
 import { ShipmentGrid } from '@features/shipments/shipment-grid';
-import { liveQuery } from '@features/tracking-updates';
+import { liveQuery, ReviewControls } from '@features/tracking-updates';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
@@ -90,6 +90,14 @@ export function ShipmentsPage() {
         breadcrumbs={[{ label: 'Overview', href: '/' }, { label: 'Shipments' }]}
       />
       <Stack spacing={2} sx={{ minWidth: 0 }}>
+        <ReviewControls
+          disabled={query.isPlaceholderData || query.isError || query.isFetching || !search}
+          displayed={(data?.items ?? []).flatMap((row) =>
+            row.currentTracking
+              ? [{ shipmentId: row.externalId, snapshotId: row.currentTracking.externalId }]
+              : [],
+          )}
+        />
         {carriers.isPending && <Alert severity="info">Loading carriers…</Alert>}
         {carriers.isSuccess && !hasEnabledCarrier && (
           <Alert severity="warning">

@@ -10,6 +10,8 @@ import { session } from './session';
 
 // Isolate this singleton-router scenario from signed-out restoration tests.
 it('opens only one stream after login despite resetting the transient UI generation', async () => {
+  // jsdom cannot pause media; real playback/decoding is covered in the browser suite.
+  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   enforceOptions({ type: 'simulate' });
   const created = vi.fn();
   class Source extends EventTarget {
