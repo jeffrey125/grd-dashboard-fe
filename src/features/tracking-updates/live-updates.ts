@@ -1,4 +1,4 @@
-import type { QueryClient } from '@tanstack/react-query';
+import { notifyManager, type QueryClient } from '@tanstack/react-query';
 import { eventNames, type LiveEvent, parseEvent } from './events';
 import { QueryRefresh } from './query-refresh';
 
@@ -35,7 +35,12 @@ export class LiveUpdates {
     private readonly createSource = (url: string) =>
       new EventSource(url, { withCredentials: true }),
   ) {
-    this.refresh = new QueryRefresh(queries, () => this.publish());
+    // Query observers can be created during React render. Publish cache-driven
+    // status changes through Query's scheduler, never into another render tree.
+    this.refresh = new QueryRefresh(
+      queries,
+      notifyManager.batchCalls(() => this.publish()),
+    );
   }
 
   getSnapshot = () => this.state;

@@ -65,6 +65,17 @@ async function tick(ms = 100) {
   await vi.advanceTimersByTimeAsync(ms);
 }
 
+it('defers cache-driven status notifications when a run observer mounts during render', async () => {
+  source().emit('resync');
+  await tick();
+  const listener = vi.fn();
+  unsubscribes.push(live.subscribe(listener));
+  observe('run', async () => 'run', liveQuery({ target: { kind: 'run', externalId: runId } }));
+  expect(listener).not.toHaveBeenCalled();
+  await tick();
+  expect(listener).toHaveBeenCalled();
+});
+
 it('coalesces paired/burst events and follows an initial in-flight fetch with authoritative data', async () => {
   const first = deferred();
   const fetch = vi.fn().mockReturnValueOnce(first.promise).mockResolvedValue('current');
@@ -123,11 +134,12 @@ it('resync refreshes explicit runs, detail/history and aggregates; heartbeat doe
   await tick();
   expect(run).toHaveBeenCalledTimes(2);
   expect(list).toHaveBeenCalledTimes(2);
-  expect(detail).toHaveBeenCalledTimes(1);
+  expect(detail).toHaveBeenCalledTimes(2);
   source().emit('resync');
   await tick();
   expect(run).toHaveBeenCalledTimes(3);
-  for (const fetch of [detail, history, overview]) expect(fetch).toHaveBeenCalledTimes(2);
+  expect(detail).toHaveBeenCalledTimes(3);
+  for (const fetch of [history, overview]) expect(fetch).toHaveBeenCalledTimes(2);
   source().emit('heartbeat');
   await tick();
   expect(run).toHaveBeenCalledTimes(3);
@@ -173,6 +185,7 @@ it('removes retained detail data on a confirmed deletion and not on a server fai
   expect(queries.getQueryData(['detail'])).toBeUndefined();
   expect(queries.getQueryState(['detail'])?.status).toBe('error');
   expect(missing).toHaveBeenCalledOnce();
+  await tick(1); // Query's notification scheduler publishes after the cache update.
   expect(live.getSnapshot().warning).toBe(false);
 });
 

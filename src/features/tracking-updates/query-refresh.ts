@@ -32,6 +32,7 @@ function matches(value: Registration, event: LiveEvent) {
   if (event.type === 'run.changed')
     return (
       target.kind === 'shipments' ||
+      target.kind === 'shipment' ||
       (target.kind === 'run' && target.externalId === event.externalId)
     );
   return (
