@@ -1,7 +1,13 @@
 import { type ApiClient, ApiError } from '@api/api';
 import { z } from 'zod';
 import { type CreateShipmentInput, shipmentValidationError } from './create-schema';
-import { carrierSchema, runSchema, searchResponseSchema, shipmentSchema } from './schemas';
+import {
+  carrierSchema,
+  runSchema,
+  runStatusSchema,
+  searchResponseSchema,
+  shipmentSchema,
+} from './schemas';
 import type { ShipmentSearch } from './search-state';
 
 function parse<T>(schema: z.ZodType<T>, value: unknown): T {
@@ -22,6 +28,25 @@ export async function searchShipments(
 }
 export async function getCarriers(client: ApiClient, signal: AbortSignal) {
   return parse(z.array(carrierSchema), await client.request({ url: '/carriers', signal }));
+}
+export async function getShipment(client: ApiClient, id: string, signal: AbortSignal) {
+  return parse(shipmentSchema, await client.request({ url: `/shipments/${id}`, signal }));
+}
+export async function saveShipmentNotes(client: ApiClient, id: string, notes: string | null) {
+  return parse(
+    shipmentSchema,
+    await client.request({
+      url: `/shipments/${id}`,
+      method: 'PATCH',
+      data: { notes },
+    }),
+  );
+}
+export async function deleteShipment(client: ApiClient, id: string) {
+  await client.request({ url: `/shipments/${id}`, method: 'DELETE' });
+}
+export async function getRun(client: ApiClient, id: string, signal: AbortSignal) {
+  return parse(runStatusSchema, await client.request({ url: `/tracking-runs/${id}`, signal }));
 }
 const createResponseSchema = z.object({
   outcome: z.enum(['created', 'existing']),

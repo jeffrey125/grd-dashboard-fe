@@ -17,6 +17,10 @@ async function setup(page: Page) {
     conflict: false,
     delay: 0,
   };
+  await page.route(/\/api\/v1\/shipments\/[0-9a-f-]+$/, (route) => {
+    const row = state.rows.find((item) => route.request().url().endsWith(item.externalId));
+    return route.fulfill({ status: row ? 200 : 404, json: row ?? {} });
+  });
   await page.route('**/api/v1/shipments/search?*', async (route) => {
     const params = new URL(route.request().url()).searchParams;
     state.queries.push(params);
@@ -131,7 +135,7 @@ test('default, pagination, debounced search, sort and back/detail return retain 
   await expect(page.getByRole('link', { name: '00026', exact: true })).toBeVisible();
   await expect(page).toHaveURL(/page=2/);
   await page.getByRole('link', { name: '00026', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Shipment details' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '00026', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Back to results' }).click();
   await expect(page).toHaveURL(/page=2/);
   await page.evaluate(() =>

@@ -18,20 +18,12 @@ import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { createLink, Link } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { actionRules, useShipmentCommand } from './actions';
+import { monitoringLabel } from './detail-model';
 import type { Shipment } from './schemas';
 import { outcomes, type ShipmentSearch, sorts } from './search-state';
 
 const RouterMenuItem = createLink(MenuItem);
 const RouterButton = createLink(Button);
-function monitoringLabel(row: Shipment) {
-  return row.monitoringStatus === 'completed'
-    ? 'Delivered'
-    : row.monitoringStatus === 'active'
-      ? 'Active'
-      : row.monitoringReason === 'manual'
-        ? 'Paused manually'
-        : 'Paused: not found';
-}
 function RowActions({
   row,
   returnTo,

@@ -12,6 +12,21 @@ export const runSchema = z.object({
   startedAt: timestamp.nullable(),
   completedAt: timestamp.nullable(),
 });
+export type TrackingRun = z.infer<typeof runSchema>;
+export const runStatusSchema = runSchema.extend({
+  carrierExternalId: z.uuidv4(),
+  reasonCode: z.string().nullable(),
+  attempts: z.array(
+    z.object({
+      shipmentExternalId: z.uuidv4(),
+      outcome: z.enum(['pending', 'found', 'not_found', 'failed', 'skipped']),
+      snapshotChanged: z.boolean(),
+      retryable: z.boolean().nullable(),
+      reasonCode: z.string().nullable(),
+      completedAt: timestamp.nullable(),
+    }),
+  ),
+});
 export const carrierSchema = z.object({
   externalId: z.uuidv4(),
   code: z.string(),

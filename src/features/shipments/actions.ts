@@ -4,7 +4,7 @@ import { useSession } from '@features/auth';
 import { useIsMutating, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 import { shipmentCommand } from './api';
-import type { Shipment } from './schemas';
+import type { Shipment, TrackingRun } from './schemas';
 
 export function actionRules(row: Shipment) {
   const completed = row.monitoringStatus === 'completed';
@@ -21,7 +21,13 @@ export function actionRules(row: Shipment) {
     resume: manual,
   };
 }
-export function useShipmentCommand(id: string) {
+export function useShipmentCommand(
+  id: string,
+  options?: {
+    onRefresh?: (run: TrackingRun) => void;
+    onMissing?: () => void;
+  },
+) {
   const { session } = useSession();
   const queries = useQueryClient();
   const { showNotification } = useNotifications();
@@ -33,6 +39,7 @@ export function useShipmentCommand(id: string) {
       shipmentCommand(session.client, row.externalId, command),
     retry: false,
     onSuccess: (result, { row, command }) => {
+      if (command === 'refresh' && 'status' in result) options?.onRefresh?.(result);
       const message =
         command === 'refresh'
           ? 'status' in result && ['queued', 'running'].includes(result.status)
@@ -42,6 +49,7 @@ export function useShipmentCommand(id: string) {
       showNotification({ message, severity: 'success' });
     },
     onError: (error) => {
+      if (safeError(error).status === 404) options?.onMissing?.();
       if (!(error instanceof SessionCancelled))
         showNotification({ message: safeError(error).message, severity: 'error' });
     },
