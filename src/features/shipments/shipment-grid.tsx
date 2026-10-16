@@ -262,16 +262,22 @@ export function ShipmentGrid({
         headerName: 'Sales Rep',
         width: 130,
         sortable: false,
-        valueGetter: (_value, row) => salesRepLabel(row),
+        renderCell: ({ row }) => (
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', height: '100%' }}>
+            {salesRepLabel(row)}
+          </Box>
+        ),
       },
       {
         field: 'followUpOn',
         headerName: 'Follow Up',
         width: 150,
         renderCell: ({ row }) => (
-          <Typography color={followUpDue(row.followUpOn) ? 'warning.main' : undefined}>
-            {followUpLabel(row.followUpOn)}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', height: '100%' }}>
+            <Typography color={followUpDue(row.followUpOn) ? 'warning.main' : undefined}>
+              {followUpLabel(row.followUpOn)}
+            </Typography>
+          </Box>
         ),
       },
       {
