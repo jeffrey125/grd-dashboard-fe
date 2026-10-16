@@ -10,8 +10,11 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
   }) => {
     if (origin.endsWith('4176')) await page.setViewportSize({ width: 375, height: 812 });
     const headers = { Origin: origin };
+    const port = origin.slice(-4);
     await page.goto(`${origin}/admin/carriers`);
-    await page.getByLabel('Email', { exact: true }).fill('frontend-admin@example.test');
+    await page
+      .getByLabel('Email', { exact: true })
+      .fill(`frontend-carriers-${port}-admin@example.test`);
     await page.getByLabel('Password', { exact: true }).fill('admin fixture password');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Carriers', exact: true })).toBeVisible();
@@ -117,7 +120,10 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
 
       const staffLogin = await staffContext.request.post(`${api}/auth/sign-in`, {
         headers,
-        data: { email: 'frontend-staff@example.test', password: 'staff fixture password' },
+        data: {
+          email: `frontend-carriers-${port}-staff@example.test`,
+          password: 'staff fixture password',
+        },
       });
       expect(staffLogin.status()).toBe(200);
       expect((await staffContext.request.get(`${api}/carriers`)).status()).toBe(200);

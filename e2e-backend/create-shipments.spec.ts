@@ -9,9 +9,12 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
     if (origin.endsWith('4176')) await page.setViewportSize({ width: 375, height: 812 });
     const api = 'http://localhost:3000/api/v1';
     const headers = { Origin: origin };
-    const prefix = `fe-create-${origin.slice(-4)}-${Date.now()}`;
+    const port = origin.slice(-4);
+    const prefix = `fe-create-${port}-${Date.now()}`;
     await page.goto(`${origin}/shipments`);
-    await page.getByLabel('Email', { exact: true }).fill('frontend-shipments@example.test');
+    await page
+      .getByLabel('Email', { exact: true })
+      .fill(`frontend-create-${port}-staff@example.test`);
     await page.getByLabel('Password', { exact: true }).fill('shipments fixture password');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Shipments', exact: true })).toBeVisible();
@@ -88,7 +91,10 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
 
       const adminLogin = await request.post(`${api}/auth/sign-in`, {
         headers,
-        data: { email: 'frontend-admin@example.test', password: 'admin fixture password' },
+        data: {
+          email: `frontend-create-${port}-admin@example.test`,
+          password: 'admin fixture password',
+        },
       });
       expect(adminLogin.ok()).toBe(true);
       await fill('disabled-race');

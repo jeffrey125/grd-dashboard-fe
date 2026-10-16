@@ -44,7 +44,9 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
       };
     });
     await page.goto(`${origin}/shipments`);
-    await page.getByLabel('Email', { exact: true }).fill('frontend-staff@example.test');
+    await page
+      .getByLabel('Email', { exact: true })
+      .fill(`frontend-live-${origin.slice(-4)}-staff@example.test`);
     await page.getByLabel('Password', { exact: true }).fill('staff fixture password');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Shipments' })).toBeVisible();

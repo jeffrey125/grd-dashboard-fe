@@ -11,7 +11,9 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
   }) => {
     if (origin.endsWith('4176')) await page.setViewportSize({ width: 375, height: 812 });
     await page.goto(origin);
-    await page.getByLabel('Email', { exact: true }).fill('frontend-staff@example.test');
+    await page
+      .getByLabel('Email', { exact: true })
+      .fill(`frontend-overview-${origin.slice(-4)}-staff@example.test`);
     await page.getByLabel('Password', { exact: true }).fill('staff fixture password');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();

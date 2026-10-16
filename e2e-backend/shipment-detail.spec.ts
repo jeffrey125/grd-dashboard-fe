@@ -199,7 +199,10 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
 
       const login = await request.post(`${api}/auth/sign-in`, {
         headers,
-        data: { email: 'frontend-admin@example.test', password: 'admin fixture password' },
+        data: {
+          email: `frontend-details-${origin.slice(-4)}-admin@example.test`,
+          password: 'admin fixture password',
+        },
       });
       expect(login.ok()).toBe(true);
       expect(

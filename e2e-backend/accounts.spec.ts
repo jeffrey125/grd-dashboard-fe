@@ -25,7 +25,7 @@ test('real Admin create/edit/duplicate, Staff guard, role/deactivation/reset rev
   test.setTimeout(120_000);
   const email = 'account-management@example.test';
   await page.goto('/admin/accounts/new');
-  await login(page, 'frontend-admin@example.test', 'admin fixture password');
+  await login(page, 'frontend-accounts-primary-admin@example.test', 'admin fixture password');
   await expect(page.getByRole('heading', { name: 'Create account' })).toBeVisible();
   const form = page.getByRole('form', { name: 'Create account' });
   await form.getByLabel('First name', { exact: true }).fill('Management');
@@ -135,7 +135,7 @@ test('real own-name changes refresh Better Auth, protected self changes conflict
   context,
 }) => {
   await page.goto('/admin/accounts');
-  await login(page, 'frontend-admin@example.test', 'admin fixture password');
+  await login(page, 'frontend-accounts-self-admin@example.test', 'admin fixture password');
   await expect(page.getByRole('heading', { name: 'Accounts', exact: true })).toBeVisible();
   const actor = await (await context.request.get(`${api}/auth/me`)).json();
   await page.goto(`/admin/accounts/${actor.externalId}`);

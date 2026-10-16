@@ -1,5 +1,6 @@
 // Local-only test harness. Reuses the sibling backend's installed tooling and real app.
 import { randomBytes } from 'node:crypto';
+import { rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -11,6 +12,7 @@ const backend = resolve('../grd-dashboard-be');
 const apiPort = Number(process.env.FE_TEST_API_PORT ?? 3000);
 if (!Number.isInteger(apiPort) || apiPort < 1024 || apiPort > 65535)
   throw new Error('Invalid FE_TEST_API_PORT');
+const containerFile = resolve('/tmp', `grd-fe-auth-${apiPort}.container`);
 const requireBackend = createRequire(resolve(backend, 'package.json'));
 const { PostgreSqlContainer } = requireBackend('@testcontainers/postgresql');
 const { NestFactory } = requireBackend('@nestjs/core');
@@ -24,7 +26,11 @@ async function stop() {
   try {
     await app?.close();
   } finally {
-    await container?.stop();
+    try {
+      await container?.stop();
+    } finally {
+      await rm(containerFile, { force: true });
+    }
   }
 }
 for (const signal of ['SIGINT', 'SIGTERM'])
@@ -39,6 +45,7 @@ try {
     .withUsername('fe_auth_test')
     .withPassword(randomBytes(24).toString('hex'))
     .start();
+  await writeFile(containerFile, `${container.getId()}\n`, { mode: 0o600 });
   Object.assign(process.env, {
     NODE_ENV: 'test',
     LOG_LEVEL: 'silent',
@@ -86,19 +93,49 @@ try {
     newPassword: 'admin fixture password',
   });
   const admin = await principalFor(email, 'admin fixture password');
-  for (const name of ['staff', 'restricted', 'shipments', 'details', 'history']) {
-    const accountEmail = `frontend-${name}@example.test`;
+  const fixtures = [
+    { name: 'staff', password: 'staff fixture password', role: 'staff' },
+    { name: 'restricted', password: null, role: 'staff' },
+    { name: 'shipments', password: 'shipments fixture password', role: 'staff' },
+    { name: 'details', password: 'details fixture password', role: 'staff' },
+    { name: 'history', password: 'history fixture password', role: 'staff' },
+    {
+      name: 'accounts-primary-admin',
+      lastName: 'Admin',
+      password: 'admin fixture password',
+      role: 'admin',
+    },
+    {
+      name: 'accounts-self-admin',
+      lastName: 'Admin',
+      password: 'admin fixture password',
+      role: 'admin',
+    },
+    ...['4175', '4176'].flatMap((port) => [
+      { name: `carriers-${port}-admin`, password: 'admin fixture password', role: 'admin' },
+      { name: `carriers-${port}-staff`, password: 'staff fixture password', role: 'staff' },
+      { name: `create-${port}-admin`, password: 'admin fixture password', role: 'admin' },
+      { name: `create-${port}-staff`, password: 'shipments fixture password', role: 'staff' },
+      { name: `details-${port}-admin`, password: 'admin fixture password', role: 'admin' },
+      { name: `live-${port}-staff`, password: 'staff fixture password', role: 'staff' },
+      { name: `overview-${port}-staff`, password: 'staff fixture password', role: 'staff' },
+      { name: `tracking-${port}-staff`, password: 'shipments fixture password', role: 'staff' },
+    ]),
+  ];
+
+  for (const fixture of fixtures) {
+    const accountEmail = `frontend-${fixture.name}@example.test`;
     await auth.createAccount(admin, {
       firstName: 'Frontend',
-      lastName: name,
+      lastName: fixture.lastName ?? fixture.name,
       email: accountEmail,
       password: 'issued fixture password',
-      role: 'staff',
+      role: fixture.role,
     });
-    if (name !== 'restricted')
+    if (fixture.password)
       await auth.changePassword(await principalFor(accountEmail, 'issued fixture password'), {
         currentPassword: 'issued fixture password',
-        newPassword: `${name} fixture password`,
+        newPassword: fixture.password,
       });
   }
   const { DataSource } = requireBackend('typeorm');

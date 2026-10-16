@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
 const apiPort = process.env.FE_TEST_API_PORT ?? '3000';
@@ -8,15 +9,17 @@ const api = `http://localhost:${apiPort}/api/v1`;
 function changeTracking(shipmentId: string) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(shipmentId))
     throw new Error('Invalid test shipment identity');
-  const containers = execFileSync(
+  const container = readFileSync(`/tmp/grd-fe-auth-${apiPort}.container`, 'utf8').trim();
+
+  if (!/^[0-9a-f]{64}$/.test(container)) throw new Error('Invalid isolated test database identity');
+
+  const label = execFileSync(
     'docker',
-    ['ps', '--filter', `label=grd.fe.test.api-port=${apiPort}`, '--format', '{{.ID}}'],
+    ['inspect', '--format', '{{index .Config.Labels "grd.fe.test.api-port"}}', container],
     { encoding: 'utf8' },
-  )
-    .trim()
-    .split('\n');
-  const container = containers[0];
-  if (containers.length !== 1 || !container) throw new Error('Expected one isolated test database');
+  ).trim();
+
+  if (label !== apiPort) throw new Error('Unexpected isolated test database label');
   execFileSync(
     'docker',
     [
@@ -51,7 +54,9 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
   }) => {
     if (origin.endsWith('4176')) await page.setViewportSize({ width: 375, height: 812 });
     await page.goto(`${origin}/shipments`);
-    await page.getByLabel('Email', { exact: true }).fill('frontend-shipments@example.test');
+    await page
+      .getByLabel('Email', { exact: true })
+      .fill(`frontend-tracking-${origin.slice(-4)}-staff@example.test`);
     await page.getByLabel('Password', { exact: true }).fill('shipments fixture password');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Shipments', exact: true })).toBeVisible();
