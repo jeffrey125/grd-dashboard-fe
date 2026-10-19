@@ -35,6 +35,7 @@ const drawerWidth = 272;
 const primaryNavigation = [
   { href: '/', label: 'Overview', Icon: DashboardOutlinedIcon },
   { href: '/shipments', label: 'Shipments', Icon: LocalShippingOutlinedIcon },
+  { href: '/quotes', label: 'Quote comparisons', Icon: LocalShippingOutlinedIcon },
 ] as const;
 
 const adminNavigation = [

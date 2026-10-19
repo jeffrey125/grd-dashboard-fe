@@ -12,7 +12,11 @@ import { Route as rootRouteImport } from './../routes/__root';
 import { Route as IndexRouteImport } from './../routes/index';
 import { Route as ChangePasswordRouteImport } from './../routes/change-password';
 import { Route as LoginRouteImport } from './../routes/login';
+import { Route as QuotesRouteImport } from './../routes/quotes';
 import { Route as ShipmentsRouteImport } from './../routes/shipments';
+import { Route as QuotesIndexRouteImport } from './../routes/quotes.index';
+import { Route as QuotesComparisonIdRouteImport } from './../routes/quotes.$comparisonId';
+import { Route as QuotesNewRouteImport } from './../routes/quotes.new';
 import { Route as ShipmentsIndexRouteImport } from './../routes/shipments.index';
 import { Route as ShipmentsShipmentIdRouteImport } from './../routes/shipments.$shipmentId';
 import { Route as AdminAccountsIndexRouteImport } from './../routes/admin.accounts.index';
@@ -37,10 +41,30 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any);
+const QuotesRoute = QuotesRouteImport.update({
+  id: '/quotes',
+  path: '/quotes',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const ShipmentsRoute = ShipmentsRouteImport.update({
   id: '/shipments',
   path: '/shipments',
   getParentRoute: () => rootRouteImport,
+} as any);
+const QuotesIndexRoute = QuotesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => QuotesRoute,
+} as any);
+const QuotesComparisonIdRoute = QuotesComparisonIdRouteImport.update({
+  id: '/$comparisonId',
+  path: '/$comparisonId',
+  getParentRoute: () => QuotesRoute,
+} as any);
+const QuotesNewRoute = QuotesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => QuotesRoute,
 } as any);
 const ShipmentsIndexRoute = ShipmentsIndexRouteImport.update({
   id: '/',
@@ -87,8 +111,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/change-password': typeof ChangePasswordRoute;
   '/login': typeof LoginRoute;
+  '/quotes': typeof QuotesRouteWithChildren;
   '/shipments': typeof ShipmentsRouteWithChildren;
+  '/quotes/$comparisonId': typeof QuotesComparisonIdRoute;
+  '/quotes/new': typeof QuotesNewRoute;
   '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
+  '/quotes/': typeof QuotesIndexRoute;
   '/shipments/': typeof ShipmentsIndexRoute;
   '/admin/accounts/$accountId': typeof AdminAccountsAccountIdRoute;
   '/admin/accounts/new': typeof AdminAccountsNewRoute;
@@ -101,7 +129,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/change-password': typeof ChangePasswordRoute;
   '/login': typeof LoginRoute;
+  '/quotes/$comparisonId': typeof QuotesComparisonIdRoute;
+  '/quotes/new': typeof QuotesNewRoute;
   '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
+  '/quotes': typeof QuotesIndexRoute;
   '/shipments': typeof ShipmentsIndexRoute;
   '/admin/accounts/$accountId': typeof AdminAccountsAccountIdRoute;
   '/admin/accounts/new': typeof AdminAccountsNewRoute;
@@ -115,8 +146,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute;
   '/change-password': typeof ChangePasswordRoute;
   '/login': typeof LoginRoute;
+  '/quotes': typeof QuotesRouteWithChildren;
   '/shipments': typeof ShipmentsRouteWithChildren;
+  '/quotes/$comparisonId': typeof QuotesComparisonIdRoute;
+  '/quotes/new': typeof QuotesNewRoute;
   '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
+  '/quotes/': typeof QuotesIndexRoute;
   '/shipments/': typeof ShipmentsIndexRoute;
   '/admin/accounts/$accountId': typeof AdminAccountsAccountIdRoute;
   '/admin/accounts/new': typeof AdminAccountsNewRoute;
@@ -131,8 +166,12 @@ export interface FileRouteTypes {
     | '/'
     | '/change-password'
     | '/login'
+    | '/quotes'
     | '/shipments'
+    | '/quotes/$comparisonId'
+    | '/quotes/new'
     | '/shipments/$shipmentId'
+    | '/quotes/'
     | '/shipments/'
     | '/admin/accounts/$accountId'
     | '/admin/accounts/new'
@@ -145,7 +184,10 @@ export interface FileRouteTypes {
     | '/'
     | '/change-password'
     | '/login'
+    | '/quotes/$comparisonId'
+    | '/quotes/new'
     | '/shipments/$shipmentId'
+    | '/quotes'
     | '/shipments'
     | '/admin/accounts/$accountId'
     | '/admin/accounts/new'
@@ -158,8 +200,12 @@ export interface FileRouteTypes {
     | '/'
     | '/change-password'
     | '/login'
+    | '/quotes'
     | '/shipments'
+    | '/quotes/$comparisonId'
+    | '/quotes/new'
     | '/shipments/$shipmentId'
+    | '/quotes/'
     | '/shipments/'
     | '/admin/accounts/$accountId'
     | '/admin/accounts/new'
@@ -173,6 +219,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   ChangePasswordRoute: typeof ChangePasswordRoute;
   LoginRoute: typeof LoginRoute;
+  QuotesRoute: typeof QuotesRouteWithChildren;
   ShipmentsRoute: typeof ShipmentsRouteWithChildren;
   AdminAccountsAccountIdRoute: typeof AdminAccountsAccountIdRoute;
   AdminAccountsNewRoute: typeof AdminAccountsNewRoute;
@@ -205,12 +252,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/quotes': {
+      id: '/quotes';
+      path: '/quotes';
+      fullPath: '/quotes';
+      preLoaderRoute: typeof QuotesRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/shipments': {
       id: '/shipments';
       path: '/shipments';
       fullPath: '/shipments';
       preLoaderRoute: typeof ShipmentsRouteImport;
       parentRoute: typeof rootRouteImport;
+    };
+    '/quotes/': {
+      id: '/quotes/';
+      path: '/';
+      fullPath: '/quotes/';
+      preLoaderRoute: typeof QuotesIndexRouteImport;
+      parentRoute: typeof QuotesRoute;
+    };
+    '/quotes/$comparisonId': {
+      id: '/quotes/$comparisonId';
+      path: '/$comparisonId';
+      fullPath: '/quotes/$comparisonId';
+      preLoaderRoute: typeof QuotesComparisonIdRouteImport;
+      parentRoute: typeof QuotesRoute;
+    };
+    '/quotes/new': {
+      id: '/quotes/new';
+      path: '/new';
+      fullPath: '/quotes/new';
+      preLoaderRoute: typeof QuotesNewRouteImport;
+      parentRoute: typeof QuotesRoute;
     };
     '/shipments/': {
       id: '/shipments/';
@@ -271,6 +346,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface QuotesRouteChildren {
+  QuotesComparisonIdRoute: typeof QuotesComparisonIdRoute;
+  QuotesNewRoute: typeof QuotesNewRoute;
+  QuotesIndexRoute: typeof QuotesIndexRoute;
+}
+
+const QuotesRouteChildren: QuotesRouteChildren = {
+  QuotesComparisonIdRoute: QuotesComparisonIdRoute,
+  QuotesNewRoute: QuotesNewRoute,
+  QuotesIndexRoute: QuotesIndexRoute,
+};
+
+const QuotesRouteWithChildren =
+  QuotesRoute._addFileChildren(QuotesRouteChildren);
+
 interface ShipmentsRouteChildren {
   ShipmentsShipmentIdRoute: typeof ShipmentsShipmentIdRoute;
   ShipmentsIndexRoute: typeof ShipmentsIndexRoute;
@@ -289,6 +379,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ChangePasswordRoute: ChangePasswordRoute,
   LoginRoute: LoginRoute,
+  QuotesRoute: QuotesRouteWithChildren,
   ShipmentsRoute: ShipmentsRouteWithChildren,
   AdminAccountsAccountIdRoute: AdminAccountsAccountIdRoute,
   AdminAccountsNewRoute: AdminAccountsNewRoute,
