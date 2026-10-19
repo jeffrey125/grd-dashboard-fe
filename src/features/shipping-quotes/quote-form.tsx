@@ -64,6 +64,42 @@ function AddressFields({
     </Box>
   );
 }
+function UnishippersContactFields({
+  prefix,
+  label,
+}: {
+  prefix: 'destination' | `providers.${number}.sender.address`;
+  label: string;
+}) {
+  const { register, getFieldState, formState } = useFormContext<QuoteInput>();
+  const nameError = getFieldState(`${prefix}.contactName`, formState).error;
+  const phoneError = getFieldState(`${prefix}.phone`, formState).error;
+  return (
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+      <TextField
+        label={`${label} contact name`}
+        error={Boolean(nameError)}
+        helperText={
+          nameError
+            ? 'Contact name must be at most 100 characters.'
+            : 'Required for myUnishippers full-form browser quotes.'
+        }
+        {...register(`${prefix}.contactName`)}
+      />
+      <TextField
+        label={`${label} phone number`}
+        type="tel"
+        error={Boolean(phoneError)}
+        helperText={
+          phoneError
+            ? 'Enter a phone number containing 10–15 digits.'
+            : '10–15 digits; country code and phone punctuation are accepted.'
+        }
+        {...register(`${prefix}.phone`)}
+      />
+    </Box>
+  );
+}
 function CustomsFields({ index }: { index: number }) {
   const { register, control } = useFormContext<QuoteInput>();
   const items = useFieldArray({ control, name: `packageGroups.${index}.customsItems` });
@@ -165,6 +201,14 @@ function ProviderFields({
     <Paper variant="outlined" sx={{ p: 2 }}>
       <Stack spacing={2}>
         <Typography variant="h6">{name}</Typography>
+        {provider.code === 'unishippers' && (
+          <Alert severity="info">
+            All package groups are quoted together, and returned totals already include box
+            quantities. Browser quotes use the full myUnishippers form and require receiver contact
+            details. A sender correction applies only to this comparison and does not update the
+            provider account. Company names must be at most 35 characters for browser quotes.
+          </Alert>
+        )}
         <TextField
           select
           label={`${name} sender`}
@@ -185,11 +229,19 @@ function ProviderFields({
           <MenuItem value="explicit">Explicit sender</MenuItem>
         </TextField>
         {provider.sender.mode === 'explicit' ? (
-          <AddressFields
-            prefix={`providers.${index}.sender.address`}
-            label={`${name} origin`}
-            origin
-          />
+          <>
+            <AddressFields
+              prefix={`providers.${index}.sender.address`}
+              label={`${name} origin`}
+              origin
+            />
+            {provider.code === 'unishippers' && (
+              <UnishippersContactFields
+                prefix={`providers.${index}.sender.address`}
+                label="myUnishippers origin"
+              />
+            )}
+          </>
         ) : (
           <>
             {pending && <Alert severity="info">Refreshing sender…</Alert>}
@@ -367,6 +419,9 @@ export function QuoteForm({
               ))}
               <Typography variant="h6">Destination</Typography>
               <AddressFields prefix="destination" label="Destination" />
+              {selected.some((provider) => provider.code === 'unishippers') && (
+                <UnishippersContactFields prefix="destination" label="myUnishippers receiver" />
+              )}
               {groups.fields.map((group, index) => (
                 <Paper variant="outlined" key={group.id} sx={{ p: 2 }}>
                   <Stack spacing={2}>

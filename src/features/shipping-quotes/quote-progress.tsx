@@ -9,6 +9,10 @@ const reasons: Record<string, string> = {
   adapter_unavailable: 'Provider integration not available yet.',
   provider_disabled: 'This provider is disabled.',
   validation_failed: 'The provider rejected these inputs.',
+  sender_company_too_long:
+    'myUnishippers requires a sender company name of at most 35 characters. Choose Copy to new comparison, select Explicit sender, and correct the name. The provider account address is unchanged.',
+  contact_details_required:
+    'myUnishippers browser quotes require receiver contact details and, for an explicit sender, origin contact details. Choose Copy to new comparison and enter the contact name and phone number.',
   unsupported: 'This request is not supported by the provider.',
   timeout: 'The provider request timed out.',
   authentication_failed: 'Authentication failed after one relogin attempt.',

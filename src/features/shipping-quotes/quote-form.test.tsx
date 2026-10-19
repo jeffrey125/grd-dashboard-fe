@@ -12,6 +12,18 @@ const address = {
   postalCode: '53125',
   country: 'US' as const,
 };
+const amazonProvider = {
+  code: 'amazon' as const,
+  name: 'Amazon Shipping',
+  enabled: true,
+  executionMode: 'request' as const,
+};
+const unishippersRequestProvider = {
+  code: 'unishippers' as const,
+  name: 'myUnishippers',
+  enabled: true,
+  executionMode: 'request' as const,
+};
 const initial = (): QuoteInput => ({
   idempotencyKey: crypto.randomUUID(),
   shipDate: '2099-10-19',
@@ -37,12 +49,79 @@ const initial = (): QuoteInput => ({
 });
 
 describe('Quote comparison form', () => {
+  it('copies the refreshed myUnishippers origin for a comparison-only correction', async () => {
+    const user = userEvent.setup();
+    const save = vi.fn().mockResolvedValue(undefined);
+    const original = { ...address, name: 'A provider company name over 35 characters' };
+    const body = initial();
+    body.providers = [
+      {
+        code: 'unishippers',
+        sender: { mode: 'account_default', refreshId: crypto.randomUUID() },
+        options: { signature: 'none', insurance: null },
+      },
+    ];
+    render(
+      <QuoteForm
+        providers={[unishippersRequestProvider]}
+        initial={body}
+        onSave={save}
+        onRefresh={vi.fn().mockResolvedValue({
+          refreshId: crypto.randomUUID(),
+          address: original,
+          retrievedAt: '2026-10-19T12:00:00.000Z',
+        })}
+      />,
+    );
+
+    await screen.findByText(/A provider company name over 35 characters.*Retrieved/);
+    expect(screen.getByText(/Browser quotes use the full myUnishippers form/)).toBeInTheDocument();
+    await user.click(screen.getByRole('combobox', { name: 'myUnishippers sender' }));
+    await user.click(screen.getByRole('option', { name: 'Explicit sender' }));
+    expect(screen.getByLabelText('myUnishippers origin name')).toHaveValue(original.name);
+    expect(screen.getByText(/correction applies only to this comparison/)).toBeInTheDocument();
+    await user.type(screen.getByLabelText('myUnishippers origin contact name'), 'Shipping Contact');
+    await user.type(screen.getByLabelText('myUnishippers origin phone number'), '2025550147');
+    await user.type(
+      screen.getByLabelText('myUnishippers receiver contact name'),
+      'Receiving Contact',
+    );
+    await user.type(screen.getByLabelText('myUnishippers receiver phone number'), '2025550148');
+    await user.clear(screen.getByLabelText('myUnishippers origin name'));
+    await user.type(screen.getByLabelText('myUnishippers origin name'), 'Corrected company');
+    await user.click(screen.getByRole('button', { name: 'Save comparison' }));
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          providers: [
+            expect.objectContaining({
+              sender: {
+                mode: 'explicit',
+                address: expect.objectContaining({
+                  ...original,
+                  name: 'Corrected company',
+                  contactName: 'Shipping Contact',
+                  phone: '2025550147',
+                }),
+              },
+            }),
+          ],
+          destination: expect.objectContaining({
+            contactName: 'Receiving Contact',
+            phone: '2025550148',
+          }),
+        }),
+      ),
+    );
+    expect(original.name).toBe('A provider company name over 35 characters');
+  });
+
   it('preserves original decimal strings and units on save and supports additional package groups', async () => {
     const user = userEvent.setup();
     const save = vi.fn().mockResolvedValue(undefined);
     render(
       <QuoteForm
-        providers={[{ code: 'amazon', name: 'Amazon Shipping', enabled: true }]}
+        providers={[amazonProvider]}
         initial={initial()}
         onSave={save}
         onRefresh={vi.fn()}
@@ -105,7 +184,7 @@ describe('Quote comparison form', () => {
     };
     render(
       <QuoteForm
-        providers={[{ code: 'amazon', name: 'Amazon Shipping', enabled: true }]}
+        providers={[amazonProvider]}
         initial={international}
         onSave={save}
         onRefresh={vi.fn()}
@@ -129,13 +208,7 @@ describe('Quote comparison form', () => {
   it('shows default refresh failure and permits an explicit sender fallback', async () => {
     const user = userEvent.setup();
     const onRefresh = vi.fn().mockRejectedValue(new Error('fixture'));
-    render(
-      <QuoteForm
-        providers={[{ code: 'amazon', name: 'Amazon Shipping', enabled: true }]}
-        onSave={vi.fn()}
-        onRefresh={onRefresh}
-      />,
-    );
+    render(<QuoteForm providers={[amazonProvider]} onSave={vi.fn()} onRefresh={onRefresh} />);
     await screen.findByText(/Enter an explicit sender/);
     await user.click(screen.getByRole('combobox', { name: 'Amazon Shipping sender' }));
     await user.click(screen.getByRole('option', { name: 'Explicit sender' }));
@@ -155,7 +228,7 @@ describe('Quote comparison form', () => {
     ];
     render(
       <QuoteForm
-        providers={[{ code: 'amazon', name: 'Amazon Shipping', enabled: true }]}
+        providers={[amazonProvider]}
         initial={body}
         onSave={save}
         onRefresh={() => new Promise(() => {})}

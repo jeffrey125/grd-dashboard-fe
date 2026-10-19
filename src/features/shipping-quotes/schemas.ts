@@ -11,6 +11,15 @@ const decimal = z
   .refine((value) => Number(value) > 0);
 const country = z.string().regex(/^[A-Z]{2}$/);
 const providerCode = z.enum(['amazon', 'unishippers']);
+export const providersSchema = z.array(
+  z.object({
+    code: providerCode,
+    name: z.string(),
+    enabled: z.boolean(),
+    executionMode: z.enum(['request', 'browser']),
+  }),
+);
+export type Provider = z.infer<typeof providersSchema>[number];
 const addressSchema = z.strictObject({
   name: text,
   street: text,
@@ -19,6 +28,16 @@ const addressSchema = z.strictObject({
   division: z.string().max(100),
   postalCode: text,
   country,
+  contactName: z.string().max(100).optional(),
+  phone: z
+    .string()
+    .max(30)
+    .refine(
+      (value) =>
+        value === '' ||
+        (/^\+?[\d ().-]+$/.test(value) && /^\d{10,15}$/.test(value.replace(/\D/g, ''))),
+    )
+    .optional(),
 });
 const senderSchema = z.discriminatedUnion('mode', [
   z.strictObject({
@@ -164,13 +183,9 @@ export const comparisonSchema = z.object({
   ),
 });
 export type Comparison = z.infer<typeof comparisonSchema>;
-export const providersSchema = z.array(
-  z.object({ code: providerCode, name: z.string(), enabled: z.boolean() }),
-);
 export const refreshSchema = z.object({
   refreshId: z.uuidv4(),
   address: addressSchema,
   retrievedAt: z.iso.datetime(),
 });
 export type SenderRefresh = z.infer<typeof refreshSchema>;
-export type Provider = z.infer<typeof providersSchema>[number];

@@ -1,23 +1,32 @@
 import { expect, test } from '@playwright/test';
 
-test('staff saves, reopens, and copies an immutable comparison through the real API', async ({
-  page,
-}) => {
+async function signIn(page: import('@playwright/test').Page) {
   await page.goto('/login');
   await page.getByLabel('Email', { exact: true }).fill('frontend-staff@example.test');
   await page.getByLabel('Password', { exact: true }).fill('staff fixture password');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page).not.toHaveURL(/login/);
+}
+
+test('staff saves, reopens, and copies an immutable comparison through the real API', async ({
+  page,
+}) => {
+  await signIn(page);
   await page.goto('/quotes/new');
-  await page.getByRole('checkbox', { name: 'myUnishippers', exact: true }).uncheck();
-  await page.getByRole('combobox', { name: 'Amazon Shipping sender' }).click();
-  await page.getByRole('option', { name: 'Explicit sender' }).click();
-  for (const label of ['Amazon Shipping origin', 'Destination']) {
+  for (const provider of ['Amazon Shipping', 'myUnishippers']) {
+    await page.getByRole('combobox', { name: `${provider} sender` }).click();
+    await page.getByRole('option', { name: 'Explicit sender' }).click();
+  }
+  for (const label of ['Amazon Shipping origin', 'myUnishippers origin', 'Destination']) {
     await page.getByLabel(`${label} name`, { exact: true }).fill('Fixture warehouse');
     await page.getByLabel(`${label} street`, { exact: true }).fill('1 Example Street');
     await page.getByLabel(`${label} city`, { exact: true }).fill('Walworth');
     await page.getByLabel(`${label} state / province`, { exact: true }).fill('WI');
     await page.getByLabel(`${label} postalCode`, { exact: true }).fill('53125');
+  }
+  for (const label of ['myUnishippers origin', 'myUnishippers receiver']) {
+    await page.getByLabel(`${label} contact name`, { exact: true }).fill('Fixture Contact');
+    await page.getByLabel(`${label} phone number`, { exact: true }).fill('+1 (202) 555-0147');
   }
   for (const [field, value] of Object.entries({
     length: '10.00',
@@ -30,8 +39,10 @@ test('staff saves, reopens, and copies an immutable comparison through the real 
   await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
   const original = page.url();
   if (process.env.FE_TEST_QUOTE_DEMO === 'true') {
-    await expect(page.getByText('Simulated rates — not provider quotes.')).toBeVisible();
-    await expect(page.getByText('Completed. These details are read-only.')).toBeVisible();
+    await expect(page.getByText('Simulated rates — not provider quotes.')).toHaveCount(2);
+    await expect(
+      page.getByText('Completed with partial results. These details are read-only.'),
+    ).toBeVisible();
   } else {
     await expect(
       page.getByText('Queued — waiting for the worker. These details are read-only.'),
@@ -41,6 +52,14 @@ test('staff saves, reopens, and copies an immutable comparison through the real 
   await page.reload();
   await expect(page.getByText(/10.00 × 8 × 6 in/)).toBeVisible();
   await page.getByRole('link', { name: 'Copy to new comparison' }).click();
+  for (const label of ['myUnishippers origin', 'myUnishippers receiver']) {
+    await expect(page.getByLabel(`${label} contact name`, { exact: true })).toHaveValue(
+      'Fixture Contact',
+    );
+    await expect(page.getByLabel(`${label} phone number`, { exact: true })).toHaveValue(
+      '+1 (202) 555-0147',
+    );
+  }
   await expect(page.getByLabel('Group 1 length', { exact: true })).toHaveValue('10.00');
   await page.getByLabel('Group 1 length', { exact: true }).fill('12');
   await page.getByRole('button', { name: 'Save comparison', exact: true }).click();
@@ -54,11 +73,7 @@ test('streams partial success and retains it after reload through the real API',
   page,
 }) => {
   test.skip(process.env.FE_TEST_QUOTE_DEMO !== 'true', 'Opt-in isolated fixture worker required');
-  await page.goto('/login');
-  await page.getByLabel('Email', { exact: true }).fill('frontend-staff@example.test');
-  await page.getByLabel('Password', { exact: true }).fill('staff fixture password');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).not.toHaveURL(/login/);
+  await signIn(page);
   const address = {
     name: 'Fixture warehouse',
     street: '1 Example Street',

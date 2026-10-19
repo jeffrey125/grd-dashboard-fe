@@ -36,6 +36,33 @@ const comparison = (
 });
 
 describe('Quote progress', () => {
+  it('explains how to add missing browser contact details', () => {
+    render(
+      <QuoteProgress
+        comparison={comparison('failed', [
+          { ...attempt('failed', 'unishippers'), reasonCode: 'contact_details_required' },
+        ])}
+      />,
+    );
+    expect(screen.getByText(/enter the contact name and phone number/)).toBeInTheDocument();
+  });
+  it('explains the sender-company correction without exposing a provider message', () => {
+    render(
+      <QuoteProgress
+        comparison={comparison('failed', [
+          {
+            ...attempt('failed', 'unishippers'),
+            reasonCode: 'sender_company_too_long',
+          },
+        ])}
+      />,
+    );
+
+    expect(screen.getByText(/35 characters/)).toBeInTheDocument();
+    expect(screen.getByText(/Copy to new comparison/)).toBeInTheDocument();
+    expect(screen.getByText(/account address is unchanged/)).toBeInTheDocument();
+  });
+
   it.each([
     ['queued', 'Queued — waiting for the worker.'],
     ['running', 'Running — requesting provider results.'],

@@ -312,7 +312,14 @@ session, password-change, trusted-Origin and no-store policies apply.
 Input contains `idempotencyKey` (UUID), `shipDate` (YYYY-MM-DD, current/future in
 America/New_York), `destination`, `providers[]`, and `packageGroups[]`.
 Addresses contain `name,street,city,division,postalCode,country` plus optional
-`street2`; sender country is US. Country/currency inputs use uppercase codes.
+`street2`, optional `contactName` (up to 100 characters), and optional `phone`
+(10–15 digits with optional country prefix and phone punctuation). Empty contact
+fields are accepted for historical comparisons and request-mode estimates.
+myUnishippers full-form browser quotes require receiver contact name and phone;
+explicit senders also require those fields. Account-default browser senders use
+the authenticated provider form's contact details. Missing required browser contacts
+return `validation_failed` with `contact_details_required`.
+Sender country is US. Country/currency inputs use uppercase codes.
 Provider entries contain `code`, `sender`, and `options`. Sender is
 `{mode:explicit,address}` or `{mode:account_default,refreshId}`. Options contain
 `signature` (`none`, `signature`, `adult_signature`) and nullable
@@ -337,6 +344,8 @@ Mode is null until execution; timestamps are nullable ISO UTC strings. Outcome i
 null until terminal, then `success|validation_failed|unsupported|timeout|
 authentication_failed|failed`. Diagnostics and lease ownership remain private.
 Known reasons are `adapter_unavailable,provider_disabled,validation_failed,
+sender_company_too_long,
+contact_details_required,
 unsupported,timeout,authentication_failed,provider_failed,recovery_exhausted`.
 Unknown reasons must use generic safe UI copy.
 
