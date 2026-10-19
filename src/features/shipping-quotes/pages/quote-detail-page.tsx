@@ -80,9 +80,13 @@ export function QuoteDetailPage() {
           <Paper variant="outlined" sx={{ p: 2 }} key={`group-${i + 1}`}>
             <Typography variant="h6">Package group {i + 1}</Typography>
             <Typography>
-              {group.quantity} boxes · {group.length} × {group.width} × {group.height}{' '}
-              {group.units === 'imperial' ? 'in' : 'cm'} · {group.weight}{' '}
-              {group.units === 'imperial' ? 'lb' : 'kg'} per box
+              {group.quantity} boxes ·{' '}
+              {group.length === ''
+                ? 'Dimensions not provided'
+                : `${group.length} × ${group.width} × ${group.height} ${
+                    group.units === 'imperial' ? 'in' : 'cm'
+                  }`}{' '}
+              · {group.weight} {group.units === 'imperial' ? 'lb' : 'kg'} per box
             </Typography>
             {group.customsItems.map((item, j) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: Immutable saved customs items retain their original position.

@@ -11,11 +11,11 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FormProvider, useFieldArray, useForm, useFormContext } from 'react-hook-form';
 import {
   type Address,
-  createQuoteSchema,
+  createQuoteFormSchema,
   type Provider,
   type ProviderCode,
   type QuoteInput,
@@ -306,8 +306,9 @@ export function QuoteForm({
   onSave: (input: QuoteInput) => Promise<unknown>;
   onRefresh: (code: ProviderCode) => Promise<SenderRefresh>;
 }) {
+  const formSchema = useMemo(() => createQuoteFormSchema(providers), [providers]);
   const form = useForm<QuoteInput>({
-    resolver: zodResolver(createQuoteSchema),
+    resolver: zodResolver(formSchema),
     defaultValues: initial ?? {
       idempotencyKey: crypto.randomUUID(),
       shipDate: businessCalendarDate(),
@@ -326,6 +327,10 @@ export function QuoteForm({
   const groups = useFieldArray({ control, name: 'packageGroups' });
   const selected = watch('providers');
   const country = watch('destination.country');
+  const dimensionsOptional =
+    selected.length === 1 &&
+    selected[0]?.code === 'unishippers' &&
+    providers.find((provider) => provider.code === 'unishippers')?.executionMode === 'request';
   const [failure, setFailure] = useState('');
   const lastSubmission = useRef<{ body: string; key: string } | undefined>(undefined);
   const submit = handleSubmit(async (input) => {
@@ -358,7 +363,9 @@ export function QuoteForm({
           {Object.keys(formState.errors).length > 0 && (
             <Alert severity="error">
               Check required addresses, ship date, positive package values, and customs items.
-              Country codes use two uppercase letters; currencies use three.
+              Package dimensions must include all three values or none. Blank dimensions require
+              myUnishippers request mode as the only selected provider, and weight is always
+              required. Country codes use two uppercase letters; currencies use three.
             </Alert>
           )}
           <Box
@@ -447,6 +454,12 @@ export function QuoteForm({
                         {...register(`packageGroups.${index}.${field}`)}
                       />
                     ))}
+                    {dimensionsOptional && (
+                      <Typography variant="body2" color="text.secondary">
+                        For myUnishippers request quotes, enter all three dimensions or leave all
+                        three dimensions blank. Weight is always required.
+                      </Typography>
+                    )}
                     {(country !== 'US' || group.customsItems.length > 0) && (
                       <CustomsFields index={index} />
                     )}

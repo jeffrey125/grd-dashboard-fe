@@ -303,7 +303,7 @@ session, password-change, trusted-Origin and no-store policies apply.
 
 | Method/path (under `/api/v1`)                             | Contract                                                                                                                                                                                 |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET `/quote-comparisons/providers`                        | Array of `{code,name,enabled}`; codes are `amazon` and `unishippers`.                                                                                                                    |
+| GET `/quote-comparisons/providers`                        | Array of `{code,name,enabled,executionMode}`; mode is `request` or `browser`, and codes are `amazon` and `unishippers`.                                                                  |
 | POST `/quote-comparisons/providers/:code/default-refresh` | Empty body; waits up to 90 seconds for the worker. Returns `{refreshId,address,retrievedAt}`; failure is 503 and explicit sender entry remains available. Client timeout is 120 seconds. |
 | POST `/quote-comparisons`                                 | Strict input below; returns `{outcome: created/existing,comparison}`, HTTP 201/200. Reused key with changed input is 409.                                                                |
 | GET `/quote-comparisons?page=1`                           | `{items,total,page,pageSize:25}`, newest first with a stable ID tie-breaker.                                                                                                             |
@@ -328,6 +328,11 @@ Groups contain positive integer `quantity`, `units` (`imperial` or `metric`),
 `length,width,height,weight`, and `customsItems`. International groups require
 per-box items with `description,quantity,unitValue,currency,countryOfManufacture,
 weight` and optional/blank `hsCode`. Unknown support never implies included coverage.
+The three dimension strings may all be blank only when myUnishippers is the sole
+selected provider and its current `executionMode` is `request`. Partial dimensions,
+Amazon comparisons, mixed-provider comparisons, and browser mode require all three.
+Weight remains required in every mode. An all-blank request omits the native
+`billedDimension` field.
 
 Comparison returns `externalId,createdAt,createdBy` (actor public UUID), `input`,
 `senders`, `warnings`, `status`, `ratesRun`, and `attempts`. Resolved senders contain

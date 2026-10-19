@@ -9,6 +9,7 @@ const decimal = z
   .string()
   .regex(/^(?:0|[1-9]\d{0,8})(?:\.\d{1,6})?$/)
   .refine((value) => Number(value) > 0);
+const dimension = z.union([z.literal(''), decimal]);
 const country = z.string().regex(/^[A-Z]{2}$/);
 const providerCode = z.enum(['amazon', 'unishippers']);
 export const providersSchema = z.array(
@@ -58,7 +59,7 @@ const itemSchema = z.strictObject({
     .regex(/^(?:\d{6,10})?$/)
     .optional(),
 });
-export const createQuoteSchema = z
+const createQuoteSchema = z
   .strictObject({
     idempotencyKey: z.uuidv4(),
     shipDate: z.iso.date(),
@@ -83,9 +84,9 @@ export const createQuoteSchema = z
         z.strictObject({
           quantity: z.number().int().positive().max(10000),
           units: z.enum(['imperial', 'metric']),
-          length: decimal,
-          width: decimal,
-          height: decimal,
+          length: dimension,
+          width: dimension,
+          height: dimension,
           weight: decimal,
           customsItems: z.array(itemSchema).max(100),
         }),
@@ -96,6 +97,16 @@ export const createQuoteSchema = z
   .superRefine((value, ctx) => {
     if (new Set(value.providers.map((p) => p.code)).size !== value.providers.length)
       ctx.addIssue({ code: 'custom', path: ['providers'], message: 'Select each provider once' });
+    value.packageGroups.forEach((group, index) => {
+      const dimensions = [group.length, group.width, group.height];
+      const populated = dimensions.filter((dimension) => dimension !== '');
+      if (populated.length !== 0 && populated.length !== dimensions.length)
+        ctx.addIssue({
+          code: 'custom',
+          path: ['packageGroups', index],
+          message: 'Enter all dimensions or leave all three blank',
+        });
+    });
     if (value.destination.country !== 'US')
       value.packageGroups.forEach((group, index) => {
         if (!group.customsItems.length)
@@ -106,6 +117,26 @@ export const createQuoteSchema = z
           });
       });
   });
+export function createQuoteFormSchema(providers: Provider[]) {
+  const configurations = new Map(providers.map((provider) => [provider.code, provider]));
+
+  return createQuoteSchema.superRefine((value, ctx) => {
+    const dimensionsOptional =
+      value.providers.length === 1 &&
+      value.providers[0]?.code === 'unishippers' &&
+      configurations.get('unishippers')?.executionMode === 'request';
+    if (dimensionsOptional) return;
+
+    value.packageGroups.forEach((group, index) => {
+      if (group.length === '')
+        ctx.addIssue({
+          code: 'custom',
+          path: ['packageGroups', index],
+          message: 'Dimensions are required for the selected provider or execution mode',
+        });
+    });
+  });
+}
 export type QuoteInput = z.infer<typeof createQuoteSchema>;
 export type Address = z.infer<typeof addressSchema>;
 export type ProviderCode = z.infer<typeof providerCode>;

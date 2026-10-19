@@ -69,6 +69,52 @@ test('staff saves, reopens, and copies an immutable comparison through the real 
   await expect(page.getByText(/10.00 × 8 × 6 in/)).toBeVisible();
 });
 
+test('saves a myUnishippers request comparison with blank dimensions', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/quotes/new');
+  await page.getByRole('checkbox', { name: 'Amazon Shipping', exact: true }).uncheck();
+  await page.getByRole('combobox', { name: 'myUnishippers sender' }).click();
+  await page.getByRole('option', { name: 'Explicit sender' }).click();
+  for (const [label, values] of [
+    [
+      'myUnishippers origin',
+      {
+        name: 'US Spice Mills',
+        street: '200 Regency Drive',
+        city: 'Glendale Heights',
+        'state / province': 'IL',
+        postalCode: '60139',
+      },
+    ],
+    [
+      'Destination',
+      {
+        name: 'Marine Crisp',
+        street: '20 Lithgow Street',
+        city: 'Winslow',
+        'state / province': 'ME',
+        postalCode: '04901',
+      },
+    ],
+  ] as const)
+    for (const [field, value] of Object.entries(values))
+      await page.getByLabel(`${label} ${field}`, { exact: true }).fill(value);
+  await page.getByLabel('Group 1 quantity', { exact: true }).fill('6');
+  await page.getByLabel('Group 1 weight', { exact: true }).fill('51');
+
+  await expect(page.getByText(/leave all three dimensions blank/i)).toBeVisible();
+  await page.getByRole('button', { name: 'Save comparison', exact: true }).click();
+
+  await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
+  await expect(page.getByText(/6 boxes · Dimensions not provided · 51 lb per box/)).toBeVisible();
+  if (process.env.FE_TEST_QUOTE_DEMO === 'true')
+    await expect(
+      page.getByText('Failed — no rates available. These details are read-only.'),
+    ).toBeVisible({
+      timeout: 15_000,
+    });
+});
+
 test('streams partial success and retains it after reload through the real API', async ({
   page,
 }) => {

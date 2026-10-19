@@ -239,4 +239,88 @@ describe('Quote comparison form', () => {
     );
     expect(save).not.toHaveBeenCalled();
   });
+
+  it('allows all dimensions blank for myUnishippers request mode', async () => {
+    const user = userEvent.setup();
+    const save = vi.fn().mockResolvedValue(undefined);
+    const body = initial();
+    body.providers = [
+      {
+        code: 'unishippers',
+        sender: { mode: 'explicit', address },
+        options: { signature: 'none', insurance: null },
+      },
+    ];
+    const group = body.packageGroups[0];
+    if (!group) throw new Error('Missing package group fixture');
+    body.packageGroups[0] = {
+      ...group,
+      length: '',
+      width: '',
+      height: '',
+      weight: '51',
+    };
+    render(
+      <QuoteForm
+        providers={[unishippersRequestProvider]}
+        initial={body}
+        onSave={save}
+        onRefresh={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/all three dimensions blank/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save comparison' }));
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          packageGroups: [
+            expect.objectContaining({ length: '', width: '', height: '', weight: '51' }),
+          ],
+        }),
+      ),
+    );
+  });
+
+  it.each([
+    {
+      name: 'partial dimensions in request mode',
+      provider: unishippersRequestProvider,
+      dimensions: { length: '10', width: '', height: '' },
+    },
+    {
+      name: 'blank dimensions in browser mode',
+      provider: { ...unishippersRequestProvider, executionMode: 'browser' as const },
+      dimensions: { length: '', width: '', height: '' },
+    },
+    {
+      name: 'blank dimensions for Amazon',
+      provider: amazonProvider,
+      dimensions: { length: '', width: '', height: '' },
+    },
+  ])('blocks $name', async ({ provider, dimensions }) => {
+    const user = userEvent.setup();
+    const save = vi.fn();
+    const body = initial();
+    body.providers = [
+      {
+        code: provider.code,
+        sender: { mode: 'explicit', address },
+        options: { signature: 'none', insurance: null },
+      },
+    ];
+    const group = body.packageGroups[0];
+    if (!group) throw new Error('Missing package group fixture');
+    body.packageGroups[0] = { ...group, ...dimensions };
+    render(<QuoteForm providers={[provider]} initial={body} onSave={save} onRefresh={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Save comparison' }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Package dimensions must include all three values or none/),
+      ).toBeInTheDocument(),
+    );
+    expect(save).not.toHaveBeenCalled();
+  });
 });
