@@ -56,13 +56,15 @@ export function QuoteProgress({ comparison }: { comparison: Comparison }) {
             // biome-ignore lint/suspicious/noArrayIndexKey: Completed attempt results are immutable and retain database order.
             <Stack spacing={0.5} key={`${quote.service}-${index}`} sx={{ mt: 1 }}>
               <Typography>
-                {quote.carrier} · {quote.service}
+                {quote.platform} · {quote.carrier} · {quote.service}
               </Typography>
               <Typography>
                 {quote.transportationTotal} {quote.currency} ·{' '}
                 {quote.estimateMethod === 'calculated'
                   ? 'Calculated estimate'
-                  : 'Whole-shipment total'}
+                  : attempt.provider === 'amazon'
+                    ? 'Single-package estimate'
+                    : 'Whole-shipment total'}
               </Typography>
               <Typography>Transit: {quote.transitDescription ?? 'Not provided'}</Typography>
               <Typography>Requested options: {quote.optionCoverage}</Typography>
@@ -70,6 +72,32 @@ export function QuoteProgress({ comparison }: { comparison: Comparison }) {
                 Duty: {quote.dutyStatus} · Tax: {quote.taxStatus} · Clearance:{' '}
                 {quote.clearanceStatus}
               </Typography>
+              {quote.charges.length > 0 && (
+                <Stack spacing={0.25} sx={{ pl: 1 }}>
+                  <Typography variant="body2">Charge breakdown</Typography>
+                  {quote.charges.map((charge, chargeIndex) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: Charge rows are immutable and retain provider order.
+                    <Typography variant="body2" key={`${charge.description}-${chargeIndex}`}>
+                      {charge.description}: {charge.amount} {quote.currency} · {charge.scope}
+                      {charge.packageGroupPosition === null
+                        ? ''
+                        : ` · Group ${charge.packageGroupPosition + 1}`}
+                    </Typography>
+                  ))}
+                </Stack>
+              )}
+              {quote.groupContributions.length > 0 && (
+                <Stack spacing={0.25} sx={{ pl: 1 }}>
+                  <Typography variant="body2">Package group contribution</Typography>
+                  {quote.groupContributions.map((contribution) => (
+                    <Typography variant="body2" key={contribution.packageGroupPosition}>
+                      Group {contribution.packageGroupPosition + 1}: {contribution.quantity} box(es)
+                      {' · '}
+                      {contribution.subtotal} {quote.currency}
+                    </Typography>
+                  ))}
+                </Stack>
+              )}
               <Typography>
                 Retrieved: {businessTimestamp(quote.retrievedAt)} ET · Expires:{' '}
                 {quote.expiresAt ? `${businessTimestamp(quote.expiresAt)} ET` : 'Not provided'}

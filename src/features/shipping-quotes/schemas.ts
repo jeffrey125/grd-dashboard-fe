@@ -130,6 +130,7 @@ export const comparisonSchema = z.object({
       simulated: z.boolean(),
       quotes: z.array(
         z.object({
+          platform: z.string(),
           carrier: z.string(),
           service: z.string(),
           transportationTotal: z.string().regex(/^\d+(?:\.\d+)?$/),
@@ -142,6 +143,21 @@ export const comparisonSchema = z.object({
           dutyStatus: z.enum(['included', 'excluded', 'unknown']),
           taxStatus: z.enum(['included', 'excluded', 'unknown']),
           clearanceStatus: z.enum(['included', 'excluded', 'unknown']),
+          charges: z.array(
+            z.object({
+              description: z.string(),
+              amount: z.string().regex(/^\d+(?:\.\d+)?$/),
+              scope: z.enum(['package', 'shipment', 'pickup']),
+              packageGroupPosition: z.number().int().min(0).nullable(),
+            }),
+          ),
+          groupContributions: z.array(
+            z.object({
+              packageGroupPosition: z.number().int().min(0),
+              quantity: z.number().int().positive(),
+              subtotal: z.string().regex(/^\d+(?:\.\d+)?$/),
+            }),
+          ),
         }),
       ),
     }),

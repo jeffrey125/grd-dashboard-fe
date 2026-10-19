@@ -52,6 +52,7 @@ describe('Quote progress', () => {
       simulated: true,
       quotes: [
         {
+          platform: 'Amazon Shipping',
           carrier: 'Simulated carrier',
           service: 'Ground',
           transportationTotal: '12.500000',
@@ -64,6 +65,15 @@ describe('Quote progress', () => {
           dutyStatus: 'unknown' as const,
           taxStatus: 'unknown' as const,
           clearanceStatus: 'unknown' as const,
+          charges: [
+            {
+              description: 'BASE_CHARGE',
+              amount: '7.830000',
+              scope: 'package' as const,
+              packageGroupPosition: 0,
+            },
+          ],
+          groupContributions: [{ packageGroupPosition: 0, quantity: 2, subtotal: '27.620000' }],
         },
       ],
     };
@@ -84,6 +94,9 @@ describe('Quote progress', () => {
     );
     expect(screen.getByText(/Completed with partial results/)).toBeInTheDocument();
     expect(screen.getByText(/12.500000 USD/)).toBeInTheDocument();
+    expect(screen.getByText(/Single-package estimate/)).toBeInTheDocument();
+    expect(screen.getByText(/BASE_CHARGE: 7.830000 USD/)).toBeInTheDocument();
+    expect(screen.getByText(/Group 1: 2 box\(es\) · 27.620000 USD/)).toBeInTheDocument();
     expect(screen.getByText('The provider request failed.')).toBeInTheDocument();
     expect(screen.queryByText('SECRET')).not.toBeInTheDocument();
   });
