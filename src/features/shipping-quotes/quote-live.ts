@@ -76,16 +76,11 @@ export function watchComparison(
       reconnect();
     }
   };
-  // Recover missed notifications and stalled streams even without a reconnect signal.
-  const poll = setInterval(() => {
-    void invalidate();
-  }, 15000);
   connect();
 
   return () => {
     if (stopped) return;
     stopped = true;
-    clearInterval(poll);
     clearTimeout(retry);
     unbind();
     source?.close();

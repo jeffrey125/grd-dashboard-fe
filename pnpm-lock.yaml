@@ -211,6 +211,9 @@ importers:
       react-hook-form:
         specifier: 7.90.0
         version: 7.90.0(@types/react@19.3.0)(react@19.3.1)
+      use-debounce:
+        specifier: 10.1.1
+        version: 10.1.1(react@19.3.1)
       zod:
         specifier: 4.6.7
         version: 4.6.7
@@ -2407,6 +2410,12 @@ packages:
     peerDependencies:
       browserslist: '>= 4.21.0'
 
+  use-debounce@10.1.1:
+    resolution: {integrity: sha512-kvds8BHR2k28cFsxW8k3nc/tRga2rs1RHYCqmmGqb90MEeE++oALwzh2COiuBLO1/QXiOuShXoSN2ZpWnMmvuQ==}
+    engines: {node: '>= 16.0.0'}
+    peerDependencies:
+      react: '*'
+
   use-sync-external-store@1.7.0:
     resolution: {integrity: sha512-6L+EeigHMQhdaIPNIFUKwfWJSwWFQ8gJbJ2DLOs5sDIegTwR9fRxvnM3uciHKjIZhFz+KAv2emhWMRvDmMcY8A==}
     peerDependencies:
@@ -4313,6 +4322,10 @@ snapshots:
       browserslist: 4.29.3
       escalade: 3.2.0
       picocolors: 1.1.1
+
+  use-debounce@10.1.1(react@19.3.1):
+    dependencies:
+      react: 19.3.1
 
   use-sync-external-store@1.7.0(react@19.3.1):
     dependencies:

@@ -6,6 +6,7 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useDebouncedCallback } from 'use-debounce';
 import { changeSearch, type SearchState, searchErrors } from './search-state';
 
 const filterLabels = {
@@ -23,12 +24,20 @@ export function SearchBox({
   onSearch: (value: string) => void;
 }) {
   const [draft, setDraft] = useState(value);
+  const search = useDebouncedCallback(onSearch, 350);
+
   useEffect(() => setDraft(value), [value]);
   useEffect(() => {
-    if (draft === value) return;
-    const timer = setTimeout(() => onSearch(draft), 350);
-    return () => clearTimeout(timer);
-  }, [draft, value, onSearch]);
+    if (draft === value) {
+      search.cancel();
+
+      return;
+    }
+
+    search(draft);
+
+    return search.cancel;
+  }, [draft, value, search]);
   return (
     <TextField
       label="Search reference or notes"

@@ -11,6 +11,9 @@ export function useComparison(id: string) {
     queryKey: ['quote-comparison', id],
     queryFn: ({ signal }) => getComparison(session.client, id, signal),
     enabled: status === 'authenticated',
+    refetchInterval: (query) =>
+      !query.state.data || ['queued', 'running'].includes(query.state.data.status) ? 15000 : false,
+    refetchIntervalInBackground: true,
   });
   const active = !query.data || ['queued', 'running'].includes(query.data.status);
 
