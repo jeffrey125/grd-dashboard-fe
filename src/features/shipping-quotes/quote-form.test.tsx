@@ -17,12 +17,27 @@ const amazonProvider = {
   name: 'Amazon Shipping',
   enabled: true,
   executionMode: 'request' as const,
+  usedInternationally: false,
+  internationalAvailable: false,
+  supportsSignature: false,
+  supportsInsurance: false,
 };
 const unishippersRequestProvider = {
   code: 'unishippers' as const,
   name: 'myUnishippers',
   enabled: true,
   executionMode: 'request' as const,
+  usedInternationally: true,
+  internationalAvailable: false,
+  supportsSignature: false,
+  supportsInsurance: false,
+};
+const unishippersBrowserProvider = {
+  ...unishippersRequestProvider,
+  executionMode: 'browser' as const,
+  internationalAvailable: true,
+  supportsSignature: true,
+  supportsInsurance: true,
 };
 const initial = (): QuoteInput => ({
   idempotencyKey: crypto.randomUUID(),
@@ -142,18 +157,35 @@ describe('Quote comparison form', () => {
     expect(screen.getByLabelText('Group 2 length')).toBeInTheDocument();
     expect(screen.getByText(/Saving queues provider comparisons/)).toBeInTheDocument();
   });
-  it('preserves customs and provider options while warning about unverified coverage', async () => {
+  it('disables Amazon internationally and saves detailed customs with myUnishippers options', async () => {
     const user = userEvent.setup();
     const save = vi.fn().mockResolvedValue(undefined);
     const body = initial();
-    body.destination = { ...body.destination, country: 'CA' };
-    const international = {
+    body.destination = {
+      ...body.destination,
+      country: 'CA',
+      contactName: 'Receiving Contact',
+      phone: '2025550148',
+    };
+    const international: QuoteInput = {
       ...body,
+      international: {
+        contentsDescription: 'Cotton shirts',
+        customsMode: 'detailed',
+        totalValue: { amount: '50.000000', currency: 'USD' },
+      },
       providers: [
         {
           ...body.providers[0],
-          code: 'amazon' as const,
-          sender: { mode: 'explicit' as const, address },
+          code: 'unishippers' as const,
+          sender: {
+            mode: 'explicit' as const,
+            address: {
+              ...address,
+              contactName: 'Shipping Contact',
+              phone: '2025550147',
+            },
+          },
           options: {
             signature: 'signature' as const,
             insurance: { amount: '50.00', currency: 'USD' },
@@ -184,13 +216,17 @@ describe('Quote comparison form', () => {
     };
     render(
       <QuoteForm
-        providers={[amazonProvider]}
+        providers={[amazonProvider, unishippersBrowserProvider]}
         initial={international}
         onSave={save}
         onRefresh={vi.fn()}
       />,
     );
+    expect(screen.getByRole('checkbox', { name: 'Amazon Shipping' })).toBeDisabled();
+    expect(screen.getByText('Not available for international destinations')).toBeInTheDocument();
     expect(screen.getByLabelText('Group 1 item 1 description')).toHaveValue('Cotton shirt');
+    expect(screen.getByLabelText('Total customs value')).toHaveValue('50.000000');
+    expect(screen.getByText(/Aggregate requested coverage: 100.00 USD/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Save comparison' }));
     await waitFor(() =>
       expect(save).toHaveBeenCalledWith(
@@ -200,6 +236,10 @@ describe('Quote comparison form', () => {
               customsItems: [expect.objectContaining({ unitValue: '25.00', weight: '0.10' })],
             }),
           ],
+          international: expect.objectContaining({
+            contentsDescription: 'Cotton shirts',
+            totalValue: { amount: '50.000000', currency: 'USD' },
+          }),
         }),
       ),
     );

@@ -49,6 +49,19 @@ export function QuoteDetailPage() {
           <Typography variant="h6">Destination</Typography>
           <Typography>{Object.values(input.destination).filter(Boolean).join(', ')}</Typography>
         </Paper>
+        {input.international && (
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="h6">International shipping details</Typography>
+            <Typography>Description: {input.international.contentsDescription}</Typography>
+            <Typography>
+              Total customs value: {input.international.totalValue.amount}{' '}
+              {input.international.totalValue.currency}
+            </Typography>
+            <Typography>
+              Detail level: {input.international.customsMode === 'detailed' ? 'Per box' : 'Summary'}
+            </Typography>
+          </Paper>
+        )}
         {input.providers.map((provider) => {
           const sender = comparison.senders.find((s) => s.code === provider.code);
           return (
@@ -69,7 +82,7 @@ export function QuoteDetailPage() {
               <Typography>
                 Insurance requested:{' '}
                 {provider.options.insurance
-                  ? `${provider.options.insurance.amount} ${provider.options.insurance.currency}`
+                  ? `${provider.options.insurance.amount} ${provider.options.insurance.currency} per box`
                   : 'None'}
               </Typography>
             </Paper>

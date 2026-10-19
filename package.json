@@ -44,6 +44,7 @@
     "better-auth": "1.7.7",
     "broadcast-channel": "7.4.0",
     "dayjs": "1.11.23",
+    "decimal.js": "10.6.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-hook-form": "7.90.0",
