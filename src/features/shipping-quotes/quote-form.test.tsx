@@ -164,6 +164,7 @@ describe('Quote comparison form', () => {
     body.destination = {
       ...body.destination,
       country: 'CA',
+      division: 'BC',
       contactName: 'Receiving Contact',
       phone: '2025550148',
     };
@@ -243,6 +244,25 @@ describe('Quote comparison form', () => {
         }),
       ),
     );
+  });
+
+  it('uses maintained country and region data for international addresses', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <QuoteForm
+        providers={[amazonProvider]}
+        initial={initial()}
+        onSave={vi.fn()}
+        onRefresh={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('combobox', { name: 'Destination country' }));
+    await user.click(screen.getByRole('option', { name: 'Canada' }));
+    await user.click(screen.getByRole('combobox', { name: 'Destination state / province' }));
+
+    expect(screen.getByRole('option', { name: 'British Columbia' })).toBeInTheDocument();
   });
 
   it('shows default refresh failure and permits an explicit sender fallback', async () => {

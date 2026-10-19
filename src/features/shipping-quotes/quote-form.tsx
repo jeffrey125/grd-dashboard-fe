@@ -14,6 +14,7 @@ import Typography from '@mui/material/Typography';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FormProvider, useFieldArray, useForm, useFormContext } from 'react-hook-form';
 import { QuoteDecimal } from './quote-decimal';
+import { addressCountries, isSupportedCountryCode, regionsForCountry } from './quote-standards';
 import {
   type Address,
   createQuoteFormSchema,
@@ -49,19 +50,58 @@ function AddressFields({
   label: string;
   origin?: boolean;
 }) {
-  const { register } = useFormContext<QuoteInput>();
+  const { register, setValue, watch } = useFormContext<QuoteInput>();
+  const countryPath = `${prefix}.country` as const;
+  const divisionPath = `${prefix}.division` as const;
+  const country = watch(countryPath);
+  const division = watch(divisionPath);
+  const regions = regionsForCountry(country);
+  const countryRegistration = register(countryPath);
+
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-      {(['name', 'street', 'street2', 'city', 'division', 'postalCode', 'country'] as const).map(
-        (field) => (
-          <TextField
-            key={field}
-            label={`${label} ${field === 'division' ? 'state / province' : field}`}
-            {...register(`${prefix}.${field}`)}
-            disabled={origin && field === 'country'}
-          />
-        ),
+      {(['name', 'street', 'street2', 'city'] as const).map((field) => (
+        <TextField key={field} label={`${label} ${field}`} {...register(`${prefix}.${field}`)} />
+      ))}
+      <TextField
+        select
+        label={`${label} country`}
+        value={country}
+        disabled={origin}
+        {...countryRegistration}
+        onChange={(event) => {
+          void countryRegistration.onChange(event);
+          setValue(divisionPath, '', { shouldDirty: true, shouldValidate: true });
+        }}
+      >
+        {addressCountries.map(([name, code]) => (
+          <MenuItem key={code} value={code}>
+            {name}
+          </MenuItem>
+        ))}
+      </TextField>
+      {regions.length ? (
+        <TextField
+          select
+          label={`${label} state / province`}
+          value={division}
+          {...register(divisionPath)}
+        >
+          {division && !regions.some(([, code]) => code === division) && (
+            <MenuItem value={division}>
+              {regions.find(([name]) => name === division)?.[0] ?? division}
+            </MenuItem>
+          )}
+          {regions.map(([name, code]) => (
+            <MenuItem key={code} value={code}>
+              {name}
+            </MenuItem>
+          ))}
+        </TextField>
+      ) : (
+        <TextField label={`${label} state / province`} {...register(divisionPath)} />
       )}
+      <TextField label={`${label} postalCode`} {...register(`${prefix}.postalCode`)} />
     </Box>
   );
 }
@@ -93,8 +133,8 @@ function UnishippersContactFields({
         error={Boolean(phoneError)}
         helperText={
           phoneError
-            ? 'Enter a phone number containing 10–15 digits.'
-            : '10–15 digits; country code and phone punctuation are accepted.'
+            ? 'Enter a possible phone number for the address country.'
+            : 'National or international formatting is accepted.'
         }
         {...register(`${prefix}.phone`)}
       />
@@ -121,16 +161,29 @@ function CustomsFields({ index }: { index: number }) {
                 'weight',
                 'hsCode',
               ] as const
-            ).map((field) => (
-              <TextField
-                key={field}
-                label={`Group ${index + 1} item ${j + 1} ${field}`}
-                {...register(
-                  `packageGroups.${index}.customsItems.${j}.${field}`,
-                  field === 'quantity' ? { valueAsNumber: true } : {},
-                )}
-              />
-            ))}
+            ).map((field) => {
+              const input = (
+                <TextField
+                  key={field}
+                  select={field === 'countryOfManufacture'}
+                  label={`Group ${index + 1} item ${j + 1} ${field}`}
+                  slotProps={field === 'currency' ? { htmlInput: { readOnly: true } } : undefined}
+                  {...register(
+                    `packageGroups.${index}.customsItems.${j}.${field}`,
+                    field === 'quantity' ? { valueAsNumber: true } : {},
+                  )}
+                >
+                  {field === 'countryOfManufacture' &&
+                    addressCountries.map(([name, code]) => (
+                      <MenuItem key={code} value={code}>
+                        {name}
+                      </MenuItem>
+                    ))}
+                </TextField>
+              );
+
+              return input;
+            })}
             <Button onClick={() => items.remove(j)}>Remove item {j + 1}</Button>
           </Stack>
         </Paper>
@@ -346,7 +399,7 @@ export function QuoteForm({
   const country = watch('destination.country');
   const packageGroups = watch('packageGroups');
   const international = watch('international');
-  const isInternational = /^[A-Z]{2}$/.test(country) && country !== 'US';
+  const isInternational = isSupportedCountryCode(country) && country !== 'US';
   const totalBoxes = packageGroups.reduce((sum, group) => sum + (group.quantity || 0), 0);
   const detailedCustomsTotal = useMemo(() => {
     if (international?.customsMode !== 'detailed') return '';
@@ -365,7 +418,7 @@ export function QuoteForm({
     }
   }, [international?.customsMode, packageGroups]);
   useEffect(() => {
-    if (!/^[A-Z]{2}$/.test(country)) return;
+    if (!isSupportedCountryCode(country)) return;
     if (country === 'US') {
       if (form.getValues('international')) setValue('international', undefined);
       for (const [index, group] of form.getValues('packageGroups').entries())
