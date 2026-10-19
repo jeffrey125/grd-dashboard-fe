@@ -1,26 +1,22 @@
 import { safeError } from '@api/api';
 import { PageHeader } from '@components/layout/page-header';
-import { useSession } from '@features/auth';
-import { getComparison } from '@features/shipping-quotes/api';
+import { QuoteProgress } from '@features/shipping-quotes/quote-progress';
+import { useComparison } from '@features/shipping-quotes/use-comparison';
 import { businessTimestamp } from '@lib/dates';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { useQuery } from '@tanstack/react-query';
 import { createLink, useParams } from '@tanstack/react-router';
 
 const RouterButton = createLink(Button);
 
 export function QuoteDetailPage() {
-  const { session } = useSession();
   const { comparisonId } = useParams({ from: '/quotes/$comparisonId' });
-  const query = useQuery({
-    queryKey: ['quote-comparison', comparisonId],
-    queryFn: ({ signal }) => getComparison(session.client, comparisonId, signal),
-  });
-  if (query.error) return <Alert severity="error">{safeError(query.error).message}</Alert>;
+  const query = useComparison(comparisonId);
+  if (query.error && !query.data)
+    return <Alert severity="error">{safeError(query.error).message}</Alert>;
   if (!query.data) return <Typography>Loading saved comparison…</Typography>;
   const comparison = query.data;
   const input = comparison.input;
@@ -28,7 +24,12 @@ export function QuoteDetailPage() {
     <>
       <PageHeader title="Saved comparison" />
       <Stack spacing={2}>
-        <Alert severity="info">Saved — no rates run. These details are read-only.</Alert>
+        {query.error && (
+          <Alert severity="warning">
+            Updates unavailable. Showing the last saved result; reconnecting…
+          </Alert>
+        )}
+        <QuoteProgress comparison={comparison} />
         <Alert severity="warning">
           Provider support unverified. Requested signature and insurance are not confirmed.
         </Alert>

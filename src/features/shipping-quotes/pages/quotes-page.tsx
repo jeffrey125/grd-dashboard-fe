@@ -37,7 +37,9 @@ export function QuotesPage() {
                 Ship {item.input.shipDate} · {item.input.destination.city},{' '}
                 {item.input.destination.country}
               </Typography>
-              <Typography>Saved — no rates run</Typography>
+              <Typography>
+                {item.status === 'saved' ? 'Saved — no rates run' : item.status}
+              </Typography>
               <RouterButton to="/quotes/$comparisonId" params={{ comparisonId: item.externalId }}>
                 View saved details
               </RouterButton>

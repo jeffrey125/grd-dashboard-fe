@@ -92,8 +92,8 @@ export type Address = z.infer<typeof addressSchema>;
 export type ProviderCode = z.infer<typeof providerCode>;
 export const comparisonSchema = z.object({
   externalId: z.uuidv4(),
-  status: z.literal('saved'),
-  ratesRun: z.literal(false),
+  status: z.enum(['saved', 'queued', 'running', 'completed', 'failed']),
+  ratesRun: z.boolean(),
   createdAt: z.iso.datetime(),
   createdBy: z.uuidv4(),
   input: createQuoteSchema,
@@ -106,7 +106,48 @@ export const comparisonSchema = z.object({
     }),
   ),
   warnings: z.array(z.string()),
+  attempts: z.array(
+    z.object({
+      externalId: z.uuidv4(),
+      provider: providerCode,
+      status: z.enum(['saved', 'queued', 'running', 'completed', 'failed']),
+      attemptNumber: z.number().int().positive(),
+      executionMode: z.enum(['request', 'browser']).nullable(),
+      startedAt: z.iso.datetime().nullable(),
+      completedAt: z.iso.datetime().nullable(),
+      recoveryCount: z.number().int().min(0).max(1),
+      outcome: z
+        .enum([
+          'success',
+          'validation_failed',
+          'unsupported',
+          'timeout',
+          'authentication_failed',
+          'failed',
+        ])
+        .nullable(),
+      reasonCode: z.string().nullable(),
+      simulated: z.boolean(),
+      quotes: z.array(
+        z.object({
+          carrier: z.string(),
+          service: z.string(),
+          transportationTotal: z.string().regex(/^\d+(?:\.\d+)?$/),
+          currency: z.string().regex(/^[A-Z]{3}$/),
+          estimateMethod: z.enum(['native', 'calculated']),
+          transitDescription: z.string().nullable(),
+          retrievedAt: z.iso.datetime(),
+          expiresAt: z.iso.datetime().nullable(),
+          optionCoverage: z.enum(['included', 'unsupported', 'unverified']),
+          dutyStatus: z.enum(['included', 'excluded', 'unknown']),
+          taxStatus: z.enum(['included', 'excluded', 'unknown']),
+          clearanceStatus: z.enum(['included', 'excluded', 'unknown']),
+        }),
+      ),
+    }),
+  ),
 });
+export type Comparison = z.infer<typeof comparisonSchema>;
 export const providersSchema = z.array(
   z.object({ code: providerCode, name: z.string(), enabled: z.boolean() }),
 );

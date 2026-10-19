@@ -296,18 +296,18 @@ so also refresh on focus/reconnect. Account mutations have similar explicit
 post-mutation invalidation and existing session-revocation behavior.
 
 
-## SQ-V1-002 saved quote comparisons
+## SQ-V1-003 asynchronous quote comparisons
 
 Staff and Admin can create, list, and read all non-deleted comparisons. Existing
 session, password-change, trusted-Origin and no-store policies apply.
 
-| Method/path (under `/api/v1`) | Contract |
-| --- | --- |
-| GET `/quote-comparisons/providers` | Array of `{code,name,enabled}`; codes are `amazon` and `unishippers`. |
+| Method/path (under `/api/v1`)                             | Contract                                                                                                                                                                                 |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET `/quote-comparisons/providers`                        | Array of `{code,name,enabled}`; codes are `amazon` and `unishippers`.                                                                                                                    |
 | POST `/quote-comparisons/providers/:code/default-refresh` | Empty body; waits up to 90 seconds for the worker. Returns `{refreshId,address,retrievedAt}`; failure is 503 and explicit sender entry remains available. Client timeout is 120 seconds. |
-| POST `/quote-comparisons` | Strict input below; returns `{outcome: created/existing,comparison}`, HTTP 201/200. Reused key with changed input is 409. |
-| GET `/quote-comparisons?page=1` | `{items,total,page,pageSize:25}`, newest first with a stable ID tie-breaker. |
-| GET `/quote-comparisons/:externalId` | One immutable comparison, or 404. |
+| POST `/quote-comparisons`                                 | Strict input below; returns `{outcome: created/existing,comparison}`, HTTP 201/200. Reused key with changed input is 409.                                                                |
+| GET `/quote-comparisons?page=1`                           | `{items,total,page,pageSize:25}`, newest first with a stable ID tie-breaker.                                                                                                             |
+| GET `/quote-comparisons/:externalId`                      | One immutable comparison, or 404.                                                                                                                                                        |
 
 Input contains `idempotencyKey` (UUID), `shipDate` (YYYY-MM-DD, current/future in
 America/New_York), `destination`, `providers[]`, and `packageGroups[]`.
@@ -323,9 +323,39 @@ per-box items with `description,quantity,unitValue,currency,countryOfManufacture
 weight` and optional/blank `hsCode`. Unknown support never implies included coverage.
 
 Comparison returns `externalId,createdAt,createdBy` (actor public UUID), `input`,
-`senders`, `warnings`, `status:saved`, and `ratesRun:false`. Resolved senders contain
+`senders`, `warnings`, `status`, `ratesRun`, and `attempts`. Resolved senders contain
 `code,address,mode,retrievedAt`; explicit addresses have null retrieval time.
-No rate execution, SSE, retry, purchase, deletion or provider-admin endpoint is added.
+New comparisons start `queued`; historical `saved` records remain unchanged.
+Status is `saved|queued|running|completed|failed`; completed means at least one
+successful provider after all attempts finish, so inspect each attempt for partial
+failure. `ratesRun` indicates an execution started, not a successful real quote.
+Retry, purchase, deletion and provider-admin endpoints remain deferred.
+
+Each attempt contains `externalId,provider,status,attemptNumber,executionMode,
+startedAt,completedAt,recoveryCount,outcome,reasonCode,simulated,quotes`.
+Mode is null until execution; timestamps are nullable ISO UTC strings. Outcome is
+null until terminal, then `success|validation_failed|unsupported|timeout|
+authentication_failed|failed`. Diagnostics and lease ownership remain private.
+Known reasons are `adapter_unavailable,provider_disabled,validation_failed,
+unsupported,timeout,authentication_failed,provider_failed,recovery_exhausted`.
+Unknown reasons must use generic safe UI copy.
+
+Each quote contains `carrier,service,transportationTotal,currency,estimateMethod,
+transitDescription,retrievedAt,expiresAt,optionCoverage,dutyStatus,taxStatus,
+clearanceStatus`. Money is an exact decimal string; missing transit/expiry is null.
+Demo results are always `simulated:true` on the attempt and must be visibly labelled
+**Simulated rates — not provider quotes**. Requested option coverage remains unverified.
+
+`GET /quote-comparisons/:externalId/events` is credentialed SSE. It emits
+`quote.changed` with only `{externalId}`, `resync` with `{}` on connect/listener
+recovery, and 15-second `heartbeat` with `{}`. Every frame rechecks the session
+and comparison visibility. All unrestricted employees share non-deleted history;
+streams filter to the requested comparison and close if access is lost.
+Events are transient hints, without replay or sequence guarantees. Subscribe while
+queued/running; fetch authoritative detail after open/resync/change. Serialize reads
+and reread if another hint arrives during a request. The frontend also refreshes
+active comparisons every 15 seconds to recover missed signals, closes streams on
+session loss/unmount/completion, and retries failed connections after session recheck.
 
 The UI lives at `/quotes`, `/quotes/new`, and `/quotes/:comparisonId`. Saved details
 are read-only. Copy uses `/quotes/new?copy=<uuid>`, creates a fresh save key, refreshes

@@ -19,11 +19,13 @@ const { NestFactory } = requireBackend('@nestjs/core');
 const backendModule = (path) => import(pathToFileURL(resolve(backend, 'dist', path)).href);
 let container;
 let app;
+let quoteWorker;
 let stopping = false;
 async function stop() {
   if (stopping) return;
   stopping = true;
   try {
+    await quoteWorker?.onModuleDestroy();
     await app?.close();
   } finally {
     try {
@@ -149,8 +151,26 @@ try {
     app.get(DataSource),
     new TrackingService(new TypeOrmTrackingRepository(app.get(DataSource))),
   );
+  if (process.env.FE_TEST_QUOTE_DEMO === 'true') {
+    const { QuoteWorker } = await backendModule('modules/shipping-quotes/quote.worker.js');
+    const { TypeOrmQuoteExecutionRepository } = await backendModule(
+      'modules/shipping-quotes/typeorm-quote-execution.repository.js',
+    );
+    const { FixtureQuoteAdapter } = await backendModule(
+      'modules/shipping-quotes/fixture-quote.adapter.js',
+    );
+    const { ProjectLogger } = await backendModule('infrastructure/logging/logging.types.js');
+    quoteWorker = new QuoteWorker(
+      new TypeOrmQuoteExecutionRepository(app.get(DataSource)),
+      (code) => new FixtureQuoteAdapter(code === 'amazon' ? 'success' : 'validation_failed'),
+      app.get(ProjectLogger),
+    );
+    quoteWorker.onModuleInit();
+  }
   await app.listen(apiPort, 'localhost');
-  console.log(`Isolated auth API ready at http://localhost:${apiPort}/api/v1 (worker disabled).`);
+  console.log(
+    `Isolated auth API ready at http://localhost:${apiPort}/api/v1 (tracking worker disabled; quote demo ${quoteWorker ? 'enabled' : 'disabled'}).`,
+  );
 } catch (error) {
   console.error(
     'Isolated auth API failed. Check Docker access, backend build, and test API port availability.',

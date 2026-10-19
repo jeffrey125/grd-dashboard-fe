@@ -299,8 +299,8 @@ export function QuoteForm({
       <Box component="form" onSubmit={submit} noValidate>
         <Stack spacing={3}>
           <Alert severity="warning">
-            Provider support unverified — no rates run. Saving records your request; rates and
-            requested coverage are not confirmed.
+            Saving queues provider comparisons. Results appear as each provider finishes; requested
+            coverage is not confirmed until a result says so.
           </Alert>
           {failure && <Alert severity="error">{failure}</Alert>}
           {Object.keys(formState.errors).length > 0 && (

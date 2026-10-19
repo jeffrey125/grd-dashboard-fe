@@ -1,0 +1,90 @@
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import { QuoteProgress } from './quote-progress';
+import type { Comparison } from './schemas';
+
+const attempt = (
+  status: Comparison['status'],
+  provider: 'amazon' | 'unishippers' = 'amazon',
+): Comparison['attempts'][number] => ({
+  externalId: crypto.randomUUID(),
+  provider,
+  status,
+  attemptNumber: 1,
+  executionMode: 'request',
+  startedAt: null,
+  completedAt: null,
+  recoveryCount: 0,
+  outcome: null,
+  reasonCode: null,
+  simulated: false,
+  quotes: [],
+});
+const comparison = (
+  status: Comparison['status'],
+  attempts: Comparison['attempts'],
+): Comparison => ({
+  externalId: crypto.randomUUID(),
+  createdAt: '2026-10-19T12:00:00.000Z',
+  createdBy: crypto.randomUUID(),
+  status,
+  ratesRun: true,
+  input: {} as Comparison['input'],
+  senders: [],
+  warnings: [],
+  attempts,
+});
+
+describe('Quote progress', () => {
+  it.each([
+    ['queued', 'Queued — waiting for the worker.'],
+    ['running', 'Running — requesting provider results.'],
+    ['failed', 'Failed — no rates available.'],
+    ['completed', 'Completed.'],
+  ] as const)('renders %s clearly', (status, label) => {
+    render(<QuoteProgress comparison={comparison(status, [attempt(status)])} />);
+    expect(screen.getByText(`${label} These details are read-only.`)).toBeInTheDocument();
+  });
+
+  it('retains partial results, labels simulations, and uses safe failure messages', () => {
+    const success = {
+      ...attempt('completed'),
+      simulated: true,
+      quotes: [
+        {
+          carrier: 'Simulated carrier',
+          service: 'Ground',
+          transportationTotal: '12.500000',
+          currency: 'USD',
+          estimateMethod: 'native' as const,
+          transitDescription: null,
+          retrievedAt: '2026-10-19T12:00:00.000Z',
+          expiresAt: null,
+          optionCoverage: 'unverified' as const,
+          dutyStatus: 'unknown' as const,
+          taxStatus: 'unknown' as const,
+          clearanceStatus: 'unknown' as const,
+        },
+      ],
+    };
+    const { rerender } = render(
+      <QuoteProgress
+        comparison={comparison('running', [success, attempt('running', 'unishippers')])}
+      />,
+    );
+    expect(screen.getByText(/Partial results/)).toBeInTheDocument();
+    expect(screen.getByText(/Simulated rates/)).toBeInTheDocument();
+    rerender(
+      <QuoteProgress
+        comparison={comparison('completed', [
+          success,
+          { ...attempt('failed', 'unishippers'), reasonCode: 'SECRET' },
+        ])}
+      />,
+    );
+    expect(screen.getByText(/Completed with partial results/)).toBeInTheDocument();
+    expect(screen.getByText(/12.500000 USD/)).toBeInTheDocument();
+    expect(screen.getByText('The provider request failed.')).toBeInTheDocument();
+    expect(screen.queryByText('SECRET')).not.toBeInTheDocument();
+  });
+});

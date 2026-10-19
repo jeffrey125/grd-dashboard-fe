@@ -61,7 +61,7 @@ describe('Quote comparison form', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Add package group' }));
     expect(screen.getByLabelText('Group 2 length')).toBeInTheDocument();
-    expect(screen.getByText(/Provider support unverified/)).toBeInTheDocument();
+    expect(screen.getByText(/Saving queues provider comparisons/)).toBeInTheDocument();
   });
   it('preserves customs and provider options while warning about unverified coverage', async () => {
     const user = userEvent.setup();
