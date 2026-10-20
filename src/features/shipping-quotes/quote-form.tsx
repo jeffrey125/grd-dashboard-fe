@@ -1,4 +1,5 @@
 import { safeError } from '@api/api';
+import { useNotifications } from '@components/feedback/notification-provider';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { businessCalendarDate } from '@lib/dates';
 import Alert from '@mui/material/Alert';
@@ -12,7 +13,14 @@ import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FormProvider, useFieldArray, useForm, useFormContext } from 'react-hook-form';
+import {
+  type FieldPath,
+  FormProvider,
+  type UseFormReturn,
+  useFieldArray,
+  useForm,
+  useFormContext,
+} from 'react-hook-form';
 import { v4 as randomUUID } from 'uuid';
 import { QuoteDecimal } from './quote-decimal';
 import { addressCountries, isSupportedCountryCode, regionsForCountry } from './quote-standards';
@@ -35,6 +43,24 @@ const emptyGroup = (): QuoteInput['packageGroups'][number] => ({
   weight: '',
   customsItems: [],
 });
+// Connect MUI's actual input (including selects) to React Hook Form for focus and errors.
+function quoteField(
+  form: UseFormReturn<QuoteInput>,
+  name: FieldPath<QuoteInput>,
+  hint?: string,
+  numeric = false,
+) {
+  const { ref, ...registration } = form.register(name, numeric ? { valueAsNumber: true } : {});
+  const { error } = form.getFieldState(name, form.formState);
+  return {
+    ...registration,
+    inputRef: ref,
+    id: `quote-${name}`,
+    error: Boolean(error),
+    helperText: error?.message ?? hint,
+  };
+}
+
 function AddressFields({
   prefix,
   label,
@@ -44,21 +70,28 @@ function AddressFields({
   label: string;
   origin?: boolean;
 }) {
-  const { register, setValue, watch } = useFormContext<QuoteInput>();
+  const form = useFormContext<QuoteInput>();
+  const { setValue, watch } = form;
   const countryPath = `${prefix}.country` as const;
   const divisionPath = `${prefix}.division` as const;
   const country = watch(countryPath);
   const division = watch(divisionPath);
   const regions = regionsForCountry(country);
-  const countryRegistration = register(countryPath);
+  const countryRegistration = quoteField(form, countryPath);
 
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
       {(['name', 'street', 'street2', 'city'] as const).map((field) => (
-        <TextField key={field} label={`${label} ${field}`} {...register(`${prefix}.${field}`)} />
+        <TextField
+          key={field}
+          required={field !== 'street2'}
+          label={`${label} ${{ name: 'company or name', street: 'address', street2: 'apartment / suite (optional)', city: 'city' }[field]}`}
+          {...quoteField(form, `${prefix}.${field}`)}
+        />
       ))}
       <TextField
         select
+        required
         label={`${label} country`}
         value={country}
         disabled={origin}
@@ -79,7 +112,7 @@ function AddressFields({
           select
           label={`${label} state / province`}
           value={division}
-          {...register(divisionPath)}
+          {...quoteField(form, divisionPath, 'State or province, if applicable')}
         >
           {division && !regions.some(([, code]) => code === division) && (
             <MenuItem value={division}>
@@ -93,19 +126,41 @@ function AddressFields({
           ))}
         </TextField>
       ) : (
-        <TextField label={`${label} state / province`} {...register(divisionPath)} />
+        <TextField
+          label={`${label} state / province`}
+          {...quoteField(form, divisionPath, 'State or province, if applicable')}
+        />
       )}
-      <TextField label={`${label} postalCode`} {...register(`${prefix}.postalCode`)} />
+      <TextField
+        required
+        label={`${label} ZIP / postal code`}
+        {...quoteField(form, `${prefix}.postalCode`)}
+      />
+      <TextField
+        label={`${label} contact name (optional)`}
+        {...quoteField(form, `${prefix}.contactName`)}
+      />
+      <TextField
+        label={`${label} phone (optional)`}
+        {...quoteField(
+          form,
+          `${prefix}.phone`,
+          'Include the country code, for example +1 202 555 0147',
+        )}
+      />
     </Box>
   );
 }
 function CustomsFields({ index }: { index: number }) {
-  const { register, control, watch } = useFormContext<QuoteInput>();
+  const form = useFormContext<QuoteInput>();
+  const { control, watch } = form;
   const items = useFieldArray({ control, name: `packageGroups.${index}.customsItems` });
   const currency = watch('international.totalValue.currency') || 'USD';
   return (
     <Stack spacing={2}>
-      <Typography>Per-box customs items (item weight uses this group’s weight unit)</Typography>
+      <Typography>
+        List the items inside one box. Use the same weight unit selected for the box.
+      </Typography>
       {items.fields.map((item, j) => (
         <Paper key={item.id} variant="outlined" sx={{ p: 2 }}>
           <Stack spacing={2}>
@@ -124,11 +179,17 @@ function CustomsFields({ index }: { index: number }) {
                 <TextField
                   key={field}
                   select={field === 'countryOfManufacture'}
-                  label={`Group ${index + 1} item ${j + 1} ${field}`}
+                  defaultValue={
+                    field === 'countryOfManufacture' ? item.countryOfManufacture : undefined
+                  }
+                  required={field !== 'hsCode'}
+                  label={`Box type ${index + 1}, item ${j + 1}: ${{ description: 'description', quantity: 'number of items', unitValue: 'value per item', currency: 'currency', countryOfManufacture: 'made in', weight: 'weight per item', hsCode: 'HS tariff code (optional)' }[field]}`}
                   slotProps={field === 'currency' ? { htmlInput: { readOnly: true } } : undefined}
-                  {...register(
+                  {...quoteField(
+                    form,
                     `packageGroups.${index}.customsItems.${j}.${field}`,
-                    field === 'quantity' ? { valueAsNumber: true } : {},
+                    undefined,
+                    field === 'quantity',
                   )}
                 >
                   {field === 'countryOfManufacture' &&
@@ -158,7 +219,7 @@ function CustomsFields({ index }: { index: number }) {
           })
         }
       >
-        Add customs item to group {index + 1}
+        Add an item to box type {index + 1}
       </Button>
     </Stack>
   );
@@ -173,39 +234,44 @@ function ProviderFields({
   totalBoxes: number;
 }) {
   const name = configuration.name;
-  const { register, watch, setValue, getValues } = useFormContext<QuoteInput>();
+  const form = useFormContext<QuoteInput>();
+  const { watch, setValue, getValues } = form;
   const provider = watch(`providers.${index}`);
-  if (provider.sender.mode !== 'explicit') return null;
+  if (provider.sender.mode !== 'explicit')
+    return (
+      <Alert severity="error">
+        Enter a sender address for {name}: deselect this service and select it again to fill in the
+        address.
+      </Alert>
+    );
 
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
       <Stack spacing={2}>
         <Typography variant="h6">{name}</Typography>
-        <Typography variant="body2">
-          Mode: {configuration.executionMode}. Stale period: {configuration.staleHours ?? 1}{' '}
-          hour(s).
-        </Typography>
         {configuration.maintenanceMessage && (
           <Alert severity="info">{configuration.maintenanceMessage}</Alert>
         )}
         {provider.code === 'unishippers' && (
           <Alert severity="info">
-            Quick Quote prices one box for each distinct package group. The comparison multiplies
-            that price by quantity and displays a calculated estimate. Quick Quote currently
-            supports today's domestic shipments without signature or insurance options.
+            For shipping within the US today. We estimate the total by multiplying each box price by
+            the number of identical boxes. Signature and insurance are unavailable. Box sizes are
+            optional only when comparing myUnishippers alone; weight is required.
           </Alert>
         )}
-        <Typography variant="body2">Enter the sender for this comparison.</Typography>
+        <Typography variant="body2">
+          Where are you shipping from? Enter the pickup address for this service.
+        </Typography>
         <AddressFields
           prefix={`providers.${index}.sender.address`}
-          label={`${name} origin`}
+          label={`${name} sender`}
           origin
         />
         {configuration.supportsSignature && (
           <TextField
             select
             label={`${name} signature request`}
-            {...register(`providers.${index}.options.signature`)}
+            {...quoteField(form, `providers.${index}.options.signature`)}
             defaultValue={provider.options.signature}
           >
             <MenuItem value="none">None</MenuItem>
@@ -233,17 +299,18 @@ function ProviderFields({
           <>
             <TextField
               label={`${name} insured value per box`}
-              {...register(`providers.${index}.options.insurance.amount`)}
+              required
+              {...quoteField(form, `providers.${index}.options.insurance.amount`)}
             />
             <TextField
               label={`${name} insurance currency`}
               defaultValue={getValues(`providers.${index}.options.insurance.currency`)}
               slotProps={{ htmlInput: { readOnly: true } }}
-              {...register(`providers.${index}.options.insurance.currency`)}
+              {...quoteField(form, `providers.${index}.options.insurance.currency`)}
             />
             {/^(?:0|[1-9]\d{0,8})(?:\.\d{1,6})?$/.test(provider.options.insurance.amount) && (
               <Typography variant="body2">
-                Aggregate requested coverage:{' '}
+                Total requested insurance:{' '}
                 {new QuoteDecimal(provider.options.insurance.amount).times(totalBoxes).toFixed(2)}{' '}
                 {provider.options.insurance.currency}
               </Typography>
@@ -283,10 +350,27 @@ export function QuoteForm({
   const form = useForm<QuoteInput>({
     resolver: zodResolver(formSchema),
     defaultValues,
+    shouldFocusError: false,
   });
-  const { register, control, watch, setValue, handleSubmit, formState } = form;
+  const { control, watch, setValue, handleSubmit, formState } = form;
+  const { showNotification } = useNotifications();
+  const formElement = useRef<HTMLFormElement>(null);
+  const errorSummary = useRef<HTMLDivElement>(null);
+  const focusedSubmission = useRef(0);
+  useEffect(() => {
+    if (formState.submitCount === focusedSubmission.current) return;
+    focusedSubmission.current = formState.submitCount;
+    if (!Object.keys(formState.errors).length) return;
+    const field = formElement.current?.querySelector<HTMLElement>(
+      'input[aria-invalid="true"], [role="combobox"][aria-invalid="true"], textarea[aria-invalid="true"]',
+    );
+    const target = field ?? errorSummary.current;
+    target?.focus();
+    target?.scrollIntoView?.({ block: 'center', behavior: 'instant' });
+  }, [formState.submitCount, formState.errors]);
   const groups = useFieldArray({ control, name: 'packageGroups' });
   const selected = watch('providers');
+  const dimensionsOptional = selected.length === 1 && selected[0]?.code === 'unishippers';
   const country = watch('destination.country');
   const packageGroups = watch('packageGroups');
   const international = watch('international');
@@ -339,38 +423,53 @@ export function QuoteForm({
   }, [detailedCustomsTotal, international?.customsMode, setValue]);
   const [failure, setFailure] = useState('');
   const lastSubmission = useRef<{ body: string; key: string } | undefined>(undefined);
-  const submit = handleSubmit(async (input) => {
-    setFailure('');
-    const { idempotencyKey, ...values } = input;
-    const body = JSON.stringify(values);
-    const key =
-      lastSubmission.current?.body === body
-        ? lastSubmission.current.key
-        : lastSubmission.current
-          ? randomUUID()
-          : idempotencyKey;
-    lastSubmission.current = { body, key };
-    setValue('idempotencyKey', key);
-    try {
-      await onSave({ ...input, idempotencyKey: key });
-    } catch (error) {
-      setFailure(safeError(error).message);
-    }
-  });
+  const submit = handleSubmit(
+    async (input) => {
+      setFailure('');
+      const { idempotencyKey, ...values } = input;
+      const body = JSON.stringify(values);
+      const key =
+        lastSubmission.current?.body === body
+          ? lastSubmission.current.key
+          : lastSubmission.current
+            ? randomUUID()
+            : idempotencyKey;
+      lastSubmission.current = { body, key };
+      setValue('idempotencyKey', key);
+      try {
+        await onSave({ ...input, idempotencyKey: key });
+      } catch (error) {
+        const message = safeError(error).message;
+        setFailure(message);
+        showNotification({ severity: 'error', message });
+      }
+    },
+    () => {
+      setFailure('');
+      showNotification({
+        severity: 'error',
+        message: 'Please complete or correct the highlighted fields before comparing quotes.',
+      });
+    },
+  );
   return (
     <FormProvider {...form}>
-      <Box component="form" onSubmit={submit} noValidate>
+      <Box
+        component="form"
+        ref={formElement}
+        onSubmit={submit}
+        noValidate
+        sx={{ pb: { xs: 12, sm: 0 } }}
+      >
         <Stack spacing={3}>
-          <Alert severity="warning">
-            Saving queues provider comparisons. Results appear as each provider finishes; requested
-            coverage is not confirmed until a result says so.
+          <Alert severity="info">
+            Fill in the shipping addresses and box details, then choose Compare quotes to see
+            prices. This does not book a shipment. Fields marked * are required.
           </Alert>
           {failure && <Alert severity="error">{failure}</Alert>}
           {Object.keys(formState.errors).length > 0 && (
-            <Alert severity="error">
-              Check required addresses, ship date, positive package values, and customs items.
-              Package dimensions must include all three positive values. Weight is always required.
-              Country codes use two uppercase letters; currencies use three.
+            <Alert severity="error" ref={errorSummary} tabIndex={-1}>
+              Please check the highlighted fields below. Your entries have been kept.
             </Alert>
           )}
           <Box
@@ -379,11 +478,19 @@ export function QuoteForm({
             sx={{ border: 0, p: 0, m: 0, minWidth: 0 }}
           >
             <Stack spacing={3}>
+              <Typography variant="h6">1. Choose your shipping services</Typography>
               <TextField
+                required
                 label="Ship date"
                 type="date"
                 slotProps={{ inputLabel: { shrink: true } }}
-                {...register('shipDate')}
+                {...quoteField(
+                  form,
+                  'shipDate',
+                  selected.some((p) => p.code === 'unishippers')
+                    ? 'myUnishippers quotes are available for today only (Eastern Time).'
+                    : 'Choose today or a future date. Dates use Eastern Time.',
+                )}
               />
               <Stack direction="row" sx={{ flexWrap: 'wrap' }}>
                 {providers
@@ -417,6 +524,7 @@ export function QuoteForm({
                                         },
                                       ]
                                     : selected.filter((p) => p.code !== provider.code),
+                                  { shouldDirty: true, shouldValidate: formState.isSubmitted },
                                 )
                               }
                             />
@@ -425,7 +533,7 @@ export function QuoteForm({
                         {unavailable && (
                           <Typography variant="caption" sx={{ display: 'block' }}>
                             {provider.usedInternationally
-                              ? 'International quoting is unavailable in the current provider mode'
+                              ? 'International quotes are not currently available'
                               : 'Not available for international destinations'}
                           </Typography>
                         )}
@@ -442,8 +550,17 @@ export function QuoteForm({
                   </Alert>
                 ))}
               {!providers.some((p) => p.enabled) && (
-                <Alert severity="warning">No providers are enabled. Saving is unavailable.</Alert>
+                <Alert severity="warning">
+                  No shipping services are available. Please contact an administrator.
+                </Alert>
               )}
+              {(formState.errors.providers?.message ||
+                formState.errors.providers?.root?.message) && (
+                <Alert severity="error">
+                  {formState.errors.providers?.message || formState.errors.providers?.root?.message}
+                </Alert>
+              )}
+              <Typography variant="h6">2. Where are you shipping from?</Typography>
               {selected.map((p, index) => {
                 const configuration = providers.find((x) => x.code === p.code);
                 return configuration ? (
@@ -455,15 +572,20 @@ export function QuoteForm({
                   />
                 ) : null;
               })}
-              <Typography variant="h6">Destination</Typography>
-              <AddressFields prefix="destination" label="Destination" />
+              <Typography variant="h6">3. Where is it going?</Typography>
+              <AddressFields prefix="destination" label="Recipient" />
               {isInternational && international && (
                 <Paper variant="outlined" sx={{ p: 2 }}>
                   <Stack spacing={2}>
                     <Typography variant="h6">International shipping details</Typography>
                     <TextField
                       label="Specific description of contents for label"
-                      {...register('international.contentsDescription')}
+                      required
+                      {...quoteField(
+                        form,
+                        'international.contentsDescription',
+                        'For example: flour samples',
+                      )}
                     />
                     <TextField
                       select
@@ -488,63 +610,107 @@ export function QuoteForm({
                           readOnly: international.customsMode === 'detailed',
                         },
                       }}
-                      helperText={
+                      required
+                      {...quoteField(
+                        form,
+                        'international.totalValue.amount',
                         international.customsMode === 'detailed'
-                          ? 'Calculated as item quantity × unit value × boxes in each group.'
-                          : undefined
-                      }
-                      {...register('international.totalValue.amount')}
+                          ? 'Calculated from the items and number of boxes you entered.'
+                          : 'Combined value of everything in the shipment',
+                      )}
                     />
                     <TextField
                       label="Customs currency"
-                      helperText="myUnishippers international browser quoting is verified for USD. Other currencies are saved as unsupported."
-                      {...register('international.totalValue.currency')}
+                      required
+                      {...quoteField(
+                        form,
+                        'international.totalValue.currency',
+                        'Use a currency abbreviation, such as USD for US dollars.',
+                      )}
                     />
                   </Stack>
                 </Paper>
               )}
+              <Typography variant="h6">4. What are you shipping?</Typography>
+              <Typography variant="body2">
+                Enter the size and weight of one box, then how many identical boxes you have. Add
+                another box type if the size or weight differs.
+              </Typography>
               {groups.fields.map((group, index) => (
                 <Paper variant="outlined" key={group.id} sx={{ p: 2 }}>
                   <Stack spacing={2}>
-                    <Typography variant="h6">Package group {index + 1}</Typography>
+                    <Typography variant="h6">Box type {index + 1}</Typography>
                     <TextField
-                      label={`Group ${index + 1} quantity`}
+                      required
+                      label={`Box type ${index + 1}: number of identical boxes`}
                       type="number"
-                      {...register(`packageGroups.${index}.quantity`, { valueAsNumber: true })}
+                      {...quoteField(
+                        form,
+                        `packageGroups.${index}.quantity`,
+                        'Each box must have the same size and weight.',
+                        true,
+                      )}
                     />
                     <TextField
                       select
-                      label={`Group ${index + 1} units`}
+                      label={`Box type ${index + 1}: measurement units`}
                       defaultValue={group.units}
-                      {...register(`packageGroups.${index}.units`)}
+                      {...quoteField(form, `packageGroups.${index}.units`)}
                     >
                       <MenuItem value="imperial">Inches / pounds</MenuItem>
                       <MenuItem value="metric">Centimeters / kilograms</MenuItem>
                     </TextField>
-                    {(['length', 'width', 'height', 'weight'] as const).map((field) => (
-                      <TextField
-                        key={field}
-                        label={`Group ${index + 1} ${field}`}
-                        {...register(`packageGroups.${index}.${field}`)}
-                      />
-                    ))}
+                    <Typography variant="body2">
+                      {dimensionsOptional
+                        ? 'Size is optional. Leave all three size fields blank, or enter length, width, and height together.'
+                        : 'Enter all three box sizes: length, width, and height.'}{' '}
+                      Weight is always required.
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                        gap: 2,
+                      }}
+                    >
+                      {(['length', 'width', 'height', 'weight'] as const).map((field) => (
+                        <TextField
+                          key={field}
+                          required={field === 'weight' || !dimensionsOptional}
+                          label={`Box type ${index + 1}: ${field} (${packageGroups[index]?.units === 'metric' ? (field === 'weight' ? 'kg' : 'cm') : field === 'weight' ? 'lb' : 'in'})`}
+                          slotProps={{ htmlInput: { inputMode: 'decimal' } }}
+                          {...quoteField(
+                            form,
+                            `packageGroups.${index}.${field}`,
+                            field === 'weight' ? 'Weight of one packed box' : undefined,
+                          )}
+                        />
+                      ))}
+                    </Box>
+                    {(formState.errors.packageGroups?.[index]?.customsItems?.message ||
+                      formState.errors.packageGroups?.[index]?.customsItems?.root?.message) && (
+                      <Alert severity="error">
+                        {formState.errors.packageGroups[index]?.customsItems?.message ||
+                          formState.errors.packageGroups[index]?.customsItems?.root?.message}
+                      </Alert>
+                    )}
                     {international?.customsMode === 'detailed' && <CustomsFields index={index} />}
                     <Button
                       disabled={groups.fields.length === 1}
                       onClick={() => groups.remove(index)}
                     >
-                      Remove package group {index + 1}
+                      Remove box type {index + 1}
                     </Button>
                   </Stack>
                 </Paper>
               ))}
-              <Button onClick={() => groups.append(emptyGroup())}>Add package group</Button>
+              <Button onClick={() => groups.append(emptyGroup())}>Add another box type</Button>
               <Button
                 type="submit"
                 variant="contained"
                 disabled={!providers.some((p) => p.enabled) || formState.isSubmitting}
               >
-                Save comparison
+                {formState.isSubmitting ? 'Requesting prices…' : 'Compare quotes'}
               </Button>
             </Stack>
           </Box>

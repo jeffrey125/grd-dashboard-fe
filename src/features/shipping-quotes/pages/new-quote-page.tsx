@@ -55,9 +55,9 @@ export function NewQuotePage() {
       <PageHeader title={copy ? 'Copy to new comparison' : 'New quote comparison'} />
       {copy && (
         <Alert severity="info" sx={{ mb: 2 }}>
-          This copy will be saved separately. Historical account senders are copied into editable
-          explicit sender fields. Update an old ship date before saving. Disabled providers are
-          omitted.
+          This starts a new comparison using the previous addresses and box details. Check the
+          sender addresses and ship date before comparing. Unavailable shipping services are left
+          out.
         </Alert>
       )}
       <QuoteForm

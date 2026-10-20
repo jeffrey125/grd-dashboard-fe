@@ -1,9 +1,13 @@
+import { NotificationProvider } from '@components/feedback/notification-provider';
 import { businessCalendarDate } from '@lib/dates';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as renderUi, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { QuoteForm } from './quote-form';
 import type { QuoteInput } from './schemas';
+
+const render = (ui: ReactElement) => renderUi(<NotificationProvider>{ui}</NotificationProvider>);
 
 const address = {
   name: 'Test warehouse',
@@ -67,7 +71,7 @@ describe('Quote comparison form', () => {
 
     try {
       render(<QuoteForm providers={[]} onSave={vi.fn()} />);
-      expect(screen.getByRole('button', { name: 'Save comparison' })).toBeVisible();
+      expect(screen.getByRole('button', { name: 'Compare quotes' })).toBeVisible();
     } finally {
       if (descriptor) Object.defineProperty(globalThis.crypto, 'randomUUID', descriptor);
       else Reflect.deleteProperty(globalThis.crypto, 'randomUUID');
@@ -88,11 +92,16 @@ describe('Quote comparison form', () => {
     render(<QuoteForm providers={[unishippersRequestProvider]} initial={body} onSave={save} />);
 
     expect(screen.queryByText(/Account default/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Enter the sender for this comparison/)).toBeInTheDocument();
-    expect(screen.getByText(/Quick Quote prices one box/)).toBeInTheDocument();
-    await user.clear(screen.getByLabelText('myUnishippers origin name'));
-    await user.type(screen.getByLabelText('myUnishippers origin name'), 'Entered warehouse');
-    await user.click(screen.getByRole('button', { name: 'Save comparison' }));
+    expect(screen.getByText(/Where are you shipping from\? Enter the pickup/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/We estimate the total by multiplying each box price/),
+    ).toBeInTheDocument();
+    await user.clear(screen.getByLabelText(/myUnishippers sender company or name/));
+    await user.type(
+      screen.getByLabelText(/myUnishippers sender company or name/),
+      'Entered warehouse',
+    );
+    await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
     await waitFor(() =>
       expect(save).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -126,8 +135,10 @@ describe('Quote comparison form', () => {
     ];
     render(<QuoteForm providers={[unishippersRequestProvider]} initial={body} onSave={save} />);
 
-    await user.click(screen.getByRole('button', { name: 'Save comparison' }));
-    expect(await screen.findByText(/Check required addresses/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+    expect(
+      await screen.findByText(/Please check the highlighted fields below/),
+    ).toBeInTheDocument();
     expect(save).not.toHaveBeenCalled();
   });
 
@@ -135,8 +146,8 @@ describe('Quote comparison form', () => {
     const user = userEvent.setup();
     const save = vi.fn().mockResolvedValue(undefined);
     render(<QuoteForm providers={[amazonProvider]} initial={initial()} onSave={save} />);
-    expect(screen.getByLabelText('Group 1 length')).toHaveValue('10.00');
-    await user.click(screen.getByRole('button', { name: 'Save comparison' }));
+    expect(screen.getByLabelText(/Box type 1: length/)).toHaveValue('10.00');
+    await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
     await waitFor(() =>
       expect(save).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -146,9 +157,9 @@ describe('Quote comparison form', () => {
         }),
       ),
     );
-    await user.click(screen.getByRole('button', { name: 'Add package group' }));
-    expect(screen.getByLabelText('Group 2 length')).toBeInTheDocument();
-    expect(screen.getByText(/Saving queues provider comparisons/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Add another box type' }));
+    expect(screen.getByLabelText(/Box type 2: length/)).toBeInTheDocument();
+    expect(screen.getByText(/This does not book a shipment/)).toBeInTheDocument();
   });
   it('disables domestic-only providers for international destinations', async () => {
     const user = userEvent.setup();
@@ -161,7 +172,7 @@ describe('Quote comparison form', () => {
       />,
     );
 
-    await user.click(screen.getByRole('combobox', { name: 'Destination country' }));
+    await user.click(screen.getByRole('combobox', { name: /Recipient country/ }));
     await user.click(screen.getByRole('option', { name: 'Canada' }));
 
     expect(screen.getByRole('checkbox', { name: 'Amazon Shipping' })).toBeDisabled();
@@ -174,9 +185,9 @@ describe('Quote comparison form', () => {
 
     render(<QuoteForm providers={[amazonProvider]} initial={initial()} onSave={vi.fn()} />);
 
-    await user.click(screen.getByRole('combobox', { name: 'Destination country' }));
+    await user.click(screen.getByRole('combobox', { name: /Recipient country/ }));
     await user.click(screen.getByRole('option', { name: 'Canada' }));
-    await user.click(screen.getByRole('combobox', { name: 'Destination state / province' }));
+    await user.click(screen.getByRole('combobox', { name: 'Recipient state / province' }));
 
     expect(screen.getByRole('option', { name: 'British Columbia' })).toBeInTheDocument();
   });
@@ -184,9 +195,9 @@ describe('Quote comparison form', () => {
   it('starts new providers with explicit sender fields', async () => {
     const user = userEvent.setup();
     render(<QuoteForm providers={[amazonProvider]} onSave={vi.fn()} />);
-    expect(screen.getByLabelText('Amazon Shipping origin street')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Amazon Shipping sender address/)).toBeInTheDocument();
     await user.click(screen.getByRole('checkbox', { name: /^Amazon Shipping$/ }));
-    expect(screen.queryByLabelText('Amazon Shipping origin street')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Amazon Shipping sender address/)).not.toBeInTheDocument();
   });
   it('rejects a historical account default if passed directly to the new form', async () => {
     const user = userEvent.setup();
@@ -200,12 +211,14 @@ describe('Quote comparison form', () => {
       },
     ];
     render(<QuoteForm providers={[amazonProvider]} initial={body} onSave={save} />);
-    await user.click(screen.getByRole('button', { name: 'Save comparison' }));
-    expect(await screen.findByText(/Check required addresses/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+    expect(
+      await screen.findByText(/Please check the highlighted fields below/),
+    ).toBeInTheDocument();
     expect(save).not.toHaveBeenCalled();
   });
 
-  it('requires dimensions for myUnishippers Quick Quote', async () => {
+  it('allows blank dimensions for myUnishippers-only Quick Quote', async () => {
     const user = userEvent.setup();
     const save = vi.fn().mockResolvedValue(undefined);
     const body = initial();
@@ -227,9 +240,16 @@ describe('Quote comparison form', () => {
     };
     render(<QuoteForm providers={[unishippersRequestProvider]} initial={body} onSave={save} />);
 
-    await user.click(screen.getByRole('button', { name: 'Save comparison' }));
-    expect(await screen.findByText(/Package dimensions must include/)).toBeInTheDocument();
-    expect(save).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          packageGroups: [
+            expect.objectContaining({ length: '', width: '', height: '', weight: '51' }),
+          ],
+        }),
+      ),
+    );
   });
 
   it.each([
@@ -237,11 +257,6 @@ describe('Quote comparison form', () => {
       name: 'partial dimensions in request mode',
       provider: unishippersRequestProvider,
       dimensions: { length: '10', width: '', height: '' },
-    },
-    {
-      name: 'blank dimensions in browser mode',
-      provider: { ...unishippersRequestProvider, executionMode: 'browser' as const },
-      dimensions: { length: '', width: '', height: '' },
     },
     {
       name: 'blank dimensions for Amazon',
@@ -264,13 +279,35 @@ describe('Quote comparison form', () => {
     body.packageGroups[0] = { ...group, ...dimensions };
     render(<QuoteForm providers={[provider]} initial={body} onSave={save} />);
 
-    await user.click(screen.getByRole('button', { name: 'Save comparison' }));
+    await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
 
-    await waitFor(() =>
-      expect(
-        screen.getByText(/Package dimensions must include all three positive values/),
-      ).toBeInTheDocument(),
+    await waitFor(() => expect(screen.getByLabelText(/Box type 1: width/)).toBeInvalid());
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('requires dimensions when Amazon and myUnishippers are selected together', async () => {
+    const user = userEvent.setup();
+    const save = vi.fn();
+    const body = initial();
+    body.providers.push({
+      code: 'unishippers',
+      sender: { mode: 'explicit', address },
+      options: { signature: 'none', insurance: null },
+    });
+    const group = body.packageGroups[0];
+    if (!group) throw new Error('Missing package group fixture');
+    body.packageGroups[0] = { ...group, length: '', width: '', height: '' };
+    render(
+      <QuoteForm
+        providers={[amazonProvider, unishippersRequestProvider]}
+        initial={body}
+        onSave={save}
+      />,
     );
+
+    await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+
+    await waitFor(() => expect(screen.getByLabelText(/Box type 1: length/)).toBeInvalid());
     expect(save).not.toHaveBeenCalled();
   });
 });
@@ -303,5 +340,129 @@ it('displays disabled-provider maintenance without offering its sender fields', 
     />,
   );
   expect(screen.getByText(/myUnishippers is disabled. Provider maintenance/)).toBeInTheDocument();
-  expect(screen.queryByLabelText('myUnishippers origin street')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText(/myUnishippers sender address/)).not.toBeInTheDocument();
+});
+
+it('shows a toast, marks missing fields, focuses the first error and clears field errors after correction', async () => {
+  const user = userEvent.setup();
+  const save = vi.fn();
+  const body = initial();
+  body.destination = { ...address, name: '' };
+  body.packageGroups = body.packageGroups.map((group) => ({ ...group, weight: '' }));
+  render(<QuoteForm providers={[amazonProvider]} initial={body} onSave={save} />);
+  await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+  expect(
+    await screen.findByText(
+      'Please complete or correct the highlighted fields before comparing quotes.',
+    ),
+  ).toBeVisible();
+  const name = screen.getByLabelText(/Recipient company or name/);
+  const weight = screen.getByLabelText(/Box type 1: weight/);
+  expect(name).toBeInvalid();
+  expect(name).toHaveAccessibleDescription('This field is required');
+  expect(name).toHaveFocus();
+  expect(weight).toBeInvalid();
+  expect(weight).toHaveAccessibleDescription(/Enter a number greater than 0/);
+  expect(save).not.toHaveBeenCalled();
+  await user.type(name, 'Receiving warehouse');
+  await waitFor(() => expect(name).not.toBeInvalid());
+  expect(weight).toBeInvalid();
+  await user.type(weight, '5');
+  await waitFor(() => expect(weight).not.toBeInvalid());
+  await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+  await waitFor(() => expect(save).toHaveBeenCalledOnce());
+});
+
+it('keeps addresses and shows a safe server failure in both the page and toast', async () => {
+  const user = userEvent.setup();
+  render(
+    <QuoteForm
+      providers={[amazonProvider]}
+      initial={initial()}
+      onSave={vi.fn().mockRejectedValue(new Error('private provider data'))}
+    />,
+  );
+  await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+  await waitFor(() =>
+    expect(screen.getAllByText('Unable to complete the request. Try again.')).toHaveLength(2),
+  );
+  expect(screen.queryByText('private provider data')).not.toBeInTheDocument();
+  expect(screen.getByLabelText(/Recipient company or name/)).toHaveValue(address.name);
+});
+
+it('explains missing service selection next to the choices', async () => {
+  const user = userEvent.setup();
+  render(<QuoteForm providers={[amazonProvider]} initial={initial()} onSave={vi.fn()} />);
+  await user.click(screen.getByRole('checkbox', { name: 'Amazon Shipping' }));
+  await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+  expect(await screen.findByText('Select at least one shipping service')).toBeVisible();
+});
+
+it('shows errors on the correct added box and clears a removed box error', async () => {
+  const user = userEvent.setup();
+  render(<QuoteForm providers={[amazonProvider]} initial={initial()} onSave={vi.fn()} />);
+  await user.click(screen.getByRole('button', { name: 'Add another box type' }));
+  await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+  await waitFor(() => expect(screen.getByLabelText(/Box type 2: weight/)).toBeInvalid());
+  expect(screen.getByLabelText(/Box type 1: weight/)).not.toBeInvalid();
+  await user.click(screen.getByRole('button', { name: 'Remove box type 2' }));
+  expect(screen.queryByLabelText(/Box type 2: weight/)).not.toBeInTheDocument();
+});
+
+it('shows customs item errors without crashing on a nonnumeric declared value', async () => {
+  const user = userEvent.setup();
+  const save = vi.fn();
+  const body = initial();
+  body.destination = { ...address, country: 'CA', division: 'ON', postalCode: 'M5V 2T6' };
+  body.international = {
+    contentsDescription: 'Samples',
+    customsMode: 'detailed',
+    totalValue: { amount: '20', currency: 'USD' },
+  };
+  body.packageGroups = body.packageGroups.map((group) => ({
+    ...group,
+    customsItems: [
+      {
+        description: '',
+        quantity: 1,
+        unitValue: 'abc',
+        currency: 'USD',
+        countryOfManufacture: 'US',
+        weight: '1',
+      },
+    ],
+  }));
+  render(
+    <QuoteForm
+      providers={[{ ...amazonProvider, internationalAvailable: true }]}
+      initial={body}
+      onSave={save}
+    />,
+  );
+  await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+  await waitFor(() =>
+    expect(screen.getByLabelText(/Box type 1, item 1: description/)).toBeInvalid(),
+  );
+  expect(screen.getByLabelText(/Box type 1, item 1: value per item/)).toBeInvalid();
+  expect(save).not.toHaveBeenCalled();
+});
+
+it('explains invalid box quantities and dimensions beside the fields', async () => {
+  const user = userEvent.setup();
+  const body = initial();
+  body.packageGroups = body.packageGroups.map((group) => ({
+    ...group,
+    quantity: 1.5,
+    width: '-2',
+  }));
+  render(<QuoteForm providers={[amazonProvider]} initial={body} onSave={vi.fn()} />);
+  await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+  await waitFor(() =>
+    expect(screen.getByLabelText(/number of identical boxes/)).toHaveAccessibleDescription(
+      'Enter a whole number',
+    ),
+  );
+  expect(screen.getByLabelText(/Box type 1: width/)).toHaveAccessibleDescription(
+    /Enter a number greater than 0/,
+  );
 });

@@ -92,6 +92,23 @@ describe('Quote progress', () => {
         .some((node) => node.closest('[role="alert"]')),
     ).toBe(true);
   });
+
+  it('explains how an admin can complete Amazon Shipping setup', () => {
+    render(
+      <QuoteProgress
+        comparison={comparison('failed', [
+          { ...attempt('failed', 'amazon'), reasonCode: 'provider_setup_required' },
+        ])}
+      />,
+    );
+
+    expect(
+      screen
+        .getAllByText(/finish pickup and contact setup/)
+        .some((node) => node.closest('[role="alert"]')),
+    ).toBe(true);
+  });
+
   it('explains the sender-company correction without exposing a provider message', () => {
     render(
       <QuoteProgress

@@ -5,11 +5,11 @@ import { z } from 'zod';
 
 export const countryCodeSchema = z
   .string()
-  .refine(validator.isISO31661Alpha2, 'Enter a valid ISO 3166-1 country code');
+  .refine(validator.isISO31661Alpha2, 'Choose a valid country');
 
 export const currencyCodeSchema = z
   .string()
-  .refine(validator.isISO4217, 'Enter a valid ISO 4217 currency code');
+  .refine(validator.isISO4217, 'Enter a currency abbreviation, such as USD for US dollars');
 
 export const addressCountries: CountryData[] = allCountries.filter(([, code]) =>
   validator.isISO31661Alpha2(code),

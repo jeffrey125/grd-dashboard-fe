@@ -275,3 +275,18 @@ Every page supports keyboard navigation, visible focus, labeled controls, readab
 light/dark contrast, responsive layout, reduced motion, and loading/empty/error
 states. Use confirmation dialogs for destructive or sensitive changes. Keep
 error messages safe; the UI must not expose raw provider or database diagnostics.
+
+## Quote comparison form feedback
+
+Use four numbered sections: choose shipping services, sender address, recipient
+address, and box details. Use staff-facing labels such as ZIP / postal code,
+number of identical boxes, and weight of one packed box with the selected units.
+Mark required fields and explain when all three box sizes may be left blank.
+The primary action is Compare quotes; explain that this requests prices without
+booking a shipment. Keep adapter execution modes out of the entry form.
+
+An invalid submission shows an error toast and a persistent summary, highlights
+individual fields with explanatory helper text, and focuses/scrolls to the first
+invalid input. Revalidate corrected fields and retain all other entries. Display
+service-selection and customs-list errors beside their controls. Submission errors
+also use the shared toast and safe inline message; never show raw diagnostics.

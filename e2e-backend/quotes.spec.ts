@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { businessCalendarDate } from '../src/lib/dates';
 
 async function signIn(page: import('@playwright/test').Page) {
   await page.goto('/login');
@@ -13,21 +14,19 @@ test('staff saves, reopens, and copies an immutable comparison through the real 
 }) => {
   await signIn(page);
   await page.goto('/quotes/new');
-  for (const provider of ['Amazon Shipping', 'myUnishippers']) {
-    await page.getByRole('combobox', { name: `${provider} sender` }).click();
-    await page.getByRole('option', { name: 'Explicit sender' }).click();
-  }
-  for (const label of ['Amazon Shipping origin', 'myUnishippers origin', 'Destination']) {
-    await page.getByLabel(`${label} name`, { exact: true }).fill('Fixture warehouse');
-    await page.getByLabel(`${label} street`, { exact: true }).fill('1 Example Street');
-    await page.getByLabel(`${label} city`, { exact: true }).fill('Walworth');
+  for (const label of ['Amazon Shipping sender', 'myUnishippers sender', 'Recipient']) {
+    await page.getByLabel(`${label} company or name`, { exact: false }).fill('Fixture warehouse');
+    await page.getByLabel(`${label} address`, { exact: false }).fill('1 Example Street');
+    await page.getByLabel(`${label} city`, { exact: false }).fill('Walworth');
     await page.getByRole('combobox', { name: `${label} state / province`, exact: true }).click();
     await page.getByRole('option', { name: 'Wisconsin', exact: true }).click();
-    await page.getByLabel(`${label} postalCode`, { exact: true }).fill('53125');
+    await page.getByLabel(`${label} ZIP / postal code`, { exact: false }).fill('53125');
   }
-  for (const label of ['myUnishippers origin', 'myUnishippers receiver']) {
-    await page.getByLabel(`${label} contact name`, { exact: true }).fill('Fixture Contact');
-    await page.getByLabel(`${label} phone number`, { exact: true }).fill('+1 (202) 555-0147');
+  for (const label of ['myUnishippers sender', 'Recipient']) {
+    await page
+      .getByLabel(`${label} contact name (optional)`, { exact: true })
+      .fill('Fixture Contact');
+    await page.getByLabel(`${label} phone (optional)`, { exact: true }).fill('+1 (202) 555-0147');
   }
   for (const [field, value] of Object.entries({
     length: '10.00',
@@ -35,8 +34,8 @@ test('staff saves, reopens, and copies an immutable comparison through the real 
     height: '6',
     weight: '5',
   }))
-    await page.getByLabel(`Group 1 ${field}`, { exact: true }).fill(value);
-  await page.getByRole('button', { name: 'Save comparison', exact: true }).click();
+    await page.getByLabel(`Box type 1: ${field}`, { exact: false }).fill(value);
+  await page.getByRole('button', { name: 'Compare quotes', exact: true }).click();
   await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
   const original = page.url();
   if (process.env.FE_TEST_QUOTE_DEMO === 'true') {
@@ -55,17 +54,17 @@ test('staff saves, reopens, and copies an immutable comparison through the real 
   await page.getByRole('button', { name: 'Check shipment details', exact: true }).click();
   await expect(page.getByText(/10.00 × 8 × 6 in/)).toBeVisible();
   await page.getByRole('link', { name: 'Copy to new comparison' }).click();
-  for (const label of ['myUnishippers origin', 'myUnishippers receiver']) {
-    await expect(page.getByLabel(`${label} contact name`, { exact: true })).toHaveValue(
+  for (const label of ['myUnishippers sender', 'Recipient']) {
+    await expect(page.getByLabel(`${label} contact name (optional)`, { exact: true })).toHaveValue(
       'Fixture Contact',
     );
-    await expect(page.getByLabel(`${label} phone number`, { exact: true })).toHaveValue(
+    await expect(page.getByLabel(`${label} phone (optional)`, { exact: true })).toHaveValue(
       '+1 (202) 555-0147',
     );
   }
-  await expect(page.getByLabel('Group 1 length', { exact: true })).toHaveValue('10.00');
-  await page.getByLabel('Group 1 length', { exact: true }).fill('12');
-  await page.getByRole('button', { name: 'Save comparison', exact: true }).click();
+  await expect(page.getByLabel('Box type 1: length', { exact: false })).toHaveValue('10.00');
+  await page.getByLabel('Box type 1: length', { exact: false }).fill('12');
+  await page.getByRole('button', { name: 'Compare quotes', exact: true }).click();
   await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
   expect(page.url()).not.toBe(original);
   await page.goto(original);
@@ -77,11 +76,9 @@ test('saves a myUnishippers request comparison with blank dimensions', async ({ 
   await signIn(page);
   await page.goto('/quotes/new');
   await page.getByRole('checkbox', { name: 'Amazon Shipping', exact: true }).uncheck();
-  await page.getByRole('combobox', { name: 'myUnishippers sender' }).click();
-  await page.getByRole('option', { name: 'Explicit sender' }).click();
   for (const [label, values] of [
     [
-      'myUnishippers origin',
+      'myUnishippers sender',
       {
         name: 'US Spice Mills',
         street: '200 Regency Drive',
@@ -91,7 +88,7 @@ test('saves a myUnishippers request comparison with blank dimensions', async ({ 
       },
     ],
     [
-      'Destination',
+      'Recipient',
       {
         name: 'Marine Crisp',
         street: '20 Lithgow Street',
@@ -108,15 +105,20 @@ test('saves a myUnishippers request comparison with blank dimensions', async ({ 
           .getByRole('option', { name: value === 'IL' ? 'Illinois' : 'Maine', exact: true })
           .click();
       } else {
-        await page.getByLabel(`${label} ${field}`, { exact: true }).fill(value);
+        await page
+          .getByLabel(
+            `${label} ${{ name: 'company or name', street: 'address', city: 'city', postalCode: 'ZIP / postal code' }[field as 'name' | 'street' | 'city' | 'postalCode']}`,
+            { exact: false },
+          )
+          .fill(value);
       }
     }
   }
-  await page.getByLabel('Group 1 quantity', { exact: true }).fill('6');
-  await page.getByLabel('Group 1 weight', { exact: true }).fill('51');
+  await page.getByLabel('Box type 1: number of identical boxes', { exact: false }).fill('6');
+  await page.getByLabel('Box type 1: weight', { exact: false }).fill('51');
 
-  await expect(page.getByText(/leave all three dimensions blank/i)).toBeVisible();
-  await page.getByRole('button', { name: 'Save comparison', exact: true }).click();
+  await expect(page.getByText(/leave all three size fields blank/i)).toBeVisible();
+  await page.getByRole('button', { name: 'Compare quotes', exact: true }).click();
 
   await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
   await page.getByRole('button', { name: 'Check shipment details', exact: true }).click();
@@ -149,7 +151,7 @@ test('streams partial success and retains it after reload through the real API',
     headers: { Origin: 'http://localhost:4175' },
     data: {
       idempotencyKey: crypto.randomUUID(),
-      shipDate: '2099-10-19',
+      shipDate: businessCalendarDate(),
       destination: address,
       providers: ['amazon', 'unishippers'].map((code) => ({
         code,

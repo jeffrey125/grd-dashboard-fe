@@ -29,6 +29,8 @@ const reasons: Record<string, string> = {
   timeout: 'The provider request timed out.',
   authentication_failed: 'Could not sign in to this provider. Try again or contact an admin.',
   recovery_exhausted: 'This request was interrupted. Try again.',
+  provider_setup_required:
+    'Amazon Shipping account setup is incomplete. An admin must finish pickup and contact setup in Amazon Shipping, then retry.',
   provider_failed: 'The provider request failed.',
 };
 

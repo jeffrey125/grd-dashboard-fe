@@ -5,14 +5,22 @@ import { countryCodeSchema, currencyCodeSchema, isPossibleAddressPhone } from '.
 
 const text = z
   .string()
-  .min(1)
-  .max(200)
-  .refine((value) => value.trim().length > 0);
+  .min(1, 'This field is required')
+  .max(200, 'Use 200 characters or fewer')
+  .refine((value) => value.trim().length > 0, 'This field is required');
 const decimal = z
   .string()
-  .regex(/^(?:0|[1-9]\d{0,8})(?:\.\d{1,6})?$/)
-  .refine((value) => Number(value) > 0);
-const dimension = z.union([z.literal(''), decimal]);
+  .regex(
+    /^(?:0|[1-9]\d{0,8})(?:\.\d{1,6})?$/,
+    'Enter a number greater than 0, without units or commas (for example, 12.5)',
+  )
+  .refine((value) => Number(value) > 0, 'Enter a number greater than 0');
+const dimension = z
+  .string()
+  .refine(
+    (value) => value === '' || decimal.safeParse(value).success,
+    'Enter a number greater than 0, without units or commas (for example, 12.5)',
+  );
 const providerCode = z.enum(['amazon', 'unishippers']);
 const addressSchema = z
   .strictObject({
@@ -62,7 +70,11 @@ const senderSchema = z.discriminatedUnion('mode', [
 ]);
 const itemSchema = z.strictObject({
   description: text,
-  quantity: z.number().int().positive().max(10000),
+  quantity: z
+    .number({ error: 'Enter a whole number of 1 or more' })
+    .int('Enter a whole number')
+    .positive('Enter at least 1')
+    .max(10000, 'Enter 10,000 or fewer'),
   unitValue: decimal,
   currency: currencyCodeSchema,
   countryOfManufacture: countryCodeSchema,
@@ -83,7 +95,7 @@ const internationalSchema = z.strictObject({
 const createQuoteSchema = z
   .strictObject({
     idempotencyKey: z.uuidv4(),
-    shipDate: z.iso.date(),
+    shipDate: z.iso.date({ error: 'Choose a valid ship date' }),
     destination: addressSchema,
     international: internationalSchema.optional(),
     providers: z
@@ -97,12 +109,16 @@ const createQuoteSchema = z
           }),
         }),
       )
-      .min(1)
+      .min(1, 'Select at least one shipping service')
       .max(2),
     packageGroups: z
       .array(
         z.strictObject({
-          quantity: z.number().int().positive().max(10000),
+          quantity: z
+            .number({ error: 'Enter a whole number of 1 or more' })
+            .int('Enter a whole number')
+            .positive('Enter at least 1')
+            .max(10000, 'Enter 10,000 or fewer'),
           units: z.enum(['imperial', 'metric']),
           length: dimension,
           width: dimension,
@@ -121,11 +137,14 @@ const createQuoteSchema = z
       const dimensions = [group.length, group.width, group.height];
       const populated = dimensions.filter((dimension) => dimension !== '');
       if (populated.length !== 0 && populated.length !== dimensions.length)
-        ctx.addIssue({
-          code: 'custom',
-          path: ['packageGroups', index],
-          message: 'Enter all dimensions or leave all three blank',
-        });
+        for (const field of ['length', 'width', 'height'] as const)
+          if (group[field] === '')
+            ctx.addIssue({
+              code: 'custom',
+              path: ['packageGroups', index, field],
+              message:
+                'Enter this size too, or clear all three size fields if using only myUnishippers',
+            });
     });
     const isInternational = value.destination.country !== 'US';
     if (isInternational && !value.international)
@@ -164,12 +183,17 @@ const createQuoteSchema = z
             path: ['packageGroups', groupIndex, 'customsItems', itemIndex, 'currency'],
             message: 'All customs values must use the shipment currency',
           });
-        total = total.add(
-          new QuoteDecimal(item.unitValue).times(item.quantity).times(group.quantity),
-        );
+        if (decimal.safeParse(item.unitValue).success)
+          total = total.add(
+            new QuoteDecimal(item.unitValue).times(item.quantity).times(group.quantity),
+          );
       }
     });
-    if (detailed && !total.equals(international.totalValue.amount))
+    if (
+      detailed &&
+      decimal.safeParse(international.totalValue.amount).success &&
+      !total.equals(international.totalValue.amount)
+    )
       ctx.addIssue({
         code: 'custom',
         path: ['international', 'totalValue', 'amount'],
@@ -178,12 +202,15 @@ const createQuoteSchema = z
   });
 export function createQuoteFormSchema(_providers: Provider[]) {
   return createQuoteSchema.superRefine((value, ctx) => {
+    const dimensionlessUnishippersOnly =
+      value.providers.length === 1 && value.providers[0]?.code === 'unishippers';
+
     value.providers.forEach((provider, index) => {
       if (provider.sender.mode === 'account_default')
         ctx.addIssue({
           code: 'custom',
           path: ['providers', index, 'sender'],
-          message: 'Enter an explicit sender for every provider',
+          message: 'Enter a sender address for every selected shipping service',
         });
     });
 
@@ -198,12 +225,16 @@ export function createQuoteFormSchema(_providers: Provider[]) {
       });
 
     value.packageGroups.forEach((group, index) => {
-      if (group.length === '')
-        ctx.addIssue({
-          code: 'custom',
-          path: ['packageGroups', index],
-          message: 'Dimensions are required for the selected provider or execution mode',
-        });
+      if (
+        !dimensionlessUnishippersOnly &&
+        [group.length, group.width, group.height].every((value) => value === '')
+      )
+        for (const field of ['length', 'width', 'height'] as const)
+          ctx.addIssue({
+            code: 'custom',
+            path: ['packageGroups', index, field],
+            message: 'Amazon requires length, width, and height. Enter all three sizes.',
+          });
     });
   });
 }

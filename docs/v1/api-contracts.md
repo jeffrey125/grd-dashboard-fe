@@ -325,7 +325,9 @@ Groups contain positive integer `quantity`, `units` (`imperial` or `metric`),
 `length,width,height,weight`, and `customsItems`. International groups require
 per-box items with `description,quantity,unitValue,currency,countryOfManufacture,
 weight` and optional/blank `hsCode`. Unknown support never implies included coverage.
-All providers and execution modes require all three dimension strings and weight.
+A myUnishippers-only comparison may leave all three dimension strings blank. Partial
+dimensions and every Amazon-inclusive comparison require all three positive values.
+Weight is always required.
 myUnishippers uses Quick Quote one-box requests and calculated group quantities;
 only today's `America/New_York` ship date is supported, and international lanes,
 signature, and insurance are unavailable in this flow.
@@ -348,7 +350,9 @@ authentication_failed|failed`. Diagnostics and lease ownership remain private.
 Known reasons are `adapter_unavailable,provider_disabled,validation_failed,
 sender_company_too_long,
 contact_details_required,
-unsupported,timeout,authentication_failed,provider_failed,recovery_exhausted`.
+unsupported,timeout,authentication_failed,provider_setup_required,provider_failed,
+recovery_exhausted`. Amazon uses `provider_setup_required` when its Shipping pickup/contact
+onboarding is incomplete; the attempt can be retried after an admin finishes setup.
 Unknown reasons must use generic safe UI copy.
 
 Each quote contains `platform,carrier,service,transportationTotal,currency,
