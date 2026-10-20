@@ -12,6 +12,8 @@ request received the site's automated-traffic security page.
 | [`public/brand/grd-original-favicon.ico`](../../public/brand/grd-original-favicon.ico) | Unmodified [website favicon](https://www.globalresourcesdirect.com/favicon.ico), a single 16×16 image.                                                                       |
 | [`public/favicon.svg`](../../public/favicon.svg)                                       | Official vector artwork with viewBox changed from `0 0 1580 470.17` to `-12 -36.915 544 544`, framing the globe-and-GRD mark on a white background. The off-canvas wordmark remains in the source. |
 | [`public/favicon.ico`](../../public/favicon.ico)                                       | Rendered from that white-backed vector framing with ImageMagick; 16, 32, 48, 64, 128, and 256-pixel sizes.                                                                   |
+| [`public/brand/grd-logo-dark.svg`](../../public/brand/grd-logo-dark.svg)               | Theme variant of the official vector with charcoal lettering changed to the approved dark-theme foreground `#F3F7FA`; blue and gold artwork is preserved.                    |
+| [`public/favicon-dark.svg`](../../public/favicon-dark.svg)                             | Dark-theme favicon variant using the same foreground substitution and square framing.                                                                                       |
 
 No logo was redrawn or generated. Keep the original source files unchanged.
 The source logo SHA-256 is
@@ -42,12 +44,11 @@ asset. Use the system/Open Sans fallback described in decisions.md until font
 delivery is explicitly selected. Retain Tom's compact application layout rather
 than the marketing site's navigation, photography, or promotional sections.
 
-In dark mode, display the official dark-lettered wordmark on a neutral light logo
-surface so it remains legible. Keep the mark's aspect ratio. The browser favicon
-uses the standalone globe/GRD framing on white so it remains legible in light and
-dark browser chrome. Scaffolding must wire SVG plus ICO fallback
-and verify both at actual tab sizes; vector detail still has a physical limit at
-16 pixels.
+In dark mode, use the light-lettered vector on the theme paper surface. Keep the
+mark's aspect ratio. The browser favicon follows the resolved application theme,
+including an explicit mode that overrides the operating-system preference. Keep the
+ICO fallback for browsers without SVG favicon support; vector detail still has a
+physical limit at 16 pixels.
 
 ## Preferences and layout
 

@@ -15,10 +15,15 @@
         const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         const colorScheme = preference === 'system' ? (systemDark ? 'dark' : 'light') : preference;
         document.documentElement.setAttribute('data-grd-color-scheme', colorScheme);
+        document.documentElement.setAttribute('data-grd-favicon', colorScheme);
       })();
     </script>
     <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link id="grd-favicon" rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script>
+      if (document.documentElement.getAttribute('data-grd-favicon') === 'dark')
+        document.querySelector('#grd-favicon').href = '/favicon-dark.svg';
+    </script>
     <title>GRD Dashboard</title>
   </head>
   <body>

@@ -6,8 +6,9 @@ export function BrandLogo({ linked = true }: { linked?: boolean }) {
     <Box
       sx={{
         alignItems: 'center',
-        bgcolor: '#FFFFFF',
-        border: '1px solid rgba(43, 43, 43, 0.12)',
+        bgcolor: 'background.paper',
+        border: '1px solid',
+        borderColor: 'divider',
         borderRadius: 1.5,
         display: 'flex',
         maxWidth: '100%',
@@ -22,7 +23,14 @@ export function BrandLogo({ linked = true }: { linked?: boolean }) {
         alt="Global Resources Direct"
         width={316}
         height={94}
-        sx={{ display: 'block', height: 'auto', width: '100%' }}
+        sx={(theme) => ({
+          display: 'block',
+          height: 'auto',
+          width: '100%',
+          ...theme.applyStyles('dark', {
+            content: 'url(/brand/grd-logo-dark.svg)',
+          }),
+        })}
       />
     </Box>
   );
