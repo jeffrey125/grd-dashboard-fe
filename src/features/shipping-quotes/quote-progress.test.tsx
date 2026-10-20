@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { QuoteProgress } from './quote-progress';
@@ -59,7 +59,9 @@ describe('Quote progress', () => {
     };
     const value = comparison('failed', [failed]);
     const { rerender } = render(<QuoteProgress comparison={value} onRetry={onRetry} />);
-    expect(screen.getByText(/Attempt 1 · Mode: request/)).toBeInTheDocument();
+    expect(screen.getByText(/Attempt 1 · Mode: request/)).not.toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Processing history' }));
+    expect(screen.getByText(/Attempt 1 · Mode: request/)).toBeVisible();
     expect(screen.getByText(/Actual provider origin: Original warehouse/)).toBeInTheDocument();
     expect(screen.getByText(/Queued: Oct 19, 2026, 8:00 AM ET/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Retry Amazon Shipping' }));
@@ -84,7 +86,11 @@ describe('Quote progress', () => {
         ])}
       />,
     );
-    expect(screen.getByText(/enter the contact name and phone number/)).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByText(/enter the contact name and phone number/)
+        .some((node) => node.closest('[role="alert"]')),
+    ).toBe(true);
   });
   it('explains the sender-company correction without exposing a provider message', () => {
     render(
@@ -98,22 +104,24 @@ describe('Quote progress', () => {
       />,
     );
 
-    expect(screen.getByText(/35 characters/)).toBeInTheDocument();
-    expect(screen.getByText(/Copy to new comparison/)).toBeInTheDocument();
-    expect(screen.getByText(/account address is unchanged/)).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/35 characters/).some((node) => node.closest('[role="alert"]')),
+    ).toBe(true);
+    expect(screen.getAllByText(/Copy to new comparison/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/account address is unchanged/).length).toBeGreaterThan(0);
   });
 
   it.each([
-    ['queued', 'Queued — waiting for the worker.'],
-    ['running', 'Running — requesting provider results.'],
-    ['failed', 'Failed — no rates available.'],
+    ['queued', 'Waiting to request prices.'],
+    ['running', 'Getting prices from providers.'],
+    ['failed', 'No prices available. Review the provider messages below.'],
     ['completed', 'Completed.'],
   ] as const)('renders %s clearly', (status, label) => {
     render(<QuoteProgress comparison={comparison(status, [attempt(status)])} />);
     expect(screen.getByText(`${label} These details are read-only.`)).toBeInTheDocument();
   });
 
-  it('retains partial results, labels simulations, and uses safe failure messages', () => {
+  it('retains partial results, labels simulations once, and expands price details', async () => {
     const success = {
       ...attempt('completed'),
       simulated: true,
@@ -149,8 +157,11 @@ describe('Quote progress', () => {
         comparison={comparison('running', [success, attempt('running', 'unishippers')])}
       />,
     );
-    expect(screen.getByText(/Partial results/)).toBeInTheDocument();
-    expect(screen.getByText(/Simulated rates/)).toBeInTheDocument();
+    expect(screen.getByText(/Some prices are ready/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Test data — example prices/)).toHaveLength(1);
+    expect(screen.getByText(/BASE_CHARGE: 7\.83 USD/)).not.toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: /View price breakdown/ }));
+    expect(screen.getByText(/BASE_CHARGE: 7\.83 USD/)).toBeVisible();
     rerender(
       <QuoteProgress
         comparison={comparison('completed', [
@@ -160,11 +171,85 @@ describe('Quote progress', () => {
       />,
     );
     expect(screen.getByText(/Completed with partial results/)).toBeInTheDocument();
-    expect(screen.getByText(/12.500000 USD/)).toBeInTheDocument();
+    expect(screen.getByText(/12\.50 USD/)).toBeInTheDocument();
     expect(screen.getByText(/Single-package estimate/)).toBeInTheDocument();
-    expect(screen.getByText(/BASE_CHARGE: 7.830000 USD/)).toBeInTheDocument();
-    expect(screen.getByText(/Group 1: 2 box\(es\) · 27.620000 USD/)).toBeInTheDocument();
-    expect(screen.getByText('The provider request failed.')).toBeInTheDocument();
+    expect(screen.getByText(/BASE_CHARGE: 7\.83 USD/)).toBeInTheDocument();
+    expect(screen.getByText(/Group 1: 2 box\(es\) · 27\.62 USD/)).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByText('The provider request failed.')
+        .some((node) => node.closest('[role="alert"]')),
+    ).toBe(true);
     expect(screen.queryByText('SECRET')).not.toBeInTheDocument();
+  });
+
+  it('keeps a cheaper stale price visible while awarding the current comparable price', () => {
+    const origin = {
+      name: 'Warehouse',
+      street: '1 Example St',
+      city: 'Walworth',
+      division: 'WI',
+      postalCode: '53125',
+      country: 'US',
+    };
+    const quotes = ['amazon', 'unishippers'].map((provider, index) => ({
+      ...attempt('completed', provider as 'amazon' | 'unishippers'),
+      simulated: true,
+      sender: {
+        code: provider as 'amazon' | 'unishippers',
+        address: origin,
+        mode: 'explicit' as const,
+        retrievedAt: null,
+      },
+      quotes: [
+        {
+          platform: provider === 'amazon' ? 'Amazon Shipping' : 'myUnishippers',
+          carrier: provider,
+          service: 'Ground',
+          transportationTotal: index === 0 ? '18.500000' : '23.250000',
+          currency: 'USD',
+          estimateMethod: 'native' as const,
+          transitDescription: '4 business days',
+          retrievedAt: '2020-01-01T00:00:00Z',
+          expiresAt: index === 0 ? null : '2099-01-01T00:00:00Z',
+          staleAt: index === 0 ? '2020-01-02T00:00:00Z' : null,
+          optionCoverage: 'included' as const,
+          dutyStatus: 'excluded' as const,
+          taxStatus: 'excluded' as const,
+          clearanceStatus: 'excluded' as const,
+          charges: [],
+          groupContributions: [],
+        },
+      ],
+    }));
+    const value = comparison('completed', quotes);
+    value.input = {
+      providers: ['amazon', 'unishippers'].map((code) => ({
+        code,
+        options: { signature: 'none', insurance: null },
+      })),
+    } as Comparison['input'];
+    const { rerender } = render(<QuoteProgress comparison={value} />);
+    const table = screen.getByRole('table', { name: 'Shipping prices' });
+    const stale = within(table).getByRole('row', { name: /Amazon Shipping/ });
+    const current = within(table).getByRole('row', { name: /myUnishippers/ });
+    expect(within(stale).getByText('18.50 USD')).toBeVisible();
+    expect(within(stale).getByText('Needs a new quote')).toBeVisible();
+    expect(within(stale).queryByText('Lowest price', { exact: true })).not.toBeInTheDocument();
+    expect(within(current).getByText('Lowest price', { exact: true })).toBeVisible();
+    expect(screen.getAllByText(/Test data — example prices/)).toHaveLength(1);
+    rerender(
+      <QuoteProgress
+        comparison={{
+          ...value,
+          attempts: value.attempts.map((a, i) => ({ ...a, simulated: i === 0 })),
+        }}
+      />,
+    );
+    expect(
+      screen.getByText('Simulated and provider rates cannot be ranked together.'),
+    ).toBeVisible();
+    expect(screen.queryByText('Lowest price', { exact: true })).not.toBeInTheDocument();
+    expect(screen.getAllByText('Test price')).toHaveLength(1);
   });
 });

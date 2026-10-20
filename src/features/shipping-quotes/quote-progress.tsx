@@ -1,11 +1,22 @@
 import { businessTimestamp } from '@lib/dates';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import Accordion from '@mui/material/Accordion';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import AccordionSummary from '@mui/material/AccordionSummary';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import { useEffect, useState } from 'react';
+import { QuoteDecimal } from './quote-decimal';
 import { rankQuotes } from './quote-ranking';
 import type { Comparison } from './schemas';
 
@@ -19,9 +30,27 @@ const reasons: Record<string, string> = {
     'myUnishippers browser quotes require receiver contact details and, for an explicit sender, origin contact details. Choose Copy to new comparison and enter the contact name and phone number.',
   unsupported: 'This request is not supported by the provider.',
   timeout: 'The provider request timed out.',
-  authentication_failed: 'Authentication failed after one relogin attempt.',
-  recovery_exhausted: 'The worker could not recover this attempt.',
+  authentication_failed: 'Could not sign in to this provider. Try again or contact an admin.',
+  recovery_exhausted: 'This request was interrupted. Try again.',
   provider_failed: 'The provider request failed.',
+};
+
+const providerName = (provider: Comparison['attempts'][number]['provider']) =>
+  provider === 'amazon' ? 'Amazon Shipping' : 'myUnishippers';
+
+const requestStatus = {
+  saved: 'Saved — no prices requested',
+  queued: 'Waiting to request prices',
+  running: 'Getting prices',
+  completed: 'Prices received',
+  failed: 'No price available',
+};
+
+const validity: Record<string, string> = {
+  fresh: 'Current',
+  stale: 'Needs a new quote',
+  expired: 'Expired — get a new quote',
+  unknown: 'Validity not provided',
 };
 
 const retryReasons: Record<string, string> = {
@@ -63,15 +92,15 @@ export function QuoteProgress({
     comparison.status === 'saved'
       ? 'Saved — no rates run.'
       : comparison.status === 'queued'
-        ? 'Queued — waiting for the worker.'
+        ? 'Waiting to request prices.'
         : comparison.status === 'running'
           ? successes
-            ? 'Partial results — other providers are still running.'
-            : 'Running — requesting provider results.'
+            ? 'Some prices are ready — waiting for the remaining providers.'
+            : 'Getting prices from providers.'
           : successes && failures
             ? 'Completed with partial results.'
             : comparison.status === 'failed'
-              ? 'Failed — no rates available.'
+              ? 'No prices available. Review the provider messages below.'
               : 'Completed.';
 
   return (
@@ -79,92 +108,162 @@ export function QuoteProgress({
       <Alert severity={comparison.status === 'failed' ? 'error' : 'info'}>
         {label} These details are read-only.
       </Alert>
+      {comparison.attempts.some((attempt) => attempt.simulated) && (
+        <Alert severity="warning">
+          Test data — example prices. Results marked “Test price” are simulated, not live provider
+          quotes.
+        </Alert>
+      )}
       {ranked.warnings.map((warning) => (
         <Alert severity="warning" key={warning}>
           {warning}
         </Alert>
       ))}
-      {ranked.comparable && ranked.entries.length > 1 && (
+      {ranked.entries.length > 0 && (
         <Paper variant="outlined" sx={{ p: 2 }}>
-          <Typography variant="h6">Comparable services — price low to high</Typography>
-          {ranked.entries.map((entry) => (
-            <Typography key={entry.key}>
-              {entry.quote.platform} · {entry.quote.service}: {entry.quote.transportationTotal}{' '}
-              {entry.quote.currency} · {entry.freshness}
-            </Typography>
-          ))}
+          <Typography variant="h6" id="shipping-prices-heading">
+            Shipping prices
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            {ranked.comparable ? 'Prices from low to high. ' : ''}
+            Only current, comparable prices qualify for Lowest price. Delivery times are estimates.
+          </Typography>
+          <TableContainer>
+            <Table
+              aria-labelledby="shipping-prices-heading"
+              size="small"
+              sx={{
+                display: { xs: 'block', sm: 'table' },
+                '& th, & td': {
+                  px: { xs: 1, sm: 2 },
+                  py: 1.5,
+                  verticalAlign: 'top',
+                  minWidth: 0,
+                  borderBottom: { xs: 0, sm: undefined },
+                },
+              }}
+            >
+              <TableHead sx={{ display: { xs: 'none', sm: 'table-header-group' } }}>
+                <TableRow>
+                  <TableCell>Provider / service</TableCell>
+                  <TableCell align="right">Price</TableCell>
+                  <TableCell>Est. transit</TableCell>
+                  <TableCell>Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody sx={{ display: { xs: 'block', sm: 'table-row-group' } }}>
+                {ranked.entries.map((entry) => (
+                  <TableRow
+                    key={entry.key}
+                    sx={{
+                      bgcolor: entry.lowest ? 'action.selected' : undefined,
+                      display: { xs: 'grid', sm: 'table-row' },
+                      gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+                      '& + tr': { borderTop: { xs: 1, sm: 0 }, borderColor: 'divider' },
+                      '& > th, & > td': { display: { xs: 'block', sm: 'table-cell' } },
+                    }}
+                  >
+                    <TableCell component="th" scope="row">
+                      <Typography sx={{ fontWeight: 600 }}>{entry.quote.platform}</Typography>
+                      <Typography variant="body2">{entry.quote.service}</Typography>
+                      {entry.quote.carrier !== entry.quote.platform && (
+                        <Typography variant="caption" color="text.secondary">
+                          Carrier: {entry.quote.carrier}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                        {new QuoteDecimal(entry.quote.transportationTotal).toFixed(2)}{' '}
+                        {entry.quote.currency}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {entry.quote.estimateMethod === 'calculated'
+                          ? 'Calculated estimate'
+                          : entry.attempt.provider === 'amazon'
+                            ? 'Single-package estimate'
+                            : 'Whole-shipment total'}
+                      </Typography>
+                      {entry.attempt.simulated && (
+                        <Typography variant="caption" sx={{ display: 'block' }}>
+                          Test price
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: { xs: 'block', sm: 'none' } }}
+                      >
+                        Est. transit
+                      </Typography>
+                      {entry.quote.transitDescription ?? 'Not provided'}
+                    </TableCell>
+                    <TableCell>
+                      <Stack spacing={0.5} sx={{ alignItems: 'flex-start' }}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: { xs: 'block', sm: 'none' } }}
+                        >
+                          Status
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color={entry.freshness === 'fresh' ? 'success.main' : 'text.secondary'}
+                        >
+                          {validity[entry.freshness]}
+                        </Typography>
+                        {entry.lowest && <Chip label="Lowest price" color="success" size="small" />}
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Paper>
       )}
-      {comparison.attempts.map((attempt) => (
-        <Paper key={attempt.externalId} variant="outlined" sx={{ p: 2 }}>
-          <Typography variant="h6">
-            {attempt.provider === 'amazon' ? 'Amazon Shipping' : 'myUnishippers'} — {attempt.status}
-          </Typography>
-          <Typography>
-            Attempt {attempt.attemptNumber} · Mode: {attempt.executionMode ?? 'Not started'}
-          </Typography>
-          <Typography>
-            Queued: {businessTimestamp(attempt.createdAt ?? null)} ET · Started:{' '}
-            {businessTimestamp(attempt.startedAt)} ET · Completed:{' '}
-            {businessTimestamp(attempt.completedAt)} ET
-          </Typography>
-          <Typography>
-            Actual provider origin:{' '}
-            {attempt.sender
-              ? Object.values(attempt.sender.address).filter(Boolean).join(', ')
-              : 'Not provided'}
-          </Typography>
-          {attempt.sender?.retrievedAt && (
-            <Typography>
-              Origin retrieved: {businessTimestamp(attempt.sender.retrievedAt)} ET
+      {latest
+        .filter((attempt) => attempt.status !== 'completed')
+        .map((attempt) => (
+          <Paper key={attempt.externalId} variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="h6">
+              {providerName(attempt.provider)} — {requestStatus[attempt.status]}
             </Typography>
-          )}
-          {attempt.status === 'failed' && onRetry && (
+            {attempt.reasonCode && (
+              <Alert severity="error" sx={{ my: 1 }}>
+                {reasons[attempt.reasonCode] ?? 'The provider request failed.'}
+              </Alert>
+            )}
+            {attempt.status === 'failed' && onRetry && (
+              <Stack spacing={1}>
+                <Button
+                  disabled={pending || attempt.retryBlockedReason !== null}
+                  onClick={() => onRetry(attempt.externalId)}
+                >
+                  Retry {providerName(attempt.provider)}
+                </Button>
+                {attempt.retryBlockedReason && (
+                  <Typography>
+                    {retryReasons[attempt.retryBlockedReason] ??
+                      'Retry is unavailable. Copy to new comparison.'}
+                  </Typography>
+                )}
+              </Stack>
+            )}
+          </Paper>
+        ))}
+      {ranked.entries.map(({ key, quote }) => (
+        <Accordion key={key} disableGutters variant="outlined">
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography>
+              View price breakdown — {quote.platform} · {quote.service}
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails>
             <Stack spacing={1}>
-              <Button
-                disabled={pending || attempt.retryBlockedReason !== null}
-                onClick={() => onRetry(attempt.externalId)}
-              >
-                Retry {attempt.provider === 'amazon' ? 'Amazon Shipping' : 'myUnishippers'}
-              </Button>
-              {attempt.retryBlockedReason && (
-                <Typography>
-                  {retryReasons[attempt.retryBlockedReason] ??
-                    'Retry is unavailable. Copy to new comparison.'}
-                </Typography>
-              )}
-            </Stack>
-          )}
-          {attempt.simulated && (
-            <Alert severity="warning">Simulated rates — not provider quotes.</Alert>
-          )}
-          {attempt.reasonCode && (
-            <Alert severity="error">
-              {reasons[attempt.reasonCode] ?? 'The provider request failed.'}
-            </Alert>
-          )}
-          {attempt.quotes.map((quote, index) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: Completed attempt results are immutable and retain database order.
-            <Stack spacing={0.5} key={`${quote.service}-${index}`} sx={{ mt: 1 }}>
-              <Typography>
-                {quote.platform} · {quote.carrier} · {quote.service}
-              </Typography>
-              <Typography>
-                {quote.transportationTotal} {quote.currency} ·{' '}
-                {quote.estimateMethod === 'calculated'
-                  ? 'Calculated estimate'
-                  : attempt.provider === 'amazon'
-                    ? 'Single-package estimate'
-                    : 'Whole-shipment total'}
-              </Typography>
-              <Typography>Transit: {quote.transitDescription ?? 'Not provided'}</Typography>
-              {ranked.entries.find((entry) => entry.key === `${attempt.externalId}:${index}`)
-                ?.lowest && <Chip label="Lowest price" color="success" size="small" />}
-              <Typography>
-                Rate status:{' '}
-                {ranked.entries.find((entry) => entry.key === `${attempt.externalId}:${index}`)
-                  ?.freshness ?? 'unknown'}
-              </Typography>
               <Typography>Requested options: {quote.optionCoverage}</Typography>
               <Typography>
                 Duty: {quote.dutyStatus} · Tax: {quote.taxStatus} · Clearance:{' '}
@@ -172,7 +271,7 @@ export function QuoteProgress({
               </Typography>
               {!quote.expiresAt && (
                 <Typography>
-                  Stale after:{' '}
+                  Request a new quote after:{' '}
                   {quote.staleAt ? `${businessTimestamp(quote.staleAt)} ET` : 'Not provided'}
                 </Typography>
               )}
@@ -182,7 +281,8 @@ export function QuoteProgress({
                   {quote.charges.map((charge, chargeIndex) => (
                     // biome-ignore lint/suspicious/noArrayIndexKey: Charge rows are immutable and retain provider order.
                     <Typography variant="body2" key={`${charge.description}-${chargeIndex}`}>
-                      {charge.description}: {charge.amount} {quote.currency} · {charge.scope}
+                      {charge.description}: {new QuoteDecimal(charge.amount).toFixed(2)}{' '}
+                      {quote.currency} · {charge.scope}
                       {charge.packageGroupPosition === null
                         ? ''
                         : ` · Group ${charge.packageGroupPosition + 1}`}
@@ -197,19 +297,62 @@ export function QuoteProgress({
                     <Typography variant="body2" key={contribution.packageGroupPosition}>
                       Group {contribution.packageGroupPosition + 1}: {contribution.quantity} box(es)
                       {' · '}
-                      {contribution.subtotal} {quote.currency}
+                      {new QuoteDecimal(contribution.subtotal).toFixed(2)} {quote.currency}
                     </Typography>
                   ))}
                 </Stack>
               )}
               <Typography>
-                Retrieved: {businessTimestamp(quote.retrievedAt)} ET · Expires:{' '}
+                Price received: {businessTimestamp(quote.retrievedAt)} ET · Expires:{' '}
                 {quote.expiresAt ? `${businessTimestamp(quote.expiresAt)} ET` : 'Not provided'}
               </Typography>
             </Stack>
-          ))}
-        </Paper>
+          </AccordionDetails>
+        </Accordion>
       ))}
+      <Accordion disableGutters variant="outlined">
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography>Processing history</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Stack spacing={2}>
+            {comparison.attempts.map((attempt) => (
+              <Stack key={attempt.externalId} spacing={0.5}>
+                <Typography sx={{ fontWeight: 600 }}>
+                  {providerName(attempt.provider)} — {requestStatus[attempt.status]}
+                </Typography>
+                <Typography>
+                  Attempt {attempt.attemptNumber} · Mode: {attempt.executionMode ?? 'Not started'}
+                </Typography>
+                <Typography>
+                  Queued: {businessTimestamp(attempt.createdAt ?? null)} ET · Started:{' '}
+                  {businessTimestamp(attempt.startedAt)} ET · Completed:{' '}
+                  {businessTimestamp(attempt.completedAt)} ET
+                </Typography>
+                <Typography>
+                  Actual provider origin:{' '}
+                  {attempt.sender
+                    ? Object.values(attempt.sender.address).filter(Boolean).join(', ')
+                    : 'Not provided'}
+                </Typography>
+                {attempt.sender?.retrievedAt && (
+                  <Typography>
+                    Origin retrieved: {businessTimestamp(attempt.sender.retrievedAt)} ET
+                  </Typography>
+                )}
+                {attempt.simulated && (
+                  <Typography variant="body2">Test request — simulated result.</Typography>
+                )}
+                {attempt.reasonCode && (
+                  <Typography variant="body2">
+                    {reasons[attempt.reasonCode] ?? 'The provider request failed.'}
+                  </Typography>
+                )}
+              </Stack>
+            ))}
+          </Stack>
+        </AccordionDetails>
+      </Accordion>
     </Stack>
   );
 }

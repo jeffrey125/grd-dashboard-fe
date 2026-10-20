@@ -76,7 +76,7 @@ export function QuotesPage() {
             </Stack>
           </Paper>
         ))}
-        <Stack direction="row" spacing={2}>
+        <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
           <Button
             disabled={page === 1}
             onClick={() => void navigate({ to: '/quotes', search: { page: page - 1, deleted } })}

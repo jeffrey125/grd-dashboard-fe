@@ -21,7 +21,8 @@ test('staff saves, reopens, and copies an immutable comparison through the real 
     await page.getByLabel(`${label} name`, { exact: true }).fill('Fixture warehouse');
     await page.getByLabel(`${label} street`, { exact: true }).fill('1 Example Street');
     await page.getByLabel(`${label} city`, { exact: true }).fill('Walworth');
-    await page.getByLabel(`${label} state / province`, { exact: true }).fill('WI');
+    await page.getByRole('combobox', { name: `${label} state / province`, exact: true }).click();
+    await page.getByRole('option', { name: 'Wisconsin', exact: true }).click();
     await page.getByLabel(`${label} postalCode`, { exact: true }).fill('53125');
   }
   for (const label of ['myUnishippers origin', 'myUnishippers receiver']) {
@@ -39,17 +40,19 @@ test('staff saves, reopens, and copies an immutable comparison through the real 
   await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
   const original = page.url();
   if (process.env.FE_TEST_QUOTE_DEMO === 'true') {
-    await expect(page.getByText('Simulated rates — not provider quotes.')).toHaveCount(2);
+    await expect(page.getByText(/Test data — example prices/)).toHaveCount(1);
     await expect(
       page.getByText('Completed with partial results. These details are read-only.'),
     ).toBeVisible();
   } else {
     await expect(
-      page.getByText('Queued — waiting for the worker. These details are read-only.'),
+      page.getByText('Waiting to request prices. These details are read-only.'),
     ).toBeVisible();
   }
+  await page.getByRole('button', { name: 'Shipment details', exact: true }).click();
   await expect(page.getByText(/10.00 × 8 × 6 in/)).toBeVisible();
   await page.reload();
+  await page.getByRole('button', { name: 'Shipment details', exact: true }).click();
   await expect(page.getByText(/10.00 × 8 × 6 in/)).toBeVisible();
   await page.getByRole('link', { name: 'Copy to new comparison' }).click();
   for (const label of ['myUnishippers origin', 'myUnishippers receiver']) {
@@ -66,6 +69,7 @@ test('staff saves, reopens, and copies an immutable comparison through the real 
   await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
   expect(page.url()).not.toBe(original);
   await page.goto(original);
+  await page.getByRole('button', { name: 'Shipment details', exact: true }).click();
   await expect(page.getByText(/10.00 × 8 × 6 in/)).toBeVisible();
 });
 
@@ -96,9 +100,18 @@ test('saves a myUnishippers request comparison with blank dimensions', async ({ 
         postalCode: '04901',
       },
     ],
-  ] as const)
-    for (const [field, value] of Object.entries(values))
-      await page.getByLabel(`${label} ${field}`, { exact: true }).fill(value);
+  ] as const) {
+    for (const [field, value] of Object.entries(values)) {
+      if (field === 'state / province') {
+        await page.getByRole('combobox', { name: `${label} ${field}`, exact: true }).click();
+        await page
+          .getByRole('option', { name: value === 'IL' ? 'Illinois' : 'Maine', exact: true })
+          .click();
+      } else {
+        await page.getByLabel(`${label} ${field}`, { exact: true }).fill(value);
+      }
+    }
+  }
   await page.getByLabel('Group 1 quantity', { exact: true }).fill('6');
   await page.getByLabel('Group 1 weight', { exact: true }).fill('51');
 
@@ -106,10 +119,13 @@ test('saves a myUnishippers request comparison with blank dimensions', async ({ 
   await page.getByRole('button', { name: 'Save comparison', exact: true }).click();
 
   await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
+  await page.getByRole('button', { name: 'Shipment details', exact: true }).click();
   await expect(page.getByText(/6 boxes · Dimensions not provided · 51 lb per box/)).toBeVisible();
   if (process.env.FE_TEST_QUOTE_DEMO === 'true')
     await expect(
-      page.getByText('Failed — no rates available. These details are read-only.'),
+      page.getByText(
+        'No prices available. Review the provider messages below. These details are read-only.',
+      ),
     ).toBeVisible({
       timeout: 15_000,
     });
@@ -159,9 +175,13 @@ test('streams partial success and retains it after reload through the real API',
   await expect(
     page.getByText('Completed with partial results. These details are read-only.'),
   ).toBeVisible();
-  await expect(page.getByText(/12.500000 USD/)).toBeVisible();
-  await expect(page.getByText('The provider rejected these inputs.')).toBeVisible();
+  await expect(page.getByText(/12\.50 USD/)).toBeVisible();
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'The provider rejected these inputs.' }),
+  ).toBeVisible();
   await page.reload();
-  await expect(page.getByText(/12.500000 USD/)).toBeVisible();
-  await expect(page.getByText('The provider rejected these inputs.')).toBeVisible();
+  await expect(page.getByText(/12\.50 USD/)).toBeVisible();
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'The provider rejected these inputs.' }),
+  ).toBeVisible();
 });

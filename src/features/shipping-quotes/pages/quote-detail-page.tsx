@@ -2,9 +2,14 @@ import { safeError } from '@api/api';
 import { PageHeader } from '@components/layout/page-header';
 import { useSession } from '@features/auth';
 import { changeComparison } from '@features/shipping-quotes/api';
+import { QuoteDecimal } from '@features/shipping-quotes/quote-decimal';
 import { QuoteProgress } from '@features/shipping-quotes/quote-progress';
 import { useComparison } from '@features/shipping-quotes/use-comparison';
 import { businessTimestamp } from '@lib/dates';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import Accordion from '@mui/material/Accordion';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import AccordionSummary from '@mui/material/AccordionSummary';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -43,6 +48,7 @@ export function QuoteDetailPage() {
   if (!query.data) return <Typography>Loading saved comparison…</Typography>;
   const comparison = query.data;
   const input = comparison.input;
+  const boxCount = input.packageGroups.reduce((total, group) => total + group.quantity, 0);
   return (
     <>
       <PageHeader title="Saved comparison" />
@@ -58,12 +64,21 @@ export function QuoteDetailPage() {
             Deleted comparison — visible only to admins. Restore to make it available to staff.
           </Alert>
         )}
+        <Paper variant="outlined" sx={{ p: 2 }}>
+          <Typography sx={{ fontWeight: 600 }}>
+            Ship {input.shipDate} · {input.destination.city}, {input.destination.country}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {boxCount} {boxCount === 1 ? 'box' : 'boxes'} · Saved{' '}
+            {businessTimestamp(comparison.createdAt)} ET
+          </Typography>
+        </Paper>
         <QuoteProgress
           comparison={comparison}
           pending={mutation.isPending}
           onRetry={(attemptId) => mutation.mutate({ type: 'retry', attemptId })}
         />
-        <Stack direction="row" spacing={2}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <RouterButton
             to="/quotes/new"
             search={{ copy: comparisonId }}
@@ -120,76 +135,104 @@ export function QuoteDetailPage() {
             </Button>
           </DialogActions>
         </Dialog>
-        <Typography>Ship date: {input.shipDate}</Typography>
-        <Typography>
-          Saved: {businessTimestamp(comparison.createdAt)} ET · Comparison {comparison.externalId}
-        </Typography>
-        <Paper variant="outlined" sx={{ p: 2 }}>
-          <Typography variant="h6">Destination</Typography>
-          <Typography>{Object.values(input.destination).filter(Boolean).join(', ')}</Typography>
-        </Paper>
-        {input.international && (
-          <Paper variant="outlined" sx={{ p: 2 }}>
-            <Typography variant="h6">International shipping details</Typography>
-            <Typography>Description: {input.international.contentsDescription}</Typography>
-            <Typography>
-              Total customs value: {input.international.totalValue.amount}{' '}
-              {input.international.totalValue.currency}
-            </Typography>
-            <Typography>
-              Detail level: {input.international.customsMode === 'detailed' ? 'Per box' : 'Summary'}
-            </Typography>
-          </Paper>
-        )}
-        {input.providers.map((provider) => {
-          const sender = comparison.senders.find((s) => s.code === provider.code);
-          return (
-            <Paper variant="outlined" sx={{ p: 2 }} key={provider.code}>
-              <Typography variant="h6">
-                {provider.code === 'amazon' ? 'Amazon Shipping' : 'myUnishippers'}
-              </Typography>
+        <Accordion disableGutters variant="outlined">
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography>Shipment details</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Stack spacing={2}>
+              <Typography>Ship date: {input.shipDate}</Typography>
               <Typography>
-                Sender: {sender?.mode === 'account_default' ? 'Account default' : 'Explicit'}
+                Saved: {businessTimestamp(comparison.createdAt)} ET · Comparison{' '}
+                {comparison.externalId}
               </Typography>
-              <Typography>
-                {sender && Object.values(sender.address).filter(Boolean).join(', ')}
-              </Typography>
-              {sender?.retrievedAt && (
-                <Typography>Retrieved: {businessTimestamp(sender.retrievedAt)} ET</Typography>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="h6">Destination</Typography>
+                <Typography>
+                  {Object.values(input.destination).filter(Boolean).join(', ')}
+                </Typography>
+              </Paper>
+              {input.international && (
+                <Paper variant="outlined" sx={{ p: 2 }}>
+                  <Typography variant="h6">International shipping details</Typography>
+                  <Typography>Description: {input.international.contentsDescription}</Typography>
+                  <Typography>
+                    Total customs value:{' '}
+                    {new QuoteDecimal(input.international.totalValue.amount).toFixed(2)}{' '}
+                    {input.international.totalValue.currency}
+                  </Typography>
+                  <Typography>
+                    Detail level:{' '}
+                    {input.international.customsMode === 'detailed' ? 'Per box' : 'Summary'}
+                  </Typography>
+                </Paper>
               )}
-              <Typography>Signature requested: {provider.options.signature}</Typography>
-              <Typography>
-                Insurance requested:{' '}
-                {provider.options.insurance
-                  ? `${provider.options.insurance.amount} ${provider.options.insurance.currency} per box`
-                  : 'None'}
-              </Typography>
-            </Paper>
-          );
-        })}
-        {input.packageGroups.map((group, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: Immutable saved groups retain their original position.
-          <Paper variant="outlined" sx={{ p: 2 }} key={`group-${i + 1}`}>
-            <Typography variant="h6">Package group {i + 1}</Typography>
-            <Typography>
-              {group.quantity} boxes ·{' '}
-              {group.length === ''
-                ? 'Dimensions not provided'
-                : `${group.length} × ${group.width} × ${group.height} ${
-                    group.units === 'imperial' ? 'in' : 'cm'
-                  }`}{' '}
-              · {group.weight} {group.units === 'imperial' ? 'lb' : 'kg'} per box
-            </Typography>
-            {group.customsItems.map((item, j) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: Immutable saved customs items retain their original position.
-              <Typography key={`item-${j + 1}`}>
-                Per box: {item.quantity} × {item.description} · {item.unitValue} {item.currency}{' '}
-                each · Made in {item.countryOfManufacture} · Weight {item.weight}{' '}
-                {group.units === 'imperial' ? 'lb' : 'kg'} · HS {item.hsCode ?? 'Not provided'}
-              </Typography>
-            ))}
-          </Paper>
-        ))}
+              {input.providers.map((provider) => {
+                const sender = comparison.senders.find((s) => s.code === provider.code);
+                return (
+                  <Paper variant="outlined" sx={{ p: 2 }} key={provider.code}>
+                    <Typography variant="h6">
+                      {provider.code === 'amazon' ? 'Amazon Shipping' : 'myUnishippers'}
+                    </Typography>
+                    <Typography>
+                      Sender:{' '}
+                      {sender?.mode === 'account_default'
+                        ? 'Provider account address'
+                        : 'Address entered for this comparison'}
+                    </Typography>
+                    <Typography>
+                      {sender && Object.values(sender.address).filter(Boolean).join(', ')}
+                    </Typography>
+                    {sender?.retrievedAt && (
+                      <Typography>Retrieved: {businessTimestamp(sender.retrievedAt)} ET</Typography>
+                    )}
+                    <Typography>
+                      Signature requested:{' '}
+                      {
+                        {
+                          none: 'None',
+                          signature: 'Signature required',
+                          adult_signature: 'Adult signature required',
+                        }[provider.options.signature]
+                      }
+                    </Typography>
+                    <Typography>
+                      Insurance requested:{' '}
+                      {provider.options.insurance
+                        ? `${new QuoteDecimal(provider.options.insurance.amount).toFixed(2)} ${provider.options.insurance.currency} per box`
+                        : 'None'}
+                    </Typography>
+                  </Paper>
+                );
+              })}
+              {input.packageGroups.map((group, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: Immutable saved groups retain their original position.
+                <Paper variant="outlined" sx={{ p: 2 }} key={`group-${i + 1}`}>
+                  <Typography variant="h6">Package group {i + 1}</Typography>
+                  <Typography>
+                    {group.quantity} boxes ·{' '}
+                    {group.length === ''
+                      ? 'Dimensions not provided'
+                      : `${group.length} × ${group.width} × ${group.height} ${
+                          group.units === 'imperial' ? 'in' : 'cm'
+                        }`}{' '}
+                    · {group.weight} {group.units === 'imperial' ? 'lb' : 'kg'} per box
+                  </Typography>
+                  {group.customsItems.map((item, j) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: Immutable saved customs items retain their original position.
+                    <Typography key={`item-${j + 1}`}>
+                      Per box: {item.quantity} × {item.description} ·{' '}
+                      {new QuoteDecimal(item.unitValue).toFixed(2)} {item.currency} each · Made in{' '}
+                      {item.countryOfManufacture} · Weight {item.weight}{' '}
+                      {group.units === 'imperial' ? 'lb' : 'kg'} · HS{' '}
+                      {item.hsCode ?? 'Not provided'}
+                    </Typography>
+                  ))}
+                </Paper>
+              ))}
+            </Stack>
+          </AccordionDetails>
+        </Accordion>
       </Stack>
     </>
   );
