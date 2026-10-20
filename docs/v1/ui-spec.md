@@ -57,7 +57,7 @@ Retain stale data and its warning during retries.
 ## Shipment list
 
 Default `/shipments` state: `tab=active`, page 1, 25 rows, `createdAt desc`.
-Tabs: **All shipments**, **Active**, **Delivered**, **Needs attention**. Needs attention
+Tabs: **Active**, **Needs attention**, **Delivered**, **All Shipments**. Needs attention
 includes paused Shipments and active Shipments whose latest lookup failed; those
 failed rows are excluded from Active. Legacy `tab=paused` URLs redirect to Needs attention.
 Respect explicit valid URL state on navigation/reload/back. Search and filters
@@ -85,7 +85,11 @@ reference link and accessible action-menu buttons in the desktop table. Below
 900px, replace the tab strip with a full-width Shipment view selector and present
 shipment cards with labeled details, wrapping reference/notes, stacked full-width
 action buttons, explicit sort controls and server pagination; desktop retains the
-tabs and table. Row highlights include a textual/icon "Updated" indicator.
+tabs and table. Every real row/card opens Shipment detail; explicit links preserve
+native modified-click behavior. Unseen updates use a green highlight and text
+indicator. Unseen rows currently in Needs attention, including due follow-ups, use
+a red highlight. Opening the row or reference acknowledges the displayed revision
+before navigation so that highlight clears without consuming a newer update.
 
 Page header contains sound preference and **Mark displayed changes
 as seen** when appropriate. Row menu offers detail, refresh, and permitted

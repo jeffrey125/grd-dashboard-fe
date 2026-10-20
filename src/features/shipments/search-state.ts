@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 export const tabs = {
-  all: 'All shipments',
   active: 'Active',
-  delivered: 'Delivered',
   attention: 'Needs attention',
+  delivered: 'Delivered',
+  all: 'All Shipments',
 } as const;
 export const outcomes = {
   never_checked: 'Never checked',

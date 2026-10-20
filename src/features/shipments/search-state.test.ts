@@ -1,7 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { changeSearch, listReturnTo, readSearch, searchErrors, searchSchema } from './search-state';
+import {
+  changeSearch,
+  listReturnTo,
+  readSearch,
+  searchErrors,
+  searchSchema,
+  tabs,
+} from './search-state';
 
 describe('shipment URL contract', () => {
+  it('orders monitoring views by operational priority', () => {
+    expect(Object.entries(tabs)).toEqual([
+      ['active', 'Active'],
+      ['attention', 'Needs attention'],
+      ['delivered', 'Delivered'],
+      ['all', 'All Shipments'],
+    ]);
+  });
+
   it('defaults to active/newest and preserves literal references', () => {
     expect(searchSchema.parse({})).toMatchObject({
       tab: 'active',

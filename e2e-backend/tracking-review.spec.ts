@@ -6,7 +6,7 @@ const apiPort = process.env.FE_TEST_API_PORT ?? '3000';
 const api = `http://localhost:${apiPort}/api/v1`;
 
 /** Commit only into the uniquely labeled disposable harness DB. No carrier I/O. */
-function changeTracking(shipmentId: string) {
+function changeTracking(shipmentId: string, attention = false) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(shipmentId))
     throw new Error('Invalid test shipment identity');
   const container = readFileSync(`/tmp/grd-fe-auth-${apiPort}.container`, 'utf8').trim();
@@ -40,6 +40,7 @@ function changeTracking(shipmentId: string) {
       SELECT id, 'FE-V1-011 committed tracking change' FROM shipments WHERE external_id = '${shipmentId}';
       UPDATE shipments SET current_tracking_snapshot_id =
         (SELECT snapshot.id FROM shipment_tracking_snapshots snapshot WHERE snapshot.shipment_id = shipments.id ORDER BY snapshot.id DESC LIMIT 1)
+        ${attention ? ", monitoring_status = 'paused', monitoring_reason = 'not_found_threshold'" : ''}
       WHERE external_id = '${shipmentId}';
       COMMIT;`,
       stdio: ['pipe', 'ignore', 'pipe'],
@@ -60,6 +61,7 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
     await page.getByLabel('Password', { exact: true }).fill('shipments fixture password');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Shipments', exact: true })).toBeVisible();
+    await page.goto(`${origin}/shipments?tab=all`);
     const headers = { Origin: origin };
     const carriers = await (await context.request.get(`${api}/carriers`)).json();
     const trackingReference = `fe-review-${origin.slice(-4)}-${Date.now()}`;
@@ -89,12 +91,23 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
     await expect(page.getByText(/^(● )?Updated$/)).toHaveCount(1);
     await page.reload();
     await expect(page.getByText(/^(● )?Updated$/)).toHaveCount(1);
-    await page.getByRole('link', { name: trackingReference, exact: true }).click();
+    const result = origin.endsWith('4175')
+      ? page.getByRole('row').filter({ hasText: trackingReference })
+      : page.getByRole('article', { name: `Shipment ${trackingReference}` });
+    await result.click({ position: { x: 20, y: 30 } });
     await expect(
       page.getByText('FE-V1-011 committed tracking change', { exact: true }),
     ).toBeVisible();
     await page.getByRole('link', { name: 'Back to results' }).click();
     await expect(page.getByText(/^(● )?Updated$/)).toHaveCount(0);
+    changeTracking(id, true);
+    await expect(page.getByText(/^(● )?Needs attention$/)).toHaveCount(1);
+    await result.click({ position: { x: 20, y: 30 } });
+    await expect(
+      page.getByText('FE-V1-011 committed tracking change', { exact: true }),
+    ).toBeVisible();
+    await page.getByRole('link', { name: 'Back to results' }).click();
+    await expect(page.getByText(/^(● )?Needs attention$/)).toHaveCount(0);
     expect((await context.request.delete(`${api}/shipments/${id}`, { headers })).status()).toBe(
       204,
     );

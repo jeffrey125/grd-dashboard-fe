@@ -16,8 +16,8 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
-import { createLink, Link } from '@tanstack/react-router';
-import { useMemo, useState } from 'react';
+import { createLink, Link, useNavigate } from '@tanstack/react-router';
+import { useCallback, useMemo, useState } from 'react';
 import { actionRules, useShipmentCommand } from './actions';
 import { followUpDue, followUpLabel, monitoringLabel, salesRepLabel } from './detail-model';
 import type { Shipment } from './schemas';
@@ -25,6 +25,13 @@ import { type ShipmentSearch, sorts } from './search-state';
 
 const RouterMenuItem = createLink(MenuItem);
 const RouterButton = createLink(Button);
+function needsAttention(row: Shipment) {
+  return (
+    row.monitoringStatus === 'paused' ||
+    (row.monitoringStatus === 'active' && row.latestLookup?.outcome === 'failed') ||
+    followUpDue(row.followUpOn)
+  );
+}
 function RowActions({
   row,
   returnTo,
@@ -196,8 +203,22 @@ export function ShipmentGrid({
   onSort: (field: string, direction: string) => void;
 }) {
   const theme = useTheme();
-  const { isUnseen } = useTrackingReview();
+  const navigate = useNavigate();
+  const { runtime, isUnseen } = useTrackingReview();
   const mobile = useMediaQuery(theme.breakpoints.down('md'));
+  const openRow = useCallback(
+    async (row: Shipment) => {
+      const snapshotId = row.currentTracking?.externalId;
+      if (runtime && snapshotId && isUnseen(row.externalId))
+        await runtime.controller.acknowledge({ shipmentId: row.externalId, snapshotId });
+      await navigate({
+        to: '/shipments/$shipmentId',
+        params: { shipmentId: row.externalId },
+        search: { returnTo },
+      });
+    },
+    [isUnseen, navigate, returnTo, runtime],
+  );
   const sortModel = useMemo(
     () => [{ field: search.sortBy, sort: search.sortDirection }],
     [search.sortBy, search.sortDirection],
@@ -226,12 +247,28 @@ export function ShipmentGrid({
               params={{ shipmentId: row.externalId }}
               search={{ returnTo }}
               style={{ color: 'inherit' }}
+              onClick={(event) => {
+                if (
+                  event.button !== 0 ||
+                  event.metaKey ||
+                  event.ctrlKey ||
+                  event.shiftKey ||
+                  event.altKey
+                )
+                  return;
+                event.preventDefault();
+                void openRow(row);
+              }}
             >
               {row.trackingReference}
             </Link>
             {isUnseen(row.externalId) && (
-              <Typography variant="caption" color="info.main" sx={{ fontWeight: 700 }}>
-                ● Updated
+              <Typography
+                variant="caption"
+                color={needsAttention(row) ? 'error.main' : 'success.main'}
+                sx={{ fontWeight: 700 }}
+              >
+                ● {needsAttention(row) ? 'Needs attention' : 'Updated'}
               </Typography>
             )}
             <Typography variant="caption">
@@ -317,7 +354,7 @@ export function ShipmentGrid({
         ),
       },
     ],
-    [returnTo, placeholder, isUnseen],
+    [returnTo, placeholder, isUnseen, openRow],
   );
   if (mobile)
     return (
@@ -355,9 +392,28 @@ export function ShipmentGrid({
             component="article"
             variant="outlined"
             aria-label={`Shipment ${row.trackingReference}`}
+            onClick={(event) => {
+              const target = event.target;
+              if (
+                placeholder ||
+                (target instanceof Element &&
+                  target.closest('a, button, input, select, textarea, [role="menuitem"]'))
+              )
+                return;
+              void openRow(row);
+            }}
             sx={{
               overflowWrap: 'anywhere',
-              ...(isUnseen(row.externalId) ? { borderColor: 'info.main', borderLeftWidth: 4 } : {}),
+              cursor: placeholder ? 'default' : 'pointer',
+              ...(isUnseen(row.externalId)
+                ? {
+                    borderColor: needsAttention(row) ? 'error.main' : 'success.main',
+                    borderLeftWidth: 4,
+                    bgcolor: needsAttention(row)
+                      ? 'color-mix(in srgb, var(--grd-palette-error-main) 10%, transparent)'
+                      : 'color-mix(in srgb, var(--grd-palette-success-main) 10%, transparent)',
+                  }
+                : {}),
             }}
           >
             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
@@ -373,6 +429,18 @@ export function ShipmentGrid({
                       params={{ shipmentId: row.externalId }}
                       search={{ returnTo }}
                       style={{ color: 'inherit' }}
+                      onClick={(event) => {
+                        if (
+                          event.button !== 0 ||
+                          event.metaKey ||
+                          event.ctrlKey ||
+                          event.shiftKey ||
+                          event.altKey
+                        )
+                          return;
+                        event.preventDefault();
+                        void openRow(row);
+                      }}
                     >
                       {row.trackingReference}
                     </Link>
@@ -384,7 +452,13 @@ export function ShipmentGrid({
                 </Box>
               </Stack>
               {isUnseen(row.externalId) && (
-                <Chip size="small" label="Updated" color="info" variant="outlined" sx={{ mt: 1 }} />
+                <Chip
+                  size="small"
+                  label={needsAttention(row) ? 'Needs attention' : 'Updated'}
+                  color={needsAttention(row) ? 'error' : 'success'}
+                  variant="outlined"
+                  sx={{ mt: 1 }}
+                />
               )}
               <Box
                 component="dl"
@@ -467,7 +541,13 @@ export function ShipmentGrid({
         rows={rows}
         columns={columns}
         getRowId={(row) => row.externalId}
-        getRowClassName={({ row }) => (isUnseen(row.externalId) ? 'tracking-updated' : '')}
+        getRowClassName={({ row }) =>
+          isUnseen(row.externalId)
+            ? needsAttention(row)
+              ? 'tracking-needs-attention'
+              : 'tracking-updated'
+            : ''
+        }
         rowHeight={64}
         rowCount={total}
         loading={loading}
@@ -477,6 +557,16 @@ export function ShipmentGrid({
         disableColumnFilter
         disableRowSelectionOnClick
         disableColumnMenu
+        onRowClick={({ row }, event) => {
+          const target = event.target;
+          if (
+            placeholder ||
+            (target instanceof Element &&
+              target.closest('a, button, input, select, textarea, [role="menuitem"]'))
+          )
+            return;
+          void openRow(row);
+        }}
         pageSizeOptions={[25, 50, 100]}
         paginationModel={{ page: search.page - 1, pageSize: search.pageSize }}
         onPaginationModelChange={(model) => {
@@ -493,9 +583,14 @@ export function ShipmentGrid({
         sx={{
           bgcolor: 'background.paper',
           '& .MuiDataGrid-cell:focus-within': { outlineOffset: -2 },
+          '& .MuiDataGrid-row': { cursor: placeholder ? 'default' : 'pointer' },
           '& .tracking-updated': {
-            boxShadow: (theme) => `inset 4px 0 ${theme.vars.palette.info.main}`,
-            bgcolor: 'action.hover',
+            boxShadow: (theme) => `inset 4px 0 ${theme.vars.palette.success.main}`,
+            bgcolor: 'color-mix(in srgb, var(--grd-palette-success-main) 10%, transparent)',
+          },
+          '& .tracking-needs-attention': {
+            boxShadow: (theme) => `inset 4px 0 ${theme.vars.palette.error.main}`,
+            bgcolor: 'color-mix(in srgb, var(--grd-palette-error-main) 10%, transparent)',
           },
         }}
       />
