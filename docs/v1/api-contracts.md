@@ -313,27 +313,22 @@ Input contains `idempotencyKey` (UUID), `shipDate` (YYYY-MM-DD, current/future i
 America/New_York), `destination`, `providers[]`, and `packageGroups[]`.
 Addresses contain `name,street,city,division,postalCode,country` plus optional
 `street2`, optional `contactName` (up to 100 characters), and optional `phone`
-(validated against the address country with libphonenumber metadata). Empty contact
-fields are accepted for historical comparisons and request-mode estimates.
-myUnishippers full-form browser quotes require receiver contact name and phone;
-explicit senders also require those fields. Account-default browser senders use
-the authenticated provider form's contact details. Missing required browser contacts
-return `validation_failed` with `contact_details_required`.
+(validated against the address country with libphonenumber metadata).
 Sender country is US. Country and currency values use ISO 3166-1 alpha-2 and ISO 4217
 codes. The form sources country and state/province options from `country-region-data`.
-Provider entries contain `code`, `sender`, and `options`. Sender is
-`{mode:explicit,address}` or `{mode:account_default,refreshId}`. Options contain
+Provider entries contain `code`, `sender`, and `options`. New submissions require
+`{mode:explicit,address}`; historical responses may retain
+`{mode:account_default,refreshId}`. Options contain
 `signature` (`none`, `signature`, `adult_signature`) and nullable
 `insurance:{amount,currency}`. Amounts and measurements are decimal strings.
 Groups contain positive integer `quantity`, `units` (`imperial` or `metric`),
 `length,width,height,weight`, and `customsItems`. International groups require
 per-box items with `description,quantity,unitValue,currency,countryOfManufacture,
 weight` and optional/blank `hsCode`. Unknown support never implies included coverage.
-The three dimension strings may all be blank only when myUnishippers is the sole
-selected provider and its current `executionMode` is `request`. Partial dimensions,
-Amazon comparisons, mixed-provider comparisons, and browser mode require all three.
-Weight remains required in every mode. An all-blank request omits the native
-`billedDimension` field.
+All providers and execution modes require all three dimension strings and weight.
+myUnishippers uses Quick Quote one-box requests and calculated group quantities;
+only today's `America/New_York` ship date is supported, and international lanes,
+signature, and insurance are unavailable in this flow.
 
 Comparison returns `externalId,createdAt,createdBy` (actor public UUID), `input`,
 `senders`, `warnings`, `status`, `ratesRun`, and `attempts`. Resolved senders contain
@@ -378,8 +373,9 @@ visible comparisons every 15 seconds to recover missed signals, closes streams o
 session loss/unmount/deletion, and retries failed connections after session recheck.
 
 The UI lives at `/quotes`, `/quotes/new`, and `/quotes/:comparisonId`. Saved details
-are read-only. Copy uses `/quotes/new?copy=<uuid>`, creates a fresh save key, refreshes
-account defaults, omits now-disabled providers, and retains other original inputs.
+are read-only. Copy uses `/quotes/new?copy=<uuid>`, creates a fresh save key, converts
+historical account-default snapshots into editable explicit senders, omits now-disabled
+providers, and retains other original inputs.
 An old ship date must be corrected before saving the copy. Failed save retries keep
 the same key while input is unchanged; edited input receives a new key.
 

@@ -2,100 +2,80 @@
 
 ## Summary
 
-Added full-stack quote readiness acceptance. Live quote readiness remains blocked
-by provider sender/login failures; no successful live sample rates were obtained.
-See the backend [readiness matrix](../../../../grd-dashboard-be/docs/v1/shipping-quotes-readiness.md)
-for cross-repository evidence and operational limits.
+Updated the quote comparison UI for the guarded myUnishippers Quick Quote flow,
+added dark-theme brand assets, and made shipment monitoring highlights actionable.
+New quote comparisons require an explicit sender and complete dimensions. Shipment
+rows now open their detail page and acknowledge the exact update the user saw.
 
 ## Changes Made
 
-- Added real-backend browser checks for concurrent idempotent submissions, partial
-  results, SSE reconnect/snapshot refetch and multi-group estimate labels.
-- Added international capability, original metric input, native CAD display,
-  requested-option uncertainty, unknown duties/taxes and absent purchase-action checks.
-- Added an explicit fixture release gate so the browser observes partial results
-  before the second domestic provider finishes. The release route exists only in
-  the disposable harness and is registered before Nest initializes its 404 handler.
-- Updated the container migration expectation from 8 to all 15 current migrations.
-- Reused installed Playwright and Node timers; no production dependencies or UI
-  behavior changed. Fixture rates are labelled simulated and never call providers.
+- Removed Account Default sender from new and copied comparisons. Historical
+  account-default snapshots are converted to explicit editable sender data.
+- Aligned myUnishippers validation and guidance with Quick Quote: domestic US,
+  today's America/New_York date, complete dimensions, no signature/insurance,
+  calculated quantity totals for each distinct package group.
+- Added dark-theme logo and favicon variants and updates when the selected theme changes.
+- Reordered shipment tabs to Active, Needs attention, Delivered, All Shipments.
+  Unseen attention rows are red; other unseen updates are green. Desktop rows and
+  mobile cards open details and acknowledge the displayed revision on ordinary clicks.
+- Updated the isolated full-stack readiness fixture: domestic Amazon and
+  myUnishippers totals are calculated; international/options fail closed.
 
 ## Files Changed
 
-| File | Purpose |
+| Area | Files and purpose |
 | --- | --- |
-| `e2e-backend/quote-readiness.spec.ts` | Staff full-stack readiness behaviors and safe action boundaries. |
-| `scripts/quote-readiness-fixture.mjs` | Deterministic external provider substitute and explicit completion gate. |
-| `scripts/auth-backend.mjs` | Opt-in disposable readiness wiring; no production route added. |
-| `test/container/runtime.test.ts` | Match migration count to the complete quote feature. |
-| `docs/v1/verification.md` | Readiness commands and fixture limits. |
-| This summary | Verification and review handoff. |
+| Quote comparison | `new-quote-page.tsx`, `quote-form.tsx`, `schemas.ts`, their tests, `quote-readiness.spec.ts`, and `quote-readiness-fixture.mjs` implement and verify explicit Quick Quote inputs and calculated totals. |
+| Shipment monitoring | `shipment-grid.tsx`, `search-state.ts`, `search-state.test.ts`, and `tracking-review.spec.ts` implement tab order, highlight state, clickable navigation, and acknowledgement. |
+| Branding | `brand-logo.tsx`, `theme-provider.tsx`, `index.html`, `public/brand/grd-logo-dark.svg`, and `public/favicon-dark.svg` provide theme-specific assets. |
+| Documentation | `api-contracts.md`, `branding.md`, `ui-spec.md`, and this summary describe the delivered behavior. |
 
 ## Verification
 
-- `pnpm run ci`: passed format, lint, Knip, 210 unit/component tests in 34 files,
-  typechecks, production build and 126 desktop/mobile browser tests. Coverage:
-  61.82% statements, 48.45% branches, 54.98% functions, 63.46% lines.
-- `pnpm typecheck`: passed after final fixture gate edits.
-- `FE_TEST_QUOTE_READINESS=true pnpm exec playwright test --config playwright.backend.config.ts e2e-backend/quote-readiness.spec.ts`: final explicit-release suite passed, 2 tests.
-- Full real-backend suite with API port 3016: 16 passed, 5 skipped, 6 failed;
-  legacy tests hardcode port 3000. Rebuilt for port 3000 and reran: 21 passed,
-  5 opt-in skips, 1 timeout before the Vite-proxy login form in `live.spec.ts`.
-  Final unchanged full rerun after backend coverage completed passed: 22 tests,
-  5 explicit opt-in skips. The five skipped cases all passed in their separate
-  opt-in commands below.
-- `pnpm test:container`: initial run found stale migration count (`15` versus `8`).
-  After correction, 4 passed, including fresh migrations and same-origin HTTPS.
-- `pnpm test:container:http`: 3 passed, including HTTP-only routing and no worker.
-- `FE_TEST_QUOTE_DEMO=true FE_TEST_QUOTE_RETRY=true pnpm exec playwright test --config playwright.backend.config.ts e2e-backend/quote-history.spec.ts`: 1 passed.
-- Provider admin scenario with `FE_TEST_PROVIDER_ADMIN=true`: 1 passed. Running admin
-  and history together initially caused a 400 because admin intentionally leaves a
-  provider disabled; each scenario now has its documented separate disposable database.
-- `FE_TEST_QUOTE_DEMO=true pnpm exec playwright test --config playwright.backend.config.ts e2e-backend/quotes.spec.ts`: final run 3 passed. An earlier run during combined
-  backend coverage timed out with sign-in/quote execution still pending; unchanged
-  tests passed after that workload finished.
-- `git diff --check`: passed. Final independent standards/specification reviews: no
-  residual findings after deterministic-release and route-order corrections.
-- Manual frontend `http://localhost:5173/` and backend readiness
-  `http://localhost:3017/api/v1/health/ready`: HTTP 200; left running with disposable
-  fixture data. Staff account: `frontend-staff@example.test` / `staff fixture password`.
+- `pnpm check`: passed formatting, lint, Knip, typecheck, and 213 tests in 34 files.
+- `pnpm build`: passed; emitted the existing chunk-size advisory only.
+- `FE_TEST_QUOTE_READINESS=true pnpm exec playwright test --config playwright.backend.config.ts e2e-backend/quote-readiness.spec.ts`: 2 passed.
+- Focused `tracking-review.spec.ts` desktop and mobile runs: 2 passed; both update
+  colors appeared and cleared after detail navigation.
+- Focused quote form and shipment search-state tests passed before the final full check.
+- Final diff and status were reviewed; no frontend changes outside the requested scope were found.
 
 ## Review Notes
 
-Started at `69a83f73a9e5bb8e0bfc31df9c443bdd9145bb9f` with a clean tracked tree.
-The backend had unrelated untracked `work/` content; it was not changed.
-Standards review identified the timing-sensitive fixture; explicit release fixes
-it. Follow-up review identified route ordering, corrected before initialization.
-Specification review found no implementation defects; live rate evidence remains
-an explicit external blocker.
+No production dependency was added. The implementation uses the installed Playwright,
+Decimal.js, MUI, TanStack Router/Query, theme APIs, and native browser favicon support.
+Modified clicks retain native browser behavior and do not acknowledge because the
+current tab may never display the detail page. A normal row/reference click acknowledges
+only the displayed revision before navigation, preserving newer unseen revisions.
 
-The API/worker/database/SSE are real in these browser checks. Only external provider
-I/O uses synthetic prices. CAD output tests display semantics, not a verified live
-provider currency capability. Required business contacts remain in authenticated
-snapshots under the approved privacy decision; diagnostics and SSE exclude them.
+The readiness fixture substitutes only provider I/O. Its domestic myUnishippers result
+now mirrors calculated multi-group Quick Quote semantics; it no longer claims live
+international or native whole-shipment support.
 
 ## Remaining Issues
 
-- Live sample rates remain unsuccessful for both providers in both modes.
-- Deployment was subsequently requested for `debian-vm`; SSH to 192.168.100.83
-  currently reports `No route to host`. No remote changes made.
+- Amazon live quoting and the separately named myUnishippers request mode were not
+  rerun against live providers in this follow-up.
+- Current changes are not committed or deployed.
 
 ## Suggested Review Order
 
-1. Browser readiness assertions and deterministic fixture adapter.
-2. Test harness route/worker registration.
-3. Container migration expectation and verification documentation.
+1. Quote form/schema and readiness browser scenario.
+2. Shipment grid navigation, acknowledgement, and tab-order model.
+3. Theme logo/favicon switching and brand assets.
+4. API, UI, and branding documentation.
 
 ## Proposed commits — final approval required
 
-1. `test(shipping-quotes): SQ-V1-009 add full-stack readiness acceptance`
-   - Files: `e2e-backend/quote-readiness.spec.ts`,
-     `scripts/quote-readiness-fixture.mjs`, `scripts/auth-backend.mjs`,
-     `docs/v1/verification.md`, this summary.
-   - Purpose: deterministic browser acceptance with real API/database/SSE and
-     synthetic provider I/O; documented evidence and limitations.
-2. `test(release): SQ-V1-009 verify all quote migrations in containers`
-   - File: `test/container/runtime.test.ts`.
-   - Purpose: verify all fifteen migrations in the existing LAN container gate.
+1. `feat(shipping-quotes): SQ-V1-009 require explicit Quick Quote inputs`
+   - Quote form/schema, readiness fixture/test, API contract, and this summary.
+   - Requires explicit sender/dimensions and displays calculated Quick Quote totals.
+2. `feat(shipments): FE-V1-011 acknowledge highlighted rows on navigation`
+   - Shipment grid/search state, tracking review browser test, and UI specification.
+   - Adds red/green unseen highlights, row navigation, acknowledgement, and tab order.
+3. `feat(theme): FE-V1-003 add dark brand assets`
+   - Theme provider, brand logo, HTML favicon setup, SVG assets, and branding docs.
+   - Selects the matching logo and favicon for light or dark mode.
 
-Nothing is staged or committed. Deployment authorization does not imply commit approval.
+Nothing is staged or committed. Deployment remains a separate authorized step after
+the commits are approved and created.

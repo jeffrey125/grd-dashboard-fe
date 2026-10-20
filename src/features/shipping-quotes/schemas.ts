@@ -1,3 +1,4 @@
+import { businessCalendarDate } from '@lib/dates';
 import { z } from 'zod';
 import { QuoteDecimal } from './quote-decimal';
 import { countryCodeSchema, currencyCodeSchema, isPossibleAddressPhone } from './quote-standards';
@@ -175,15 +176,26 @@ const createQuoteSchema = z
         message: 'Total customs value must equal item quantity × unit value × box quantity',
       });
   });
-export function createQuoteFormSchema(providers: Provider[]) {
-  const configurations = new Map(providers.map((provider) => [provider.code, provider]));
-
+export function createQuoteFormSchema(_providers: Provider[]) {
   return createQuoteSchema.superRefine((value, ctx) => {
-    const dimensionsOptional =
-      value.providers.length === 1 &&
-      value.providers[0]?.code === 'unishippers' &&
-      configurations.get('unishippers')?.executionMode === 'request';
-    if (dimensionsOptional) return;
+    value.providers.forEach((provider, index) => {
+      if (provider.sender.mode === 'account_default')
+        ctx.addIssue({
+          code: 'custom',
+          path: ['providers', index, 'sender'],
+          message: 'Enter an explicit sender for every provider',
+        });
+    });
+
+    if (
+      value.providers.some((provider) => provider.code === 'unishippers') &&
+      value.shipDate !== businessCalendarDate()
+    )
+      ctx.addIssue({
+        code: 'custom',
+        path: ['shipDate'],
+        message: "myUnishippers Quick Quote supports today's ship date only",
+      });
 
     value.packageGroups.forEach((group, index) => {
       if (group.length === '')
@@ -293,4 +305,3 @@ export const refreshSchema = z.object({
   address: addressSchema,
   retrievedAt: z.iso.datetime(),
 });
-export type SenderRefresh = z.infer<typeof refreshSchema>;

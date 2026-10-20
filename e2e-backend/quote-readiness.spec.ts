@@ -1,5 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
+import { businessCalendarDate } from '../src/lib/dates';
+
 const api = `http://localhost:${process.env.FE_TEST_API_PORT ?? 3000}/api/v1`;
 const address = {
   name: 'Fixture warehouse',
@@ -13,7 +15,7 @@ const address = {
 };
 const input = () => ({
   idempotencyKey: crypto.randomUUID(),
-  shipDate: '2099-10-19',
+  shipDate: businessCalendarDate(),
   destination: address,
   providers: ['amazon', 'unishippers'].map((code) => ({
     code,
@@ -77,7 +79,7 @@ test.beforeEach(async ({ page }) => {
   await signIn(page);
 });
 
-test('deduplicates submissions, refetches after SSE reconnect, and distinguishes multi-group totals', async ({
+test('deduplicates submissions, refetches after SSE reconnect, and calculates multi-group totals', async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -129,18 +131,16 @@ test('deduplicates submissions, refetches after SSE reconnect, and distinguishes
   );
   expect(released.status()).toBe(204);
   await expect(page.getByText('Completed. These details are read-only.')).toBeVisible();
-  await expect(page.getByText('Calculated estimate', { exact: true })).toBeVisible();
-  await expect(page.getByText('Whole-shipment total', { exact: true })).toBeVisible();
+  await expect(page.getByText('Calculated estimate', { exact: true })).toHaveCount(2);
   await expect(page.getByText('$39.62 USD', { exact: true })).toBeVisible();
   await expect(page.getByText('$35.00 USD', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'What’s included in this price?' }).first().click();
   await noPurchaseActions(page);
   await page.reload();
-  await expect(page.getByText('Calculated estimate', { exact: true })).toBeVisible();
-  await expect(page.getByText('Whole-shipment total', { exact: true })).toBeVisible();
+  await expect(page.getByText('Calculated estimate', { exact: true })).toHaveCount(2);
 });
 
-test('keeps international capability, original units, native currency and unknown costs explicit', async ({
+test('fails closed for international options while preserving the saved shipment details', async ({
   page,
 }) => {
   const body = input();
@@ -165,18 +165,15 @@ test('keeps international capability, original units, native currency and unknow
   });
   await page.goto(`/quotes/${saved.externalId}`);
   await expect(
-    page.getByText('Completed with partial results. These details are read-only.'),
+    page.getByText(
+      'No prices available. Review the provider messages below. These details are read-only.',
+    ),
   ).toBeVisible({ timeout: 15000 });
   await expect(
     page.getByRole('alert').filter({ hasText: 'This request is not supported by the provider.' }),
-  ).toBeVisible();
-  await expect(page.getByText('45.00 CAD', { exact: true })).toBeVisible();
+  ).toHaveCount(2);
+  await expect(page.getByText('45.00 CAD', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Lowest price', { exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'What’s included in this price?' }).click();
-  await expect(page.getByText('Requested options: unverified', { exact: true })).toBeVisible();
-  await expect(
-    page.getByText('Duty: unknown · Tax: unknown · Clearance: unknown', { exact: true }),
-  ).toBeVisible();
   await page.getByRole('button', { name: 'Check shipment details', exact: true }).click();
   await expect(page.getByText(/25.4 × 20.32 × 15.24 cm/)).toBeVisible();
   await noPurchaseActions(page);

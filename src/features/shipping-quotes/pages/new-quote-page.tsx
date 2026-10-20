@@ -1,12 +1,7 @@
 import { safeError } from '@api/api';
 import { PageHeader } from '@components/layout/page-header';
 import { useSession } from '@features/auth';
-import {
-  getComparison,
-  getProviders,
-  refreshSender,
-  saveComparison,
-} from '@features/shipping-quotes/api';
+import { getComparison, getProviders, saveComparison } from '@features/shipping-quotes/api';
 import { QuoteForm } from '@features/shipping-quotes/quote-form';
 import Alert from '@mui/material/Alert';
 import Typography from '@mui/material/Typography';
@@ -40,13 +35,19 @@ export function NewQuotePage() {
           .filter((p) =>
             providers.data.some((current) => current.code === p.code && current.enabled),
           )
-          .map((p) => ({
-            ...p,
-            sender:
-              p.sender.mode === 'account_default'
-                ? { mode: 'account_default' as const, refreshId: '' }
-                : p.sender,
-          })),
+          .map((p) => {
+            const sender = source.data.senders.find((entry) => entry.code === p.code);
+            return {
+              ...p,
+              sender:
+                p.sender.mode === 'account_default' && sender
+                  ? {
+                      mode: 'explicit' as const,
+                      address: { ...sender.address, country: 'US' as const },
+                    }
+                  : p.sender,
+            };
+          }),
       }
     : undefined;
   return (
@@ -54,15 +55,15 @@ export function NewQuotePage() {
       <PageHeader title={copy ? 'Copy to new comparison' : 'New quote comparison'} />
       {copy && (
         <Alert severity="info" sx={{ mb: 2 }}>
-          This copy will be saved separately. Account defaults refresh again; update an old ship
-          date before saving. Disabled providers are omitted.
+          This copy will be saved separately. Historical account senders are copied into editable
+          explicit sender fields. Update an old ship date before saving. Disabled providers are
+          omitted.
         </Alert>
       )}
       <QuoteForm
         key={copy ?? 'new'}
         providers={providers.data}
         initial={initial}
-        onRefresh={(code) => refreshSender(session.client, code)}
         onSave={async (input) => {
           const result = await saveComparison(session.client, input);
           await queries.invalidateQueries({ queryKey: ['quote-comparisons'] });

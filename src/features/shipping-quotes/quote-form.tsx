@@ -1,6 +1,6 @@
 import { safeError } from '@api/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { businessCalendarDate, businessTimestamp } from '@lib/dates';
+import { businessCalendarDate } from '@lib/dates';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -11,20 +11,12 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import dayjs from 'dayjs';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FormProvider, useFieldArray, useForm, useFormContext } from 'react-hook-form';
 import { v4 as randomUUID } from 'uuid';
 import { QuoteDecimal } from './quote-decimal';
 import { addressCountries, isSupportedCountryCode, regionsForCountry } from './quote-standards';
-import {
-  type Address,
-  createQuoteFormSchema,
-  type Provider,
-  type ProviderCode,
-  type QuoteInput,
-  type SenderRefresh,
-} from './schemas';
+import { type Address, createQuoteFormSchema, type Provider, type QuoteInput } from './schemas';
 
 const emptyAddress = (): Address => ({
   name: '',
@@ -107,42 +99,6 @@ function AddressFields({
     </Box>
   );
 }
-function UnishippersContactFields({
-  prefix,
-  label,
-}: {
-  prefix: 'destination' | `providers.${number}.sender.address`;
-  label: string;
-}) {
-  const { register, getFieldState, formState } = useFormContext<QuoteInput>();
-  const nameError = getFieldState(`${prefix}.contactName`, formState).error;
-  const phoneError = getFieldState(`${prefix}.phone`, formState).error;
-  return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-      <TextField
-        label={`${label} contact name`}
-        error={Boolean(nameError)}
-        helperText={
-          nameError
-            ? 'Contact name must be at most 100 characters.'
-            : 'Required for myUnishippers full-form browser quotes.'
-        }
-        {...register(`${prefix}.contactName`)}
-      />
-      <TextField
-        label={`${label} phone number`}
-        type="tel"
-        error={Boolean(phoneError)}
-        helperText={
-          phoneError
-            ? 'Enter a possible phone number for the address country.'
-            : 'National or international formatting is accepted.'
-        }
-        {...register(`${prefix}.phone`)}
-      />
-    </Box>
-  );
-}
 function CustomsFields({ index }: { index: number }) {
   const { register, control, watch } = useFormContext<QuoteInput>();
   const items = useFieldArray({ control, name: `packageGroups.${index}.customsItems` });
@@ -211,71 +167,16 @@ function ProviderFields({
   index,
   configuration,
   totalBoxes,
-  onRefresh,
 }: {
   index: number;
   configuration: Provider;
   totalBoxes: number;
-  onRefresh: (code: ProviderCode) => Promise<SenderRefresh>;
 }) {
   const name = configuration.name;
   const { register, watch, setValue, getValues } = useFormContext<QuoteInput>();
   const provider = watch(`providers.${index}`);
-  const [refreshed, setRefreshed] = useState<SenderRefresh>();
-  const [failure, setFailure] = useState('');
-  const [pending, setPending] = useState(false);
-  const [refreshNumber, setRefreshNumber] = useState(0);
-  const [expired, setExpired] = useState(false);
-  const generation = useRef(0);
-  const refresh = useRef(onRefresh);
-  refresh.current = onRefresh;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshNumber is the explicit user-requested refresh trigger.
-  useEffect(() => {
-    if (provider.sender.mode !== 'account_default') return;
-    const current = ++generation.current;
-    setValue(`providers.${index}.sender`, { mode: 'account_default', refreshId: '' });
-    setPending(true);
-    setFailure('');
-    void refresh
-      .current(provider.code)
-      .then((result) => {
-        if (current !== generation.current) return;
-        setRefreshed(result);
-        setExpired(false);
-        setValue(`providers.${index}.sender`, {
-          mode: 'account_default',
-          refreshId: result.refreshId,
-        });
-      })
-      .catch((error) => {
-        if (current === generation.current)
-          setFailure(
-            safeError(error).message +
-              ' Enter an explicit sender or select the default again to retry.',
-          );
-      })
-      .finally(() => {
-        if (current === generation.current) setPending(false);
-      });
-    return () => {
-      generation.current++;
-    };
-  }, [provider.code, provider.sender.mode, index, setValue, refreshNumber]);
-  useEffect(() => {
-    if (!refreshed || provider.sender.mode !== 'account_default') return;
-    const expires = refreshed.expiresAt
-      ? dayjs(refreshed.expiresAt)
-      : dayjs(refreshed.retrievedAt).add(15, 'minute');
-    const timer = setTimeout(
-      () => {
-        setExpired(true);
-        setValue(`providers.${index}.sender`, { mode: 'account_default', refreshId: '' });
-      },
-      Math.max(0, expires.diff(dayjs())),
-    );
-    return () => clearTimeout(timer);
-  }, [refreshed, provider.sender.mode, index, setValue]);
-  const displayed = refreshed ?? configuration.cachedDefault;
+  if (provider.sender.mode !== 'explicit') return null;
+
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
       <Stack spacing={2}>
@@ -289,62 +190,17 @@ function ProviderFields({
         )}
         {provider.code === 'unishippers' && (
           <Alert severity="info">
-            All package groups are quoted together, and returned totals already include box
-            quantities. Browser quotes use the full myUnishippers form and require receiver contact
-            details. A sender correction applies only to this comparison and does not update the
-            provider account. Company names must be at most 35 characters for browser quotes.
+            Quick Quote prices one box for each distinct package group. The comparison multiplies
+            that price by quantity and displays a calculated estimate. Quick Quote currently
+            supports today's domestic shipments without signature or insurance options.
           </Alert>
         )}
-        <TextField
-          select
-          label={`${name} sender`}
-          value={provider.sender.mode}
-          onChange={(event) =>
-            setValue(
-              `providers.${index}.sender`,
-              event.target.value === 'explicit'
-                ? {
-                    mode: 'explicit',
-                    address: { ...(displayed?.address ?? emptyAddress()), country: 'US' },
-                  }
-                : { mode: 'account_default', refreshId: randomUUID() },
-            )
-          }
-        >
-          <MenuItem value="account_default">Account default</MenuItem>
-          <MenuItem value="explicit">Explicit sender</MenuItem>
-        </TextField>
-        {provider.sender.mode === 'explicit' ? (
-          <>
-            <AddressFields
-              prefix={`providers.${index}.sender.address`}
-              label={`${name} origin`}
-              origin
-            />
-            {provider.code === 'unishippers' && (
-              <UnishippersContactFields
-                prefix={`providers.${index}.sender.address`}
-                label="myUnishippers origin"
-              />
-            )}
-          </>
-        ) : (
-          <>
-            {pending && <Alert severity="info">Refreshing sender…</Alert>}
-            {failure && <Alert severity="warning">{failure}</Alert>}
-            {displayed && (
-              <Alert severity={pending || failure || expired || !refreshed ? 'warning' : 'success'}>
-                {Object.values(displayed.address).filter(Boolean).join(', ')} — Retrieved{' '}
-                {businessTimestamp(displayed.retrievedAt)} ET.
-                {(pending || failure || expired || !refreshed) &&
-                  ' Stale default — refresh or enter an explicit sender before saving.'}
-              </Alert>
-            )}
-            <Button disabled={pending} onClick={() => setRefreshNumber((n) => n + 1)}>
-              Refresh {name} default
-            </Button>
-          </>
-        )}
+        <Typography variant="body2">Enter the sender for this comparison.</Typography>
+        <AddressFields
+          prefix={`providers.${index}.sender.address`}
+          label={`${name} origin`}
+          origin
+        />
         {configuration.supportsSignature && (
           <TextField
             select
@@ -402,29 +258,31 @@ export function QuoteForm({
   providers,
   initial,
   onSave,
-  onRefresh,
 }: {
   providers: Provider[];
   initial?: QuoteInput;
   onSave: (input: QuoteInput) => Promise<unknown>;
-  onRefresh: (code: ProviderCode) => Promise<SenderRefresh>;
 }) {
   const formSchema = useMemo(() => createQuoteFormSchema(providers), [providers]);
+  const defaultValues: QuoteInput = initial ?? {
+    idempotencyKey: randomUUID(),
+    shipDate: businessCalendarDate(),
+    destination: emptyAddress(),
+    providers: providers
+      .filter((p) => p.enabled)
+      .map((p) => ({
+        code: p.code,
+        sender: {
+          mode: 'explicit',
+          address: { ...emptyAddress(), country: 'US' as const },
+        },
+        options: { signature: 'none', insurance: null },
+      })),
+    packageGroups: [emptyGroup()],
+  };
   const form = useForm<QuoteInput>({
     resolver: zodResolver(formSchema),
-    defaultValues: initial ?? {
-      idempotencyKey: randomUUID(),
-      shipDate: businessCalendarDate(),
-      destination: emptyAddress(),
-      providers: providers
-        .filter((p) => p.enabled)
-        .map((p) => ({
-          code: p.code,
-          sender: { mode: 'account_default', refreshId: randomUUID() },
-          options: { signature: 'none', insurance: null },
-        })),
-      packageGroups: [emptyGroup()],
-    },
+    defaultValues,
   });
   const { register, control, watch, setValue, handleSubmit, formState } = form;
   const groups = useFieldArray({ control, name: 'packageGroups' });
@@ -479,10 +337,6 @@ export function QuoteForm({
         shouldValidate: true,
       });
   }, [detailedCustomsTotal, international?.customsMode, setValue]);
-  const dimensionsOptional =
-    selected.length === 1 &&
-    selected[0]?.code === 'unishippers' &&
-    providers.find((provider) => provider.code === 'unishippers')?.executionMode === 'request';
   const [failure, setFailure] = useState('');
   const lastSubmission = useRef<{ body: string; key: string } | undefined>(undefined);
   const submit = handleSubmit(async (input) => {
@@ -515,9 +369,8 @@ export function QuoteForm({
           {Object.keys(formState.errors).length > 0 && (
             <Alert severity="error">
               Check required addresses, ship date, positive package values, and customs items.
-              Package dimensions must include all three values or none. Blank dimensions require
-              myUnishippers request mode as the only selected provider, and weight is always
-              required. Country codes use two uppercase letters; currencies use three.
+              Package dimensions must include all three positive values. Weight is always required.
+              Country codes use two uppercase letters; currencies use three.
             </Alert>
           )}
           <Box
@@ -554,8 +407,11 @@ export function QuoteForm({
                                         {
                                           code: provider.code,
                                           sender: {
-                                            mode: 'account_default',
-                                            refreshId: randomUUID(),
+                                            mode: 'explicit',
+                                            address: {
+                                              ...emptyAddress(),
+                                              country: 'US' as const,
+                                            },
                                           },
                                           options: { signature: 'none', insurance: null },
                                         },
@@ -596,15 +452,11 @@ export function QuoteForm({
                     index={index}
                     configuration={configuration}
                     totalBoxes={totalBoxes}
-                    onRefresh={onRefresh}
                   />
                 ) : null;
               })}
               <Typography variant="h6">Destination</Typography>
               <AddressFields prefix="destination" label="Destination" />
-              {selected.some((provider) => provider.code === 'unishippers') && (
-                <UnishippersContactFields prefix="destination" label="myUnishippers receiver" />
-              )}
               {isInternational && international && (
                 <Paper variant="outlined" sx={{ p: 2 }}>
                   <Stack spacing={2}>
@@ -676,12 +528,6 @@ export function QuoteForm({
                         {...register(`packageGroups.${index}.${field}`)}
                       />
                     ))}
-                    {dimensionsOptional && (
-                      <Typography variant="body2" color="text.secondary">
-                        For myUnishippers request quotes, enter all three dimensions or leave all
-                        three dimensions blank. Weight is always required.
-                      </Typography>
-                    )}
                     {international?.customsMode === 'detailed' && <CustomsFields index={index} />}
                     <Button
                       disabled={groups.fields.length === 1}
@@ -696,11 +542,7 @@ export function QuoteForm({
               <Button
                 type="submit"
                 variant="contained"
-                disabled={
-                  !providers.some((p) => p.enabled) ||
-                  formState.isSubmitting ||
-                  selected.some((p) => p.sender.mode === 'account_default' && !p.sender.refreshId)
-                }
+                disabled={!providers.some((p) => p.enabled) || formState.isSubmitting}
               >
                 Save comparison
               </Button>
