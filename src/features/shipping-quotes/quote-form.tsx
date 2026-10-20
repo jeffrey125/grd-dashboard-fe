@@ -14,6 +14,7 @@ import Typography from '@mui/material/Typography';
 import dayjs from 'dayjs';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FormProvider, useFieldArray, useForm, useFormContext } from 'react-hook-form';
+import { v4 as randomUUID } from 'uuid';
 import { QuoteDecimal } from './quote-decimal';
 import { addressCountries, isSupportedCountryCode, regionsForCountry } from './quote-standards';
 import {
@@ -306,7 +307,7 @@ function ProviderFields({
                     mode: 'explicit',
                     address: { ...(displayed?.address ?? emptyAddress()), country: 'US' },
                   }
-                : { mode: 'account_default', refreshId: crypto.randomUUID() },
+                : { mode: 'account_default', refreshId: randomUUID() },
             )
           }
         >
@@ -412,14 +413,14 @@ export function QuoteForm({
   const form = useForm<QuoteInput>({
     resolver: zodResolver(formSchema),
     defaultValues: initial ?? {
-      idempotencyKey: crypto.randomUUID(),
+      idempotencyKey: randomUUID(),
       shipDate: businessCalendarDate(),
       destination: emptyAddress(),
       providers: providers
         .filter((p) => p.enabled)
         .map((p) => ({
           code: p.code,
-          sender: { mode: 'account_default', refreshId: crypto.randomUUID() },
+          sender: { mode: 'account_default', refreshId: randomUUID() },
           options: { signature: 'none', insurance: null },
         })),
       packageGroups: [emptyGroup()],
@@ -492,7 +493,7 @@ export function QuoteForm({
       lastSubmission.current?.body === body
         ? lastSubmission.current.key
         : lastSubmission.current
-          ? crypto.randomUUID()
+          ? randomUUID()
           : idempotencyKey;
     lastSubmission.current = { body, key };
     setValue('idempotencyKey', key);
@@ -554,7 +555,7 @@ export function QuoteForm({
                                           code: provider.code,
                                           sender: {
                                             mode: 'account_default',
-                                            refreshId: crypto.randomUUID(),
+                                            refreshId: randomUUID(),
                                           },
                                           options: { signature: 'none', insurance: null },
                                         },

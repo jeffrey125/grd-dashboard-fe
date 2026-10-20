@@ -12,6 +12,7 @@ import Alert from '@mui/material/Alert';
 import Typography from '@mui/material/Typography';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
+import { v4 as randomUUID } from 'uuid';
 
 export function NewQuotePage() {
   const { session } = useSession();
@@ -34,7 +35,7 @@ export function NewQuotePage() {
   const initial = source.data
     ? {
         ...source.data.input,
-        idempotencyKey: crypto.randomUUID(),
+        idempotencyKey: randomUUID(),
         providers: source.data.input.providers
           .filter((p) =>
             providers.data.some((current) => current.code === p.code && current.enabled),

@@ -1,4 +1,5 @@
 import { BroadcastChannel } from 'broadcast-channel';
+import { v4 as randomUUID } from 'uuid';
 import { z } from 'zod';
 
 const limit = 10_000;
@@ -194,7 +195,7 @@ export class ReviewStore {
         snapshotId: old?.snapshotId ?? null,
         pending: [...(old?.pending ?? []), snapshotId],
         unseen: old?.unseen ?? false,
-        token: crypto.randomUUID(),
+        token: randomUUID(),
         touchedAt: Date.now(),
       };
       return true;
@@ -215,7 +216,7 @@ export class ReviewStore {
           pending: [],
           unseen:
             expected.unseen || (!!expected.pending.length && snapshotId !== expected.snapshotId),
-          token: crypto.randomUUID(),
+          token: randomUUID(),
           touchedAt: Date.now(),
         };
         return true;
@@ -233,7 +234,7 @@ export class ReviewStore {
         snapshotId,
         pending: [],
         unseen: false,
-        token: crypto.randomUUID(),
+        token: randomUUID(),
         touchedAt: Date.now(),
       };
       return true;

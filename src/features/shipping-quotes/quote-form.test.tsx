@@ -64,6 +64,22 @@ const initial = (): QuoteInput => ({
 });
 
 describe('Quote comparison form', () => {
+  it('renders when randomUUID is unavailable on an HTTP deployment', () => {
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis.crypto, 'randomUUID');
+    Object.defineProperty(globalThis.crypto, 'randomUUID', {
+      configurable: true,
+      value: undefined,
+    });
+
+    try {
+      render(<QuoteForm providers={[]} onSave={vi.fn()} onRefresh={vi.fn()} />);
+      expect(screen.getByRole('button', { name: 'Save comparison' })).toBeVisible();
+    } finally {
+      if (descriptor) Object.defineProperty(globalThis.crypto, 'randomUUID', descriptor);
+      else Reflect.deleteProperty(globalThis.crypto, 'randomUUID');
+    }
+  });
+
   it('copies the refreshed myUnishippers origin for a comparison-only correction', async () => {
     const user = userEvent.setup();
     const save = vi.fn().mockResolvedValue(undefined);
