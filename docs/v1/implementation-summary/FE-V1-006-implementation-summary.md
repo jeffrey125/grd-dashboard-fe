@@ -21,6 +21,10 @@ destinations remain the explicitly approved placeholders.
 - Added the carrier-provided pickup date beside the delivery date in both views.
   The concise Delivery label still represents `estimatedDeliveryOn`; actual
   `deliveredOn` remains separate contract data for detail/history work.
+- Changed fixed desktop column widths to flexible widths. The grid hides Notes and
+  Date Created below 1536px, then Sales Rep, Pickup and Follow Up below 1200px, so
+  the table fits without horizontal scrolling. The existing cards retain every
+  field below 900px. The Tracking Number link opens the complete shipment detail.
 - Added an opaque white background to generated SVG and six-resolution ICO
   favicons. The official source logo and original website favicon remain unchanged.
 - Seeded three long but valid notes on the first fixture page so desktop truncation
@@ -109,12 +113,13 @@ no unrelated frontend edits were found during final review. No backend source wa
 | --- | --- |
 | `pnpm view @mui/x-data-grid version peerDependencies engines --json` | 9.15.0 supports installed React 19/MUI 9/Emotion and Node 24. |
 | `pnpm install --frozen-lockfile --strict-peer-dependencies` | Passed; lockfile current and supply-chain policy passed. No package agent skills approved. |
-| `pnpm check` | Passed after the visible mobile-action update: format, lint, types, Knip and 83 tests in 19 files. |
+| `pnpm check` | Passed again on 2026-10-21 after the responsive-grid follow-up: format, lint, types, Knip and 220 tests in 34 files. |
 | `pnpm run ci` | Passed after all picker/card changes: format, lint, Knip, 83 tests in 19 files, build/types and 38 browser tests. Overall line coverage 82.66%; browser execution is not included. |
-| `pnpm build` | Passed again after final changes. Vite warns about chunks above 500 kB: list approximately 701 kB/207 kB gzip; main approximately 597 kB/194 kB gzip. The approved calendar controls increase the list chunk. |
+| `pnpm build` | Passed again on 2026-10-21 after the responsive-grid follow-up. Vite emitted the existing chunk-size advisory; the largest chunk was approximately 588 kB/189 kB gzip. |
 | `pnpm exec playwright test` | Original 34 scenarios passed before the follow-up. The final `pnpm run ci` ran all 38 desktop/mobile/touch scenarios successfully. |
 | `pnpm exec playwright test e2e/shipments.spec.ts --grep 'dates\|calendar'` | Passed 6 matching scenarios after the narrow-screen dialog correction, including all four calendars, invalid URL replacement/clearing and Los Angeles date preservation. |
-| `pnpm exec playwright test e2e/shipments.spec.ts` | Passed all 22 desktop/mobile shipment scenarios after the final mobile view selector and stacked full-width action layout. Coverage includes URL state, view switching, action eligibility, control geometry, resizing and horizontal overflow. |
+| `pnpm exec playwright test e2e/shipments.spec.ts` | Passed all 20 current desktop/mobile shipment scenarios on 2026-10-21. The responsive scenario checks 375, 1100, 1440 and 1600px widths, visible columns, no horizontal grid scrolling, and Tracking Number-only detail navigation. |
+| `pnpm exec playwright test e2e/tracking-review.spec.ts --grep "only the Tracking Number"` | Passed 2 desktop/mobile scenarios: ordinary cells/card content retain the highlight and list route; Tracking Number acknowledges the displayed revision and opens detail. |
 | `pnpm test:e2e:backend` | Passed all 6 real-backend tests, including the 1,000-row list plus refresh/coalescing/pause/resume through both direct CORS and Vite proxy. Uses real migrations/PostgreSQL 18.3 and no worker. |
 | `pnpm exec playwright test --config /tmp/grd-existing-backend.config.mts shipments.spec.ts` | Passed both 1,000-record scenarios after the follow-up, including date inputs and row commands. Temporary config reuses the running disposable backend and starts normal 4175/4176 frontend servers; manual preview remains running. |
 | `node /tmp/grd-picker-review.mjs` | Captured and inspected the final 375px calendar dialog and dark cards against the real backend. A separate touch interaction check selected/applied dates in Asia/Manila without shifting them. Light cards were also visually inspected. |

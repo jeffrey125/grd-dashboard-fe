@@ -178,6 +178,31 @@ test('bursts include filtered-out shipments, deduplicate sound, and mark only di
   await expect.poll(() => plays(page)).toBe(1);
 });
 
+test('only the Tracking Number link opens detail and acknowledges the displayed update', async ({
+  page,
+  context,
+}) => {
+  const state = await setup(context);
+  await open(page);
+  row(state, 0).currentTracking = snapshot(3);
+  await emit(page, row(state, 0).externalId, 3);
+  await expect(marks(page)).toHaveCount(1);
+
+  if ((page.viewportSize()?.width ?? 0) < 900)
+    await page
+      .getByRole('article', { name: 'Shipment 0001', exact: true })
+      .getByText('Carrier status', { exact: true })
+      .click();
+  else await page.getByRole('gridcell', { name: 'Tracking 3', exact: true }).click();
+
+  await expect(page).toHaveURL(/\/shipments(?:\?|$)/);
+  await expect(marks(page)).toHaveCount(1);
+  await page.getByRole('link', { name: '0001', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/shipments/${row(state, 0).externalId}`));
+  await page.goBack();
+  await expect(marks(page)).toHaveCount(0);
+});
+
 test('the bundled M4A decodes and plays after an explicit gesture', async ({ page, context }) => {
   await installLiveFixture(context);
   await context.route('**/api/v1/auth/me', (route) => route.fulfill({ json: accountFixture }));

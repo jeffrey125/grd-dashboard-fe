@@ -114,6 +114,30 @@ function mobile(page: Page) {
 function shipmentCard(page: Page, reference: string) {
   return page.getByRole('article', { name: `Shipment ${reference}`, exact: true });
 }
+async function expectGridWithoutHorizontalScroll(page: Page) {
+  const grid = page.getByRole('grid', { name: 'Shipments' });
+  const headersFit = await grid.evaluate((element) => {
+    const headers = Array.from(element.querySelectorAll<HTMLElement>('[role="columnheader"]'));
+    const lastHeader = headers.at(-1);
+    if (!lastHeader) return false;
+
+    return lastHeader.getBoundingClientRect().right <= element.getBoundingClientRect().right + 1;
+  });
+
+  expect(headersFit).toBe(true);
+  await expect(page.locator('.MuiDataGrid-virtualScroller')).not.toHaveClass(
+    /MuiDataGrid-virtualScroller--hasScrollX/,
+  );
+}
+async function expectVisibleColumns(page: Page, fields: string[]) {
+  await expect
+    .poll(() =>
+      page
+        .getByRole('columnheader')
+        .evaluateAll((headers) => headers.map((header) => header.getAttribute('data-field'))),
+    )
+    .toEqual(fields);
+}
 async function expectShipmentView(page: Page, value: string, label: string) {
   if (mobile(page)) {
     const select = page.getByRole('combobox', { name: 'Shipment view', exact: true });
@@ -502,6 +526,8 @@ test('responsive cards retain all details, wrap long text, and preserve state ac
   }
   expect(actionBounds[1]?.y).toBeGreaterThan(actionBounds[0]?.y ?? 0);
   expect(actionBounds[2]?.y).toBeGreaterThan(actionBounds[1]?.y ?? 0);
+  await card.getByText('Carrier status', { exact: true }).click();
+  await expect(page).toHaveURL(/\/shipments(?:\?|$)/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('combobox', { name: 'Sort direction' }).selectOption('asc');
   await expect(page).toHaveURL(/sortDirection=asc/);
@@ -509,11 +535,38 @@ test('responsive cards retain all details, wrap long text, and preserve state ac
   await expect(page.getByRole('tab', { name: 'Active (1)', exact: true })).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Shipment view', exact: true })).toBeHidden();
   await expect(page.getByRole('grid', { name: 'Shipments' })).toBeVisible();
-  expect(
-    await page
-      .getByRole('columnheader')
-      .evaluateAll((headers) => headers.map((header) => header.getAttribute('data-field'))),
-  ).toEqual([
+  await expectVisibleColumns(page, [
+    'salesRep',
+    'trackingReference',
+    'carrierStatus',
+    'monitoringStatus',
+    'pickedUpOn',
+    'estimatedDeliveryOn',
+    'followUpOn',
+    'actions',
+  ]);
+  await expectGridWithoutHorizontalScroll(page);
+  await expect(page.getByRole('columnheader', { name: 'Pickup', exact: true })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Delivery', exact: true })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Notes', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('columnheader', { name: 'Date Created', exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole('columnheader', { name: 'Latest lookup / run' })).toHaveCount(0);
+  await expect(page.getByRole('columnheader', { name: 'Last attempted' })).toHaveCount(0);
+  await expect(page.getByRole('article')).toHaveCount(0);
+  await expect(page).toHaveURL(/sortDirection=asc/);
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await expectVisibleColumns(page, [
+    'trackingReference',
+    'carrierStatus',
+    'monitoringStatus',
+    'estimatedDeliveryOn',
+    'actions',
+  ]);
+  await expectGridWithoutHorizontalScroll(page);
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await expectVisibleColumns(page, [
     'salesRep',
     'trackingReference',
     'carrierStatus',
@@ -525,10 +578,9 @@ test('responsive cards retain all details, wrap long text, and preserve state ac
     'createdAt',
     'actions',
   ]);
-  await expect(page.getByRole('columnheader', { name: 'Pickup', exact: true })).toBeVisible();
-  await expect(page.getByRole('columnheader', { name: 'Delivery', exact: true })).toBeVisible();
-  await expect(page.getByRole('columnheader', { name: 'Latest lookup / run' })).toHaveCount(0);
-  await expect(page.getByRole('columnheader', { name: 'Last attempted' })).toHaveCount(0);
-  await expect(page.getByRole('article')).toHaveCount(0);
-  await expect(page).toHaveURL(/sortDirection=asc/);
+  await expectGridWithoutHorizontalScroll(page);
+  await page.getByRole('gridcell', { name: 'In transit', exact: true }).click();
+  await expect(page).toHaveURL(/\/shipments(?:\?|$)/);
+  await page.getByRole('link', { name: reference, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/shipments/${state.rows[0]?.externalId}`));
 });

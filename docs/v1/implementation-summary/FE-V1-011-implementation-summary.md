@@ -27,7 +27,8 @@ user approved the final existing-library/native-browser approach before coding.
 - Added native audio with the approved unmodified bundled asset, default-off saved
   preference, preview/re-enable control, leader election and atomic sound claims.
   Playback denial pauses further automatic attempts until an explicit retry.
-- Added desktop row/mobile card highlights and Updated indicators. The mark-seen
+- Added desktop row/mobile card highlights and Updated indicators. Tracking Number
+  links acknowledge the displayed revision before opening shipment detail. The mark-seen
   action affects the current results page only. Visible Overview and current-snapshot
   History views acknowledge only the revision actually displayed and re-confirmed.
 - Added race/storage tests, desktop/mobile browser checks, real PostgreSQL/SSE

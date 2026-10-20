@@ -80,15 +80,19 @@ Suggested default columns: reference/carrier, carrier status, monitoring state,
 pickup, delivery, created time, notes preview, row actions. The
 list's concise Delivery label displays the carrier's estimated-delivery date;
 actual delivery remains a separate detail/history value.
+Columns share the available desktop width without horizontal scrolling. Below
+1536px, hide Notes and Date Created. Below 1200px, also hide Sales Rep, Pickup and
+Follow Up, keeping Tracking Number, Carrier status, Monitoring, Delivery and
+Actions visible. The full values remain available from shipment detail.
 Detail shows full status text and pickup/delivery fields. Keep an explicit
 reference link and accessible action-menu buttons in the desktop table. Below
 900px, replace the tab strip with a full-width Shipment view selector and present
 shipment cards with labeled details, wrapping reference/notes, stacked full-width
 action buttons, explicit sort controls and server pagination; desktop retains the
-tabs and table. Every real row/card opens Shipment detail; explicit links preserve
-native modified-click behavior. Unseen updates use a green highlight and text
+tabs and table. Only the Tracking Number link opens Shipment detail; explicit
+links preserve native modified-click behavior. Unseen updates use a green highlight and text
 indicator. Unseen rows currently in Needs attention, including due follow-ups, use
-a red highlight. Opening the row or reference acknowledges the displayed revision
+a red highlight. Opening the Tracking Number link acknowledges the displayed revision
 before navigation so that highlight clears without consuming a newer update.
 
 Page header contains sound preference and **Mark displayed changes

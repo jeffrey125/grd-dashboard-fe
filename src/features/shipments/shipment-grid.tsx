@@ -206,6 +206,8 @@ export function ShipmentGrid({
   const navigate = useNavigate();
   const { runtime, isUnseen } = useTrackingReview();
   const mobile = useMediaQuery(theme.breakpoints.down('md'));
+  const compactTable = useMediaQuery(theme.breakpoints.down('xl'));
+  const condensedTable = useMediaQuery(theme.breakpoints.down('lg'));
   const openRow = useCallback(
     async (row: Shipment) => {
       const snapshotId = row.currentTracking?.externalId;
@@ -223,12 +225,23 @@ export function ShipmentGrid({
     () => [{ field: search.sortBy, sort: search.sortDirection }],
     [search.sortBy, search.sortDirection],
   );
+  const columnVisibilityModel = useMemo(
+    () => ({
+      salesRep: !condensedTable,
+      pickedUpOn: !condensedTable,
+      followUpOn: !condensedTable,
+      notes: !compactTable,
+      createdAt: !compactTable,
+    }),
+    [compactTable, condensedTable],
+  );
   const columns = useMemo<GridColDef<Shipment>[]>(
     () => [
       {
         field: 'salesRep',
         headerName: 'Sales Rep',
-        width: 130,
+        flex: 0.75,
+        minWidth: 90,
         sortable: false,
         renderCell: ({ row }) => (
           <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', height: '100%' }}>
@@ -239,7 +252,8 @@ export function ShipmentGrid({
       {
         field: 'trackingReference',
         headerName: 'Tracking Number',
-        width: 220,
+        flex: 1.25,
+        minWidth: 140,
         renderCell: ({ row }) => (
           <Stack sx={{ justifyContent: 'center', height: '100%', lineHeight: 1.4 }}>
             <Link
@@ -281,14 +295,16 @@ export function ShipmentGrid({
       {
         field: 'carrierStatus',
         headerName: 'Carrier status',
-        width: 180,
+        flex: 1.1,
+        minWidth: 120,
         sortable: false,
         valueGetter: (_value, row) => row.currentTracking?.carrierStatus ?? 'Not available',
       },
       {
         field: 'monitoringStatus',
         headerName: 'Monitoring',
-        width: 190,
+        flex: 1,
+        minWidth: 110,
         sortable: false,
         renderCell: ({ row }) => (
           <Chip
@@ -308,20 +324,23 @@ export function ShipmentGrid({
       {
         field: 'pickedUpOn',
         headerName: 'Pickup',
-        width: 140,
+        flex: 0.7,
+        minWidth: 85,
         sortable: false,
         valueGetter: (_value, row) => row.currentTracking?.pickedUpOn ?? 'Not available',
       },
       {
         field: 'estimatedDeliveryOn',
         headerName: 'Delivery',
-        width: 140,
+        flex: 0.8,
+        minWidth: 95,
         valueGetter: (_value, row) => row.currentTracking?.estimatedDeliveryOn ?? 'Not available',
       },
       {
         field: 'followUpOn',
         headerName: 'Follow Up',
-        width: 150,
+        flex: 0.85,
+        minWidth: 100,
         renderCell: ({ row }) => (
           <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', height: '100%' }}>
             <Typography color={followUpDue(row.followUpOn) ? 'warning.main' : undefined}>
@@ -333,20 +352,22 @@ export function ShipmentGrid({
       {
         field: 'notes',
         headerName: 'Notes',
-        width: 220,
+        flex: 1.1,
+        minWidth: 130,
         sortable: false,
         valueFormatter: (value: string | null) => value ?? 'No notes',
       },
       {
         field: 'createdAt',
         headerName: 'Date Created',
-        width: 210,
+        flex: 1.1,
+        minWidth: 145,
         valueFormatter: (value: string) => businessTimestamp(value),
       },
       {
         field: 'actions',
         headerName: 'Actions',
-        width: 85,
+        width: 64,
         sortable: false,
         disableColumnMenu: true,
         renderCell: ({ row }) => (
@@ -392,19 +413,8 @@ export function ShipmentGrid({
             component="article"
             variant="outlined"
             aria-label={`Shipment ${row.trackingReference}`}
-            onClick={(event) => {
-              const target = event.target;
-              if (
-                placeholder ||
-                (target instanceof Element &&
-                  target.closest('a, button, input, select, textarea, [role="menuitem"]'))
-              )
-                return;
-              void openRow(row);
-            }}
             sx={{
               overflowWrap: 'anywhere',
-              cursor: placeholder ? 'default' : 'pointer',
               ...(isUnseen(row.externalId)
                 ? {
                     borderColor: needsAttention(row) ? 'error.main' : 'success.main',
@@ -540,6 +550,7 @@ export function ShipmentGrid({
         aria-label="Shipments"
         rows={rows}
         columns={columns}
+        columnVisibilityModel={columnVisibilityModel}
         getRowId={(row) => row.externalId}
         getRowClassName={({ row }) =>
           isUnseen(row.externalId)
@@ -557,16 +568,6 @@ export function ShipmentGrid({
         disableColumnFilter
         disableRowSelectionOnClick
         disableColumnMenu
-        onRowClick={({ row }, event) => {
-          const target = event.target;
-          if (
-            placeholder ||
-            (target instanceof Element &&
-              target.closest('a, button, input, select, textarea, [role="menuitem"]'))
-          )
-            return;
-          void openRow(row);
-        }}
         pageSizeOptions={[25, 50, 100]}
         paginationModel={{ page: search.page - 1, pageSize: search.pageSize }}
         onPaginationModelChange={(model) => {
@@ -583,7 +584,6 @@ export function ShipmentGrid({
         sx={{
           bgcolor: 'background.paper',
           '& .MuiDataGrid-cell:focus-within': { outlineOffset: -2 },
-          '& .MuiDataGrid-row': { cursor: placeholder ? 'default' : 'pointer' },
           '& .tracking-updated': {
             boxShadow: (theme) => `inset 4px 0 ${theme.vars.palette.success.main}`,
             bgcolor: 'color-mix(in srgb, var(--grd-palette-success-main) 10%, transparent)',
