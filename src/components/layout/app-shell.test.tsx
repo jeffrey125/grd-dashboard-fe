@@ -47,6 +47,27 @@ it('keeps administration links out of the staff shell', async () => {
   expect(screen.queryByRole('link', { name: 'Carriers' })).not.toBeInTheDocument();
 });
 
+it('expands shipment workflows by default with submenu icons and allows collapsing', async () => {
+  const user = userEvent.setup();
+  await renderShell({ displayName: 'Jordan Staff', role: 'staff' });
+
+  const toggle = screen.getAllByRole('button', { name: 'Shipments' }).at(0);
+  expect(toggle).toBeDefined();
+  if (!toggle) throw new Error('The Shipments navigation toggle is missing.');
+  expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  expect(screen.queryAllByRole('link', { name: 'Shipments' })).toHaveLength(0);
+  const monitoring = screen.getAllByRole('link', { name: 'Monitoring' }).at(0);
+  const quotes = screen.getAllByRole('link', { name: 'Quote Compare' }).at(0);
+  expect(monitoring?.querySelector('svg')).toBeInTheDocument();
+  expect(quotes?.querySelector('svg')).toBeInTheDocument();
+
+  await user.click(toggle);
+
+  expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.queryAllByRole('link', { name: 'Monitoring' })).toHaveLength(0);
+  expect(screen.queryAllByRole('link', { name: 'Quote Compare' })).toHaveLength(0);
+});
+
 it('shows admin navigation and invokes the supplied sign-out slot', async () => {
   const user = userEvent.setup();
   const onSignOut = vi.fn();

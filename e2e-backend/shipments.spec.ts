@@ -54,7 +54,7 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
     await expect(
       page.getByRole('tab', { name: 'Needs attention (152)', exact: true }),
     ).toBeVisible();
-    await page.getByRole('columnheader', { name: 'Reference / carrier' }).click();
+    await page.getByRole('columnheader', { name: 'Tracking Number' }).click();
     await expect(page).toHaveURL(/sortBy=trackingReference/);
     await page.getByRole('link', { name: 'fe-list-0001', exact: true }).click();
     await page.getByRole('link', { name: 'Back to results' }).click();

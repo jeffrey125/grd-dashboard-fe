@@ -169,7 +169,7 @@ test('default, pagination, debounced search, sort and back/detail return retain 
     await page
       .getByRole('combobox', { name: 'Sort by', exact: true })
       .selectOption('trackingReference');
-  } else await page.getByRole('columnheader', { name: 'Reference / carrier' }).click();
+  } else await page.getByRole('columnheader', { name: 'Tracking Number' }).click();
   await expect(page).toHaveURL(/sortBy=trackingReference/);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(scrollY);
   await page.goBack();
@@ -509,6 +509,22 @@ test('responsive cards retain all details, wrap long text, and preserve state ac
   await expect(page.getByRole('tab', { name: 'Active (1)', exact: true })).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Shipment view', exact: true })).toBeHidden();
   await expect(page.getByRole('grid', { name: 'Shipments' })).toBeVisible();
+  expect(
+    await page
+      .getByRole('columnheader')
+      .evaluateAll((headers) => headers.map((header) => header.getAttribute('data-field'))),
+  ).toEqual([
+    'salesRep',
+    'trackingReference',
+    'carrierStatus',
+    'monitoringStatus',
+    'pickedUpOn',
+    'estimatedDeliveryOn',
+    'followUpOn',
+    'notes',
+    'createdAt',
+    'actions',
+  ]);
   await expect(page.getByRole('columnheader', { name: 'Pickup', exact: true })).toBeVisible();
   await expect(page.getByRole('columnheader', { name: 'Delivery', exact: true })).toBeVisible();
   await expect(page.getByRole('columnheader', { name: 'Latest lookup / run' })).toHaveCount(0);

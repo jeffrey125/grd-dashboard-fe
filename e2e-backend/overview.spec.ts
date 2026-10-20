@@ -61,7 +61,7 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
     await expect(page).toHaveURL(new RegExp(`estimatedDeliveryTo=${data.upcomingWindow.to}`));
     await expect(page.getByLabel('Delivery from (YYYY-MM-DD)', { exact: true })).toHaveCount(0);
     await expect(page.getByLabel('Delivery through (YYYY-MM-DD)', { exact: true })).toHaveCount(0);
-    await expect(page.getByLabel('Delivery state', { exact: true })).toHaveValue('true');
+    await expect(page.getByLabel('Monitoring Status', { exact: true })).toHaveValue('true');
     await expect(page.getByText('Results are paused.', { exact: false })).toHaveCount(0);
     await expect(page.getByRole('region', { name: 'Recent tracking changes' })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(

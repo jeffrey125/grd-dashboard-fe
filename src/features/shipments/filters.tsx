@@ -12,7 +12,7 @@ import { changeSearch, type SearchState, searchErrors } from './search-state';
 const filterLabels = {
   carrierExternalId: 'Carrier',
   salesRepExternalId: 'Sales Rep',
-  undeliveredOnly: 'Delivery state',
+  undeliveredOnly: 'Monitoring Status',
 };
 export function SearchBox({
   value,
@@ -147,7 +147,7 @@ export function ShipmentFilters({
             ))}
         </TextField>
         <TextField
-          label="Delivery state"
+          label={filterLabels.undeliveredOnly}
           select
           {...form.register('undeliveredOnly')}
           defaultValue={raw.undeliveredOnly ?? ''}

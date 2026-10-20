@@ -2,17 +2,22 @@ import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettin
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import LockResetOutlinedIcon from '@mui/icons-material/LockResetOutlined';
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutlineOutlined';
+import RequestQuoteOutlinedIcon from '@mui/icons-material/RequestQuoteOutlined';
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import { useMediaQuery, useTheme } from '@mui/material';
 import Alert from '@mui/material/Alert';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Collapse from '@mui/material/Collapse';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
 import IconButton from '@mui/material/IconButton';
@@ -32,10 +37,10 @@ import { BrandLogo } from './brand-logo';
 
 const drawerWidth = 272;
 
-const primaryNavigation = [
-  { href: '/', label: 'Overview', Icon: DashboardOutlinedIcon },
-  { href: '/shipments', label: 'Shipments', Icon: LocalShippingOutlinedIcon },
-  { href: '/quotes', label: 'Quote comparisons', Icon: LocalShippingOutlinedIcon },
+const primaryNavigation = [{ href: '/', label: 'Overview', Icon: DashboardOutlinedIcon }] as const;
+const shipmentNavigation = [
+  { href: '/shipments', label: 'Monitoring', Icon: VisibilityOutlinedIcon },
+  { href: '/quotes', label: 'Quote Compare', Icon: RequestQuoteOutlinedIcon },
 ] as const;
 
 const adminNavigation = [
@@ -63,14 +68,18 @@ export function AppShell({
   signOutPending?: boolean;
   signOutError?: string | null;
 }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = useLocation({ select: (location) => location.pathname });
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [shipmentsOpen, setShipmentsOpen] = useState(true);
   const theme = useTheme();
   const desktop = useMediaQuery(theme.breakpoints.up('md'));
 
   useEffect(() => {
     if (desktop) setMobileOpen(false);
   }, [desktop]);
+  useEffect(() => {
+    if (shipmentNavigation.some(({ href }) => pathname.startsWith(href))) setShipmentsOpen(true);
+  }, [pathname]);
 
   const navigation = (
     <>
@@ -94,6 +103,40 @@ export function AppShell({
             </ListItem>
           );
         })}
+        <ListItem disablePadding sx={{ mb: 0.5 }}>
+          <ListItemButton
+            aria-expanded={shipmentsOpen}
+            selected={shipmentNavigation.some(({ href }) => pathname.startsWith(href))}
+            onClick={() => setShipmentsOpen((open) => !open)}
+            sx={{ borderRadius: 1.5, minHeight: 44 }}
+          >
+            <ListItemIcon sx={{ minWidth: 40 }}>
+              <LocalShippingOutlinedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Shipments" />
+            {shipmentsOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          </ListItemButton>
+        </ListItem>
+        <Collapse in={shipmentsOpen} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+            {shipmentNavigation.map(({ href, label, Icon }) => (
+              <ListItem key={href} disablePadding sx={{ mb: 0.5 }}>
+                <ListItemButton
+                  component={Link}
+                  to={href}
+                  selected={pathname.startsWith(href)}
+                  onClick={() => setMobileOpen(false)}
+                  sx={{ borderRadius: 1.5, minHeight: 40, pl: 4 }}
+                >
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <Icon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText primary={label} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </Collapse>
       </List>
       {user?.role === 'admin' ? (
         <>

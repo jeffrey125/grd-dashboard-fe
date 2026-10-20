@@ -64,7 +64,7 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
         .getByRole('navigation', { name: 'Main navigation' })
         .getByRole('link', { name: 'Overview', exact: true })
         .click();
-      await page.getByRole('link', { name: 'Shipments', exact: true }).click();
+      await page.getByRole('link', { name: 'Monitoring', exact: true }).click();
     }
     expect(
       await page.evaluate(() => ({

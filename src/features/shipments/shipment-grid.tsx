@@ -205,8 +205,19 @@ export function ShipmentGrid({
   const columns = useMemo<GridColDef<Shipment>[]>(
     () => [
       {
+        field: 'salesRep',
+        headerName: 'Sales Rep',
+        width: 130,
+        sortable: false,
+        renderCell: ({ row }) => (
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', height: '100%' }}>
+            {salesRepLabel(row)}
+          </Box>
+        ),
+      },
+      {
         field: 'trackingReference',
-        headerName: 'Reference / carrier',
+        headerName: 'Tracking Number',
         width: 220,
         renderCell: ({ row }) => (
           <Stack sx={{ justifyContent: 'center', height: '100%', lineHeight: 1.4 }}>
@@ -258,15 +269,17 @@ export function ShipmentGrid({
         ),
       },
       {
-        field: 'salesRep',
-        headerName: 'Sales Rep',
-        width: 130,
+        field: 'pickedUpOn',
+        headerName: 'Pickup',
+        width: 140,
         sortable: false,
-        renderCell: ({ row }) => (
-          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', height: '100%' }}>
-            {salesRepLabel(row)}
-          </Box>
-        ),
+        valueGetter: (_value, row) => row.currentTracking?.pickedUpOn ?? 'Not available',
+      },
+      {
+        field: 'estimatedDeliveryOn',
+        headerName: 'Delivery',
+        width: 140,
+        valueGetter: (_value, row) => row.currentTracking?.estimatedDeliveryOn ?? 'Not available',
       },
       {
         field: 'followUpOn',
@@ -281,30 +294,17 @@ export function ShipmentGrid({
         ),
       },
       {
-        field: 'pickedUpOn',
-        headerName: 'Pickup',
-        width: 140,
-        sortable: false,
-        valueGetter: (_value, row) => row.currentTracking?.pickedUpOn ?? 'Not available',
-      },
-      {
-        field: 'estimatedDeliveryOn',
-        headerName: 'Delivery',
-        width: 140,
-        valueGetter: (_value, row) => row.currentTracking?.estimatedDeliveryOn ?? 'Not available',
-      },
-      {
-        field: 'createdAt',
-        headerName: 'Created',
-        width: 210,
-        valueFormatter: (value: string) => businessTimestamp(value),
-      },
-      {
         field: 'notes',
         headerName: 'Notes',
         width: 220,
         sortable: false,
         valueFormatter: (value: string | null) => value ?? 'No notes',
+      },
+      {
+        field: 'createdAt',
+        headerName: 'Date Created',
+        width: 210,
+        valueFormatter: (value: string) => businessTimestamp(value),
       },
       {
         field: 'actions',

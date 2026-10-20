@@ -82,11 +82,12 @@ it('shows an honest branded overview without shipment records', async () => {
 it('navigates to the shipment list', async () => {
   const user = userEvent.setup();
   await renderRoute('/');
-  const shipmentsLink = (await screen.findAllByRole('link', { name: 'Shipments' })).at(0);
+  const shipmentsLink = (await screen.findAllByRole('link', { name: 'Monitoring' })).at(0);
   expect(shipmentsLink).toBeDefined();
   if (!shipmentsLink) throw new Error('The Shipments navigation link is missing.');
   await user.click(shipmentsLink);
   expect(await screen.findByRole('heading', { name: 'Shipments' })).toBeVisible();
+  expect(screen.getByLabelText('Monitoring Status')).toBeVisible();
   expect(screen.getByRole('button', { name: 'Apply filters' })).toBeVisible();
   expect(history.location.pathname).toBe('/shipments');
 });
