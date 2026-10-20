@@ -1,9 +1,11 @@
 // Local-only test harness. Reuses the sibling backend's installed tooling and real app.
+
 import { randomBytes } from 'node:crypto';
 import { rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { readinessQuoteAdapter, releaseReadinessQuote } from './quote-readiness-fixture.mjs';
 import { seedShipmentDetailFixtures } from './shipment-detail-fixtures.mjs';
 import { seedShipmentHistoryFixtures } from './shipment-history-fixtures.mjs';
 import { seedShipmentListFixtures } from './shipment-list-fixtures.mjs';
@@ -78,6 +80,15 @@ try {
   const { AuthService } = await backendModule('modules/auth/auth.service.js');
   app = await NestFactory.create(AppModule, { logger: false, abortOnError: false });
   configureApiRoutes(app);
+  if (process.env.FE_TEST_QUOTE_READINESS === 'true') {
+    // Test-only release control exists solely in this disposable harness.
+    app
+      .getHttpAdapter()
+      .getInstance()
+      .post('/__test/quote-release/:key', (request, response) => {
+        response.sendStatus(releaseReadinessQuote(request.params.key) ? 204 : 404);
+      });
+  }
   await app.init();
   const auth = app.get(AuthService);
   const email = 'frontend-admin@example.test';
@@ -155,7 +166,12 @@ try {
     app.get(DataSource),
     new TrackingService(new TypeOrmTrackingRepository(app.get(DataSource))),
   );
-  if (process.env.FE_TEST_QUOTE_DEMO === 'true') {
+  if (process.env.FE_TEST_QUOTE_READINESS === 'true') {
+    await app
+      .get(DataSource)
+      .query("UPDATE shipping_providers SET execution_mode='browser' WHERE code='unishippers'");
+  }
+  if (process.env.FE_TEST_QUOTE_DEMO === 'true' || process.env.FE_TEST_QUOTE_READINESS === 'true') {
     const { QuoteWorker } = await backendModule('modules/shipping-quotes/quote.worker.js');
     const { TypeOrmQuoteExecutionRepository } = await backendModule(
       'modules/shipping-quotes/typeorm-quote-execution.repository.js',
@@ -167,13 +183,15 @@ try {
     quoteWorker = new QuoteWorker(
       new TypeOrmQuoteExecutionRepository(app.get(DataSource)),
       (code) =>
-        new FixtureQuoteAdapter(
-          code === 'amazon'
-            ? 'success'
-            : process.env.FE_TEST_QUOTE_RETRY === 'true'
-              ? 'failed'
-              : 'validation_failed',
-        ),
+        process.env.FE_TEST_QUOTE_READINESS === 'true'
+          ? readinessQuoteAdapter(code)
+          : new FixtureQuoteAdapter(
+              code === 'amazon'
+                ? 'success'
+                : process.env.FE_TEST_QUOTE_RETRY === 'true'
+                  ? 'failed'
+                  : 'validation_failed',
+            ),
       app.get(ProjectLogger),
     );
     quoteWorker.onModuleInit();

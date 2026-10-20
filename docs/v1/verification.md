@@ -322,3 +322,24 @@ completed records, full totals, five-row caps, tie ordering and the one-statemen
 
 Exact commands/results are in the [carrier summary](implementation-summary/FE-V1-013-implementation-summary.md)
 and [Upcoming restoration summary](implementation-summary/FE-V1-010-upcoming-restoration.md).
+
+## SQ-V1-009 quote readiness
+
+The backend [readiness matrix](../../../grd-dashboard-be/docs/v1/shipping-quotes-readiness.md)
+records the cross-repository acceptance evidence, privacy decision, live-provider
+blockers, and operational limits. `FE_TEST_QUOTE_READINESS=true` enables synthetic
+provider results only in the disposable `scripts/auth-backend.mjs` harness. Its
+private test release route holds the second domestic provider until the browser
+has verified partial results and SSE reconnect; it is absent from production.
+
+Build for the selected API port before starting the preview tests:
+
+```sh
+VITE_API_ORIGIN=http://localhost:3016 pnpm build
+FE_TEST_API_PORT=3016 FE_TEST_QUOTE_READINESS=true pnpm exec playwright test --config playwright.backend.config.ts e2e-backend/quote-readiness.spec.ts
+```
+
+The complete legacy backend suite requires its default port 3000; quote suites
+support the port override. Run harnesses sequentially because they reserve the
+same preview/development ports. Never use the readiness fixture as live-provider
+rate evidence.
