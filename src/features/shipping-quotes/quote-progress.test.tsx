@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { QuoteProgress } from './quote-progress';
@@ -60,7 +60,7 @@ describe('Quote progress', () => {
     const value = comparison('failed', [failed]);
     const { rerender } = render(<QuoteProgress comparison={value} onRetry={onRetry} />);
     expect(screen.getByText(/Attempt 1 · Mode: request/)).not.toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: 'Processing history' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Technical details' }));
     expect(screen.getByText(/Attempt 1 · Mode: request/)).toBeVisible();
     expect(screen.getByText(/Actual provider origin: Original warehouse/)).toBeInTheDocument();
     expect(screen.getByText(/Queued: Oct 19, 2026, 8:00 AM ET/)).toBeInTheDocument();
@@ -160,7 +160,7 @@ describe('Quote progress', () => {
     expect(screen.getByText(/Some prices are ready/)).toBeInTheDocument();
     expect(screen.getAllByText(/Test data — example prices/)).toHaveLength(1);
     expect(screen.getByText(/BASE_CHARGE: 7\.83 USD/)).not.toBeVisible();
-    await userEvent.click(screen.getByRole('button', { name: /View price breakdown/ }));
+    await userEvent.click(screen.getByRole('button', { name: /What’s included in this price/ }));
     expect(screen.getByText(/BASE_CHARGE: 7\.83 USD/)).toBeVisible();
     rerender(
       <QuoteProgress
@@ -171,7 +171,8 @@ describe('Quote progress', () => {
       />,
     );
     expect(screen.getByText(/Completed with partial results/)).toBeInTheDocument();
-    expect(screen.getByText(/12\.50 USD/)).toBeInTheDocument();
+    expect(screen.getByText(/\$12\.50/)).toHaveTextContent('$12.50 USD');
+    expect(screen.getByText(/We could not confirm how long this price is valid/)).toBeVisible();
     expect(screen.getByText(/Single-package estimate/)).toBeInTheDocument();
     expect(screen.getByText(/BASE_CHARGE: 7\.83 USD/)).toBeInTheDocument();
     expect(screen.getByText(/Group 1: 2 box\(es\) · 27\.62 USD/)).toBeInTheDocument();
@@ -183,7 +184,7 @@ describe('Quote progress', () => {
     expect(screen.queryByText('SECRET')).not.toBeInTheDocument();
   });
 
-  it('keeps a cheaper stale price visible while awarding the current comparable price', () => {
+  it('prioritizes current prices, preserves ranking safeguards, and updates expiring prices', async () => {
     const origin = {
       name: 'Warehouse',
       street: '1 Example St',
@@ -230,10 +231,10 @@ describe('Quote progress', () => {
       })),
     } as Comparison['input'];
     const { rerender } = render(<QuoteProgress comparison={value} />);
-    const table = screen.getByRole('table', { name: 'Shipping prices' });
-    const stale = within(table).getByRole('row', { name: /Amazon Shipping/ });
-    const current = within(table).getByRole('row', { name: /myUnishippers/ });
-    expect(within(stale).getByText('18.50 USD')).toBeVisible();
+    const stale = screen.getByRole('article', { name: /Amazon Shipping/ });
+    const current = screen.getByRole('article', { name: /myUnishippers/ });
+    expect(screen.getAllByRole('article')[0]).toBe(current);
+    expect(within(stale).getByText(/18\.50/)).toBeVisible();
     expect(within(stale).getByText('Needs a new quote')).toBeVisible();
     expect(within(stale).queryByText('Lowest price', { exact: true })).not.toBeInTheDocument();
     expect(within(current).getByText('Lowest price', { exact: true })).toBeVisible();
@@ -251,5 +252,28 @@ describe('Quote progress', () => {
     ).toBeVisible();
     expect(screen.queryByText('Lowest price', { exact: true })).not.toBeInTheDocument();
     expect(screen.getAllByText('Test price')).toHaveLength(1);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2099-01-01T00:00:00Z'));
+    // Remount with the controlled clock, then cross the provider expiry while visible.
+    const almostExpired = {
+      ...value,
+      attempts: value.attempts.map((a) => ({
+        ...a,
+        quotes: a.quotes.map((quote) => ({
+          ...quote,
+          expiresAt: quote.expiresAt ? '2099-01-01T00:00:01Z' : null,
+        })),
+      })),
+    };
+    rerender(<QuoteProgress key="expiry" comparison={almostExpired} />);
+    expect(screen.getByText('Current price')).toBeVisible();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(screen.queryByText('Current price')).not.toBeInTheDocument();
+    expect(screen.queryByText('Lowest price', { exact: true })).not.toBeInTheDocument();
+    expect(screen.getByText('Expired — get a new quote')).toBeVisible();
+    expect(screen.getAllByRole('article')).toHaveLength(2);
+    vi.useRealTimers();
   });
 });

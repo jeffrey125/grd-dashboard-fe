@@ -49,10 +49,10 @@ test('staff saves, reopens, and copies an immutable comparison through the real 
       page.getByText('Waiting to request prices. These details are read-only.'),
     ).toBeVisible();
   }
-  await page.getByRole('button', { name: 'Shipment details', exact: true }).click();
+  await page.getByRole('button', { name: 'Check shipment details', exact: true }).click();
   await expect(page.getByText(/10.00 × 8 × 6 in/)).toBeVisible();
   await page.reload();
-  await page.getByRole('button', { name: 'Shipment details', exact: true }).click();
+  await page.getByRole('button', { name: 'Check shipment details', exact: true }).click();
   await expect(page.getByText(/10.00 × 8 × 6 in/)).toBeVisible();
   await page.getByRole('link', { name: 'Copy to new comparison' }).click();
   for (const label of ['myUnishippers origin', 'myUnishippers receiver']) {
@@ -69,7 +69,7 @@ test('staff saves, reopens, and copies an immutable comparison through the real 
   await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
   expect(page.url()).not.toBe(original);
   await page.goto(original);
-  await page.getByRole('button', { name: 'Shipment details', exact: true }).click();
+  await page.getByRole('button', { name: 'Check shipment details', exact: true }).click();
   await expect(page.getByText(/10.00 × 8 × 6 in/)).toBeVisible();
 });
 
@@ -119,7 +119,7 @@ test('saves a myUnishippers request comparison with blank dimensions', async ({ 
   await page.getByRole('button', { name: 'Save comparison', exact: true }).click();
 
   await expect(page).toHaveURL(/\/quotes\/[0-9a-f-]{36}$/);
-  await page.getByRole('button', { name: 'Shipment details', exact: true }).click();
+  await page.getByRole('button', { name: 'Check shipment details', exact: true }).click();
   await expect(page.getByText(/6 boxes · Dimensions not provided · 51 lb per box/)).toBeVisible();
   if (process.env.FE_TEST_QUOTE_DEMO === 'true')
     await expect(

@@ -1,21 +1,18 @@
 import { businessTimestamp } from '@lib/dates';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Accordion from '@mui/material/Accordion';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
+import { alpha } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { QuoteDecimal } from './quote-decimal';
 import { rankQuotes } from './quote-ranking';
 import type { Comparison } from './schemas';
@@ -47,7 +44,7 @@ const requestStatus = {
 };
 
 const validity: Record<string, string> = {
-  fresh: 'Current',
+  fresh: 'Current price',
   stale: 'Needs a new quote',
   expired: 'Expired — get a new quote',
   unknown: 'Validity not provided',
@@ -68,10 +65,12 @@ export function QuoteProgress({
   comparison,
   onRetry,
   pending = false,
+  children,
 }: {
   comparison: Comparison;
   onRetry?: (id: string) => void;
   pending?: boolean;
+  children?: ReactNode;
 }) {
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
@@ -79,6 +78,11 @@ export function QuoteProgress({
     return () => clearInterval(timer);
   }, []);
   const ranked = rankQuotes(comparison, now);
+  // Prioritize current prices without changing exact price ranking or winner eligibility.
+  const entries = [
+    ...ranked.entries.filter((entry) => entry.freshness === 'fresh'),
+    ...ranked.entries.filter((entry) => entry.freshness !== 'fresh'),
+  ];
   const latest = comparison.attempts.filter(
     (attempt) =>
       !comparison.attempts.some(
@@ -119,112 +123,163 @@ export function QuoteProgress({
           {warning}
         </Alert>
       ))}
-      {ranked.entries.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 2 }}>
-          <Typography variant="h6" id="shipping-prices-heading">
-            Shipping prices
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            {ranked.comparable ? 'Prices from low to high. ' : ''}
-            Only current, comparable prices qualify for Lowest price. Delivery times are estimates.
-          </Typography>
-          <TableContainer>
-            <Table
-              aria-labelledby="shipping-prices-heading"
-              size="small"
+      {entries.map(({ key, quote, attempt, freshness, lowest }) => (
+        <Paper
+          component="article"
+          aria-label={`${quote.platform} · ${quote.service}`}
+          key={key}
+          variant="outlined"
+          sx={{ overflow: 'hidden', borderRadius: 2 }}
+        >
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 1,
+              px: { xs: 2, sm: 3 },
+              py: 1.25,
+              bgcolor: (theme) =>
+                alpha(
+                  freshness === 'fresh' ? theme.palette.success.main : theme.palette.warning.main,
+                  0.12,
+                ),
+              color: freshness === 'fresh' ? 'success.main' : 'text.primary',
+            }}
+          >
+            {freshness === 'fresh' && <CheckCircleOutlineIcon fontSize="small" />}
+            <Typography sx={{ fontWeight: 600 }}>{validity[freshness]}</Typography>
+            {lowest && (
+              <Chip label="Lowest price" size="small" sx={{ bgcolor: 'background.paper' }} />
+            )}
+          </Stack>
+          <Stack spacing={2} sx={{ p: { xs: 2, sm: 3 }, overflowWrap: 'anywhere' }}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              sx={{ justifyContent: 'space-between' }}
+            >
+              <Box sx={{ minWidth: 0 }}>
+                <Typography component="h2" variant="h6">
+                  {quote.platform}
+                </Typography>
+                <Typography color="text.secondary">{quote.service}</Typography>
+                {quote.carrier !== quote.platform && (
+                  <Typography variant="body2" color="text.secondary">
+                    Carrier: {quote.carrier}
+                  </Typography>
+                )}
+              </Box>
+              <Box sx={{ textAlign: { xs: 'left', sm: 'right' }, flexShrink: 0 }}>
+                <Typography
+                  sx={{
+                    fontSize: freshness === 'fresh' ? '2.25rem' : '1.75rem',
+                    fontWeight: 700,
+                    fontVariantNumeric: 'tabular-nums',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {quote.currency === 'USD' ? '$' : ''}
+                  {new QuoteDecimal(quote.transportationTotal).toFixed(2)}{' '}
+                  <Typography component="span" variant="body2">
+                    {quote.currency}
+                  </Typography>
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {quote.estimateMethod === 'calculated'
+                    ? 'Calculated estimate'
+                    : attempt.provider === 'amazon'
+                      ? 'Single-package estimate'
+                      : 'Whole-shipment total'}
+                </Typography>
+                {attempt.simulated && <Typography variant="caption">Test price</Typography>}
+              </Box>
+            </Stack>
+            <Box>
+              <Typography>
+                Estimated delivery:{' '}
+                <Box component="span" sx={{ fontWeight: 600 }}>
+                  {quote.transitDescription ?? 'Not provided'}
+                </Box>
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Delivery time is an estimate.
+              </Typography>
+            </Box>
+            {freshness !== 'fresh' && (
+              <Typography variant="body2" color="text.secondary">
+                {freshness === 'stale'
+                  ? 'This saved price is older. Get a new quote before relying on it.'
+                  : freshness === 'expired'
+                    ? 'This price has expired. Get a new quote before relying on it.'
+                    : 'We could not confirm how long this price is valid. Get a new quote before relying on it.'}
+              </Typography>
+            )}
+            <Accordion
+              disableGutters
+              elevation={0}
               sx={{
-                display: { xs: 'block', sm: 'table' },
-                '& th, & td': {
-                  px: { xs: 1, sm: 2 },
-                  py: 1.5,
-                  verticalAlign: 'top',
-                  minWidth: 0,
-                  borderBottom: { xs: 0, sm: undefined },
-                },
+                bgcolor: 'transparent',
+                borderTop: 1,
+                borderColor: 'divider',
+                '&::before': { display: 'none' },
               }}
             >
-              <TableHead sx={{ display: { xs: 'none', sm: 'table-header-group' } }}>
-                <TableRow>
-                  <TableCell>Provider / service</TableCell>
-                  <TableCell align="right">Price</TableCell>
-                  <TableCell>Est. transit</TableCell>
-                  <TableCell>Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody sx={{ display: { xs: 'block', sm: 'table-row-group' } }}>
-                {ranked.entries.map((entry) => (
-                  <TableRow
-                    key={entry.key}
-                    sx={{
-                      bgcolor: entry.lowest ? 'action.selected' : undefined,
-                      display: { xs: 'grid', sm: 'table-row' },
-                      gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
-                      '& + tr': { borderTop: { xs: 1, sm: 0 }, borderColor: 'divider' },
-                      '& > th, & > td': { display: { xs: 'block', sm: 'table-cell' } },
-                    }}
-                  >
-                    <TableCell component="th" scope="row">
-                      <Typography sx={{ fontWeight: 600 }}>{entry.quote.platform}</Typography>
-                      <Typography variant="body2">{entry.quote.service}</Typography>
-                      {entry.quote.carrier !== entry.quote.platform && (
-                        <Typography variant="caption" color="text.secondary">
-                          Carrier: {entry.quote.carrier}
+              <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 0 }}>
+                <Typography color="primary">What’s included in this price?</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Stack spacing={1}>
+                  <Typography>Requested options: {quote.optionCoverage}</Typography>
+                  <Typography>
+                    Duty: {quote.dutyStatus} · Tax: {quote.taxStatus} · Clearance:{' '}
+                    {quote.clearanceStatus}
+                  </Typography>
+                  {!quote.expiresAt && (
+                    <Typography>
+                      Request a new quote after:{' '}
+                      {quote.staleAt ? `${businessTimestamp(quote.staleAt)} ET` : 'Not provided'}
+                    </Typography>
+                  )}
+                  {quote.charges.length > 0 && (
+                    <Stack spacing={0.25} sx={{ pl: 1 }}>
+                      <Typography variant="body2">Charge breakdown</Typography>
+                      {quote.charges.map((charge, chargeIndex) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: Charge rows are immutable and retain provider order.
+                        <Typography variant="body2" key={`${charge.description}-${chargeIndex}`}>
+                          {charge.description}: {new QuoteDecimal(charge.amount).toFixed(2)}{' '}
+                          {quote.currency} · {charge.scope}
+                          {charge.packageGroupPosition === null
+                            ? ''
+                            : ` · Group ${charge.packageGroupPosition + 1}`}
                         </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                        {new QuoteDecimal(entry.quote.transportationTotal).toFixed(2)}{' '}
-                        {entry.quote.currency}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {entry.quote.estimateMethod === 'calculated'
-                          ? 'Calculated estimate'
-                          : entry.attempt.provider === 'amazon'
-                            ? 'Single-package estimate'
-                            : 'Whole-shipment total'}
-                      </Typography>
-                      {entry.attempt.simulated && (
-                        <Typography variant="caption" sx={{ display: 'block' }}>
-                          Test price
+                      ))}
+                    </Stack>
+                  )}
+                  {quote.groupContributions.length > 0 && (
+                    <Stack spacing={0.25} sx={{ pl: 1 }}>
+                      <Typography variant="body2">Package group contribution</Typography>
+                      {quote.groupContributions.map((contribution) => (
+                        <Typography variant="body2" key={contribution.packageGroupPosition}>
+                          Group {contribution.packageGroupPosition + 1}: {contribution.quantity}{' '}
+                          box(es)
+                          {' · '}
+                          {new QuoteDecimal(contribution.subtotal).toFixed(2)} {quote.currency}
                         </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ display: { xs: 'block', sm: 'none' } }}
-                      >
-                        Est. transit
-                      </Typography>
-                      {entry.quote.transitDescription ?? 'Not provided'}
-                    </TableCell>
-                    <TableCell>
-                      <Stack spacing={0.5} sx={{ alignItems: 'flex-start' }}>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ display: { xs: 'block', sm: 'none' } }}
-                        >
-                          Status
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          color={entry.freshness === 'fresh' ? 'success.main' : 'text.secondary'}
-                        >
-                          {validity[entry.freshness]}
-                        </Typography>
-                        {entry.lowest && <Chip label="Lowest price" color="success" size="small" />}
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                      ))}
+                    </Stack>
+                  )}
+                  <Typography>
+                    Price received: {businessTimestamp(quote.retrievedAt)} ET · Expires:{' '}
+                    {quote.expiresAt ? `${businessTimestamp(quote.expiresAt)} ET` : 'Not provided'}
+                  </Typography>
+                </Stack>
+              </AccordionDetails>
+            </Accordion>
+          </Stack>
         </Paper>
-      )}
+      ))}
       {latest
         .filter((attempt) => attempt.status !== 'completed')
         .map((attempt) => (
@@ -255,67 +310,14 @@ export function QuoteProgress({
             )}
           </Paper>
         ))}
-      {ranked.entries.map(({ key, quote }) => (
-        <Accordion key={key} disableGutters variant="outlined">
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography>
-              View price breakdown — {quote.platform} · {quote.service}
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Stack spacing={1}>
-              <Typography>Requested options: {quote.optionCoverage}</Typography>
-              <Typography>
-                Duty: {quote.dutyStatus} · Tax: {quote.taxStatus} · Clearance:{' '}
-                {quote.clearanceStatus}
-              </Typography>
-              {!quote.expiresAt && (
-                <Typography>
-                  Request a new quote after:{' '}
-                  {quote.staleAt ? `${businessTimestamp(quote.staleAt)} ET` : 'Not provided'}
-                </Typography>
-              )}
-              {quote.charges.length > 0 && (
-                <Stack spacing={0.25} sx={{ pl: 1 }}>
-                  <Typography variant="body2">Charge breakdown</Typography>
-                  {quote.charges.map((charge, chargeIndex) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: Charge rows are immutable and retain provider order.
-                    <Typography variant="body2" key={`${charge.description}-${chargeIndex}`}>
-                      {charge.description}: {new QuoteDecimal(charge.amount).toFixed(2)}{' '}
-                      {quote.currency} · {charge.scope}
-                      {charge.packageGroupPosition === null
-                        ? ''
-                        : ` · Group ${charge.packageGroupPosition + 1}`}
-                    </Typography>
-                  ))}
-                </Stack>
-              )}
-              {quote.groupContributions.length > 0 && (
-                <Stack spacing={0.25} sx={{ pl: 1 }}>
-                  <Typography variant="body2">Package group contribution</Typography>
-                  {quote.groupContributions.map((contribution) => (
-                    <Typography variant="body2" key={contribution.packageGroupPosition}>
-                      Group {contribution.packageGroupPosition + 1}: {contribution.quantity} box(es)
-                      {' · '}
-                      {new QuoteDecimal(contribution.subtotal).toFixed(2)} {quote.currency}
-                    </Typography>
-                  ))}
-                </Stack>
-              )}
-              <Typography>
-                Price received: {businessTimestamp(quote.retrievedAt)} ET · Expires:{' '}
-                {quote.expiresAt ? `${businessTimestamp(quote.expiresAt)} ET` : 'Not provided'}
-              </Typography>
-            </Stack>
-          </AccordionDetails>
-        </Accordion>
-      ))}
+      {children}
       <Accordion disableGutters variant="outlined">
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography>Processing history</Typography>
+          <Typography>Technical details</Typography>
         </AccordionSummary>
         <AccordionDetails>
           <Stack spacing={2}>
+            <Typography variant="h6">Processing history</Typography>
             {comparison.attempts.map((attempt) => (
               <Stack key={attempt.externalId} spacing={0.5}>
                 <Typography sx={{ fontWeight: 600 }}>

@@ -57,7 +57,7 @@ test('staff retries immutable partial history; admins delete and restore it with
   await expect(page.getByText('Lowest price', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Delete comparison', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Retry myUnishippers', exact: true }).click();
-  await page.getByRole('button', { name: 'Processing history', exact: true }).click();
+  await page.getByRole('button', { name: 'Technical details', exact: true }).click();
   await expect(page.getByText('Attempt 2 · Mode: request', { exact: true })).toBeVisible();
   await expect(
     page.getByRole('alert').filter({ hasText: 'The provider request failed.' }),
@@ -67,7 +67,7 @@ test('staff retries immutable partial history; admins delete and restore it with
   expect(before.input).toEqual(input);
   expect(before.attempts).toHaveLength(3);
   await page.reload();
-  await page.getByRole('button', { name: 'Processing history', exact: true }).click();
+  await page.getByRole('button', { name: 'Technical details', exact: true }).click();
   await expect(page.getByText('Attempt 2 · Mode: request', { exact: true })).toBeVisible();
 
   const context = await browser.newContext({ baseURL: 'http://localhost:4175' });
@@ -90,7 +90,7 @@ test('staff retries immutable partial history; admins delete and restore it with
     await admin.getByRole('button', { name: 'Restore comparison', exact: true }).click();
     await expect(admin.getByText(/Last restored:/)).toBeVisible();
     await page.reload();
-    await page.getByRole('button', { name: 'Processing history', exact: true }).click();
+    await page.getByRole('button', { name: 'Technical details', exact: true }).click();
     await expect(page.getByText('Attempt 2 · Mode: request', { exact: true })).toBeVisible();
     const restored = await (await page.request.get(`${api}/${id}`)).json();
     expect(restored.attempts).toEqual(before.attempts);
