@@ -1,6 +1,11 @@
 import { type ApiClient, ApiError } from '@api/api';
 import { z } from 'zod';
 import {
+  type ProviderSettingsInput,
+  providerSettingsSchema,
+  readinessSchema,
+} from './provider-admin-schemas';
+import {
   comparisonSchema,
   type ProviderCode,
   providersSchema,
@@ -72,6 +77,51 @@ export async function refreshSender(client: ApiClient, code: ProviderCode) {
       method: 'POST',
       data: {},
       timeout: 120000,
+    }),
+  );
+}
+
+export async function getProviderSettings(client: ApiClient, signal: AbortSignal) {
+  return parse(
+    providerSettingsSchema,
+    await client.request({ url: '/admin/shipping-providers', signal }),
+  );
+}
+export async function saveProviderSettings(
+  client: ApiClient,
+  code: ProviderCode,
+  data: ProviderSettingsInput,
+) {
+  return parse(
+    providerSettingsSchema,
+    await client.request({ url: `/admin/shipping-providers/${code}`, method: 'PATCH', data }),
+  );
+}
+export async function testProviderReadiness(
+  client: ApiClient,
+  code: ProviderCode,
+  executionMode: 'request' | 'browser',
+) {
+  return parse(
+    readinessSchema,
+    await client.request({
+      url: `/admin/shipping-providers/${code}/connection-tests`,
+      method: 'POST',
+      data: { executionMode },
+    }),
+  );
+}
+export async function getProviderReadiness(
+  client: ApiClient,
+  code: ProviderCode,
+  id: string,
+  signal: AbortSignal,
+) {
+  return parse(
+    readinessSchema,
+    await client.request({
+      url: `/admin/shipping-providers/${code}/connection-tests/${id}`,
+      signal,
     }),
   );
 }

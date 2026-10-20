@@ -39,6 +39,7 @@ const primaryNavigation = [
 ] as const;
 
 const adminNavigation = [
+  { href: '/admin/shipping-providers', label: 'Quote providers', Icon: LocalShippingOutlinedIcon },
   { href: '/admin/accounts', label: 'Accounts', Icon: PeopleOutlineIcon },
   { href: '/admin/carriers', label: 'Carriers', Icon: Inventory2OutlinedIcon },
   { href: '/admin/sales-reps', label: 'Sales Reps', Icon: BadgeOutlinedIcon },

@@ -84,7 +84,7 @@ describe('Quote comparison form', () => {
         onRefresh={vi.fn().mockResolvedValue({
           refreshId: crypto.randomUUID(),
           address: original,
-          retrievedAt: '2026-10-19T12:00:00.000Z',
+          retrievedAt: new Date().toISOString(),
         })}
       />,
     );
@@ -383,4 +383,80 @@ describe('Quote comparison form', () => {
     );
     expect(save).not.toHaveBeenCalled();
   });
+});
+
+it('shows cached defaults as stale after refresh failure and blocks default submission', async () => {
+  const body = initial();
+  const selected = body.providers[0];
+  if (!selected) throw new Error('Missing fixture provider');
+  selected.sender = { mode: 'account_default', refreshId: crypto.randomUUID() };
+  render(
+    <QuoteForm
+      providers={[
+        {
+          code: 'amazon',
+          name: 'Amazon Shipping',
+          enabled: true,
+          executionMode: 'request',
+          usedInternationally: false,
+          internationalAvailable: false,
+          supportsSignature: false,
+          supportsInsurance: false,
+          staleHours: 1,
+          cachedDefault: { address, retrievedAt: '2026-10-19T12:00:00Z' },
+        },
+      ]}
+      initial={body}
+      onSave={vi.fn()}
+      onRefresh={vi.fn().mockRejectedValue(new Error('unavailable'))}
+    />,
+  );
+  expect(await screen.findByText(/Stale default/)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Save comparison' })).toBeDisabled();
+  expect(
+    screen.getByRole('button', { name: 'Refresh Amazon Shipping default' }),
+  ).toBeInTheDocument();
+});
+
+it('expires a refreshed default and displays disabled-provider maintenance', async () => {
+  const body = initial();
+  const selected = body.providers[0];
+  if (!selected) throw new Error('Missing fixture provider');
+  selected.sender = { mode: 'account_default', refreshId: crypto.randomUUID() };
+  const configuration = {
+    code: 'amazon' as const,
+    name: 'Amazon Shipping',
+    enabled: true,
+    executionMode: 'request' as const,
+    usedInternationally: false,
+    internationalAvailable: false,
+    supportsSignature: false,
+    supportsInsurance: false,
+    staleHours: 1,
+  };
+  render(
+    <QuoteForm
+      providers={[
+        configuration,
+        {
+          ...configuration,
+          code: 'unishippers',
+          name: 'myUnishippers',
+          enabled: false,
+          maintenanceMessage: 'Provider maintenance',
+        },
+      ]}
+      initial={body}
+      onSave={vi.fn()}
+      onRefresh={vi.fn().mockResolvedValue({
+        refreshId: crypto.randomUUID(),
+        address,
+        retrievedAt: new Date().toISOString(),
+        expiresAt: '2020-01-01T00:00:00Z',
+      })}
+    />,
+  );
+  expect(await screen.findByText(/Stale default/)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Save comparison' })).toBeDisabled();
+  expect(screen.getByText(/myUnishippers is disabled. Provider maintenance/)).toBeInTheDocument();
 });

@@ -11,6 +11,7 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import dayjs from 'dayjs';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FormProvider, useFieldArray, useForm, useFormContext } from 'react-hook-form';
 import { QuoteDecimal } from './quote-decimal';
@@ -222,9 +223,12 @@ function ProviderFields({
   const [refreshed, setRefreshed] = useState<SenderRefresh>();
   const [failure, setFailure] = useState('');
   const [pending, setPending] = useState(false);
+  const [refreshNumber, setRefreshNumber] = useState(0);
+  const [expired, setExpired] = useState(false);
   const generation = useRef(0);
   const refresh = useRef(onRefresh);
   refresh.current = onRefresh;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshNumber is the explicit user-requested refresh trigger.
   useEffect(() => {
     if (provider.sender.mode !== 'account_default') return;
     const current = ++generation.current;
@@ -236,6 +240,7 @@ function ProviderFields({
       .then((result) => {
         if (current !== generation.current) return;
         setRefreshed(result);
+        setExpired(false);
         setValue(`providers.${index}.sender`, {
           mode: 'account_default',
           refreshId: result.refreshId,
@@ -254,11 +259,33 @@ function ProviderFields({
     return () => {
       generation.current++;
     };
-  }, [provider.code, provider.sender.mode, index, setValue]);
+  }, [provider.code, provider.sender.mode, index, setValue, refreshNumber]);
+  useEffect(() => {
+    if (!refreshed || provider.sender.mode !== 'account_default') return;
+    const expires = refreshed.expiresAt
+      ? dayjs(refreshed.expiresAt)
+      : dayjs(refreshed.retrievedAt).add(15, 'minute');
+    const timer = setTimeout(
+      () => {
+        setExpired(true);
+        setValue(`providers.${index}.sender`, { mode: 'account_default', refreshId: '' });
+      },
+      Math.max(0, expires.diff(dayjs())),
+    );
+    return () => clearTimeout(timer);
+  }, [refreshed, provider.sender.mode, index, setValue]);
+  const displayed = refreshed ?? configuration.cachedDefault;
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
       <Stack spacing={2}>
         <Typography variant="h6">{name}</Typography>
+        <Typography variant="body2">
+          Mode: {configuration.executionMode}. Stale period: {configuration.staleHours ?? 1}{' '}
+          hour(s).
+        </Typography>
+        {configuration.maintenanceMessage && (
+          <Alert severity="info">{configuration.maintenanceMessage}</Alert>
+        )}
         {provider.code === 'unishippers' && (
           <Alert severity="info">
             All package groups are quoted together, and returned totals already include box
@@ -277,7 +304,7 @@ function ProviderFields({
               event.target.value === 'explicit'
                 ? {
                     mode: 'explicit',
-                    address: { ...(refreshed?.address ?? emptyAddress()), country: 'US' },
+                    address: { ...(displayed?.address ?? emptyAddress()), country: 'US' },
                   }
                 : { mode: 'account_default', refreshId: crypto.randomUUID() },
             )
@@ -304,12 +331,17 @@ function ProviderFields({
           <>
             {pending && <Alert severity="info">Refreshing sender…</Alert>}
             {failure && <Alert severity="warning">{failure}</Alert>}
-            {refreshed && !pending && !failure && (
-              <Alert severity="success">
-                {Object.values(refreshed.address).filter(Boolean).join(', ')} — Retrieved{' '}
-                {businessTimestamp(refreshed.retrievedAt)} ET
+            {displayed && (
+              <Alert severity={pending || failure || expired || !refreshed ? 'warning' : 'success'}>
+                {Object.values(displayed.address).filter(Boolean).join(', ')} — Retrieved{' '}
+                {businessTimestamp(displayed.retrievedAt)} ET.
+                {(pending || failure || expired || !refreshed) &&
+                  ' Stale default — refresh or enter an explicit sender before saving.'}
               </Alert>
             )}
+            <Button disabled={pending} onClick={() => setRefreshNumber((n) => n + 1)}>
+              Refresh {name} default
+            </Button>
           </>
         )}
         {configuration.supportsSignature && (
@@ -544,6 +576,14 @@ export function QuoteForm({
                     );
                   })}
               </Stack>
+              {providers
+                .filter((p) => !p.enabled)
+                .map((p) => (
+                  <Alert severity="warning" key={p.code}>
+                    {p.name} is disabled.{' '}
+                    {p.maintenanceMessage || 'Unavailable for new comparisons.'}
+                  </Alert>
+                ))}
               {!providers.some((p) => p.enabled) && (
                 <Alert severity="warning">No providers are enabled. Saving is unavailable.</Alert>
               )}

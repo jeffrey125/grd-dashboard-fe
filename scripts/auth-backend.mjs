@@ -20,12 +20,16 @@ const backendModule = (path) => import(pathToFileURL(resolve(backend, 'dist', pa
 let container;
 let app;
 let quoteWorker;
+let readinessWorker;
+let defaultsWorker;
 let stopping = false;
 async function stop() {
   if (stopping) return;
   stopping = true;
   try {
     await quoteWorker?.onModuleDestroy();
+    await readinessWorker?.onModuleDestroy();
+    defaultsWorker?.onModuleDestroy();
     await app?.close();
   } finally {
     try {
@@ -173,6 +177,45 @@ try {
       app.get(ProjectLogger),
     );
     quoteWorker.onModuleInit();
+  }
+  if (process.env.FE_TEST_PROVIDER_ADMIN === 'true') {
+    const { ProviderReadinessWorker } = await backendModule(
+      'modules/shipping-quotes/provider-readiness.worker.js',
+    );
+    const { TypeOrmProviderAdminRepository } = await backendModule(
+      'modules/shipping-quotes/typeorm-provider-admin.repository.js',
+    );
+    const { SenderDefaultsWorker } = await backendModule(
+      'modules/shipping-quotes/sender-defaults.worker.js',
+    );
+    const { TypeOrmSenderDefaultsRepository } = await backendModule(
+      'modules/shipping-quotes/typeorm-sender-defaults.repository.js',
+    );
+    // Explicit fixture workers: never load credentials or contact real providers.
+    readinessWorker = new ProviderReadinessWorker(
+      new TypeOrmProviderAdminRepository(app.get(DataSource)),
+      () => ({
+        readiness: async () => {
+          throw new Error('Fixture readiness failure');
+        },
+        close: async () => {},
+      }),
+    );
+    defaultsWorker = new SenderDefaultsWorker(
+      new TypeOrmSenderDefaultsRepository(app.get(DataSource)),
+      {
+        read: async () => ({
+          name: 'Fixture warehouse',
+          street: '1 Example Street',
+          city: 'Walworth',
+          division: 'WI',
+          postalCode: '53125',
+          country: 'US',
+        }),
+      },
+    );
+    readinessWorker.onModuleInit();
+    defaultsWorker.onModuleInit();
   }
   await app.listen(apiPort, 'localhost');
   console.log(

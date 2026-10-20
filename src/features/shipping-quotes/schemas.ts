@@ -13,19 +13,6 @@ const decimal = z
   .refine((value) => Number(value) > 0);
 const dimension = z.union([z.literal(''), decimal]);
 const providerCode = z.enum(['amazon', 'unishippers']);
-export const providersSchema = z.array(
-  z.object({
-    code: providerCode,
-    name: z.string(),
-    enabled: z.boolean(),
-    executionMode: z.enum(['request', 'browser']),
-    usedInternationally: z.boolean(),
-    internationalAvailable: z.boolean(),
-    supportsSignature: z.boolean(),
-    supportsInsurance: z.boolean(),
-  }),
-);
-export type Provider = z.infer<typeof providersSchema>[number];
 const addressSchema = z
   .strictObject({
     name: text,
@@ -46,6 +33,25 @@ const addressSchema = z
         message: 'Enter a possible phone number for the address country',
       });
   });
+export const providersSchema = z.array(
+  z.object({
+    code: providerCode,
+    name: z.string(),
+    enabled: z.boolean(),
+    maintenanceMessage: z.string().nullable().optional(),
+    staleHours: z.number().int().min(1).max(168).optional(),
+    cachedDefault: z
+      .object({ address: addressSchema, retrievedAt: z.iso.datetime() })
+      .nullable()
+      .optional(),
+    executionMode: z.enum(['request', 'browser']),
+    usedInternationally: z.boolean(),
+    internationalAvailable: z.boolean(),
+    supportsSignature: z.boolean(),
+    supportsInsurance: z.boolean(),
+  }),
+);
+export type Provider = z.infer<typeof providersSchema>[number];
 const senderSchema = z.discriminatedUnion('mode', [
   z.strictObject({
     mode: z.literal('explicit'),
@@ -282,6 +288,7 @@ export const comparisonSchema = z.object({
 });
 export type Comparison = z.infer<typeof comparisonSchema>;
 export const refreshSchema = z.object({
+  expiresAt: z.iso.datetime().optional(),
   refreshId: z.uuidv4(),
   address: addressSchema,
   retrievedAt: z.iso.datetime(),

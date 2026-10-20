@@ -14,6 +14,7 @@ import { Route as ChangePasswordRouteImport } from './../routes/change-password'
 import { Route as LoginRouteImport } from './../routes/login';
 import { Route as QuotesRouteImport } from './../routes/quotes';
 import { Route as ShipmentsRouteImport } from './../routes/shipments';
+import { Route as AdminShippingProvidersRouteImport } from './../routes/admin.shipping-providers';
 import { Route as QuotesIndexRouteImport } from './../routes/quotes.index';
 import { Route as QuotesComparisonIdRouteImport } from './../routes/quotes.$comparisonId';
 import { Route as QuotesNewRouteImport } from './../routes/quotes.new';
@@ -49,6 +50,11 @@ const QuotesRoute = QuotesRouteImport.update({
 const ShipmentsRoute = ShipmentsRouteImport.update({
   id: '/shipments',
   path: '/shipments',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const AdminShippingProvidersRoute = AdminShippingProvidersRouteImport.update({
+  id: '/admin/shipping-providers',
+  path: '/admin/shipping-providers',
   getParentRoute: () => rootRouteImport,
 } as any);
 const QuotesIndexRoute = QuotesIndexRouteImport.update({
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute;
   '/quotes': typeof QuotesRouteWithChildren;
   '/shipments': typeof ShipmentsRouteWithChildren;
+  '/admin/shipping-providers': typeof AdminShippingProvidersRoute;
   '/quotes/$comparisonId': typeof QuotesComparisonIdRoute;
   '/quotes/new': typeof QuotesNewRoute;
   '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/change-password': typeof ChangePasswordRoute;
   '/login': typeof LoginRoute;
+  '/admin/shipping-providers': typeof AdminShippingProvidersRoute;
   '/quotes/$comparisonId': typeof QuotesComparisonIdRoute;
   '/quotes/new': typeof QuotesNewRoute;
   '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
@@ -148,6 +156,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute;
   '/quotes': typeof QuotesRouteWithChildren;
   '/shipments': typeof ShipmentsRouteWithChildren;
+  '/admin/shipping-providers': typeof AdminShippingProvidersRoute;
   '/quotes/$comparisonId': typeof QuotesComparisonIdRoute;
   '/quotes/new': typeof QuotesNewRoute;
   '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/quotes'
     | '/shipments'
+    | '/admin/shipping-providers'
     | '/quotes/$comparisonId'
     | '/quotes/new'
     | '/shipments/$shipmentId'
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
     | '/'
     | '/change-password'
     | '/login'
+    | '/admin/shipping-providers'
     | '/quotes/$comparisonId'
     | '/quotes/new'
     | '/shipments/$shipmentId'
@@ -202,6 +213,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/quotes'
     | '/shipments'
+    | '/admin/shipping-providers'
     | '/quotes/$comparisonId'
     | '/quotes/new'
     | '/shipments/$shipmentId'
@@ -221,6 +233,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute;
   QuotesRoute: typeof QuotesRouteWithChildren;
   ShipmentsRoute: typeof ShipmentsRouteWithChildren;
+  AdminShippingProvidersRoute: typeof AdminShippingProvidersRoute;
   AdminAccountsAccountIdRoute: typeof AdminAccountsAccountIdRoute;
   AdminAccountsNewRoute: typeof AdminAccountsNewRoute;
   AdminCarriersCarrierIdRoute: typeof AdminCarriersCarrierIdRoute;
@@ -264,6 +277,13 @@ declare module '@tanstack/react-router' {
       path: '/shipments';
       fullPath: '/shipments';
       preLoaderRoute: typeof ShipmentsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/admin/shipping-providers': {
+      id: '/admin/shipping-providers';
+      path: '/admin/shipping-providers';
+      fullPath: '/admin/shipping-providers';
+      preLoaderRoute: typeof AdminShippingProvidersRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/quotes/': {
@@ -381,6 +401,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   QuotesRoute: QuotesRouteWithChildren,
   ShipmentsRoute: ShipmentsRouteWithChildren,
+  AdminShippingProvidersRoute: AdminShippingProvidersRoute,
   AdminAccountsAccountIdRoute: AdminAccountsAccountIdRoute,
   AdminAccountsNewRoute: AdminAccountsNewRoute,
   AdminCarriersCarrierIdRoute: AdminCarriersCarrierIdRoute,
