@@ -162,7 +162,14 @@ try {
     const { ProjectLogger } = await backendModule('infrastructure/logging/logging.types.js');
     quoteWorker = new QuoteWorker(
       new TypeOrmQuoteExecutionRepository(app.get(DataSource)),
-      (code) => new FixtureQuoteAdapter(code === 'amazon' ? 'success' : 'validation_failed'),
+      (code) =>
+        new FixtureQuoteAdapter(
+          code === 'amazon'
+            ? 'success'
+            : process.env.FE_TEST_QUOTE_RETRY === 'true'
+              ? 'failed'
+              : 'validation_failed',
+        ),
       app.get(ProjectLogger),
     );
     quoteWorker.onModuleInit();

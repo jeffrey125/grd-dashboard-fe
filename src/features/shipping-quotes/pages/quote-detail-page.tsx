@@ -1,21 +1,44 @@
 import { safeError } from '@api/api';
 import { PageHeader } from '@components/layout/page-header';
+import { useSession } from '@features/auth';
+import { changeComparison } from '@features/shipping-quotes/api';
 import { QuoteProgress } from '@features/shipping-quotes/quote-progress';
 import { useComparison } from '@features/shipping-quotes/use-comparison';
 import { businessTimestamp } from '@lib/dates';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createLink, useParams } from '@tanstack/react-router';
+import { useState } from 'react';
 
 const RouterButton = createLink(Button);
 
 export function QuoteDetailPage() {
   const { comparisonId } = useParams({ from: '/quotes/$comparisonId' });
   const query = useComparison(comparisonId);
-  if (query.error && !query.data)
+  const { session, account } = useSession();
+  const queries = useQueryClient();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const mutation = useMutation({
+    mutationFn: (action: Parameters<typeof changeComparison>[2]) =>
+      changeComparison(session.client, comparisonId, action),
+    onSuccess: async () => {
+      setConfirmDelete(false);
+      await queries.invalidateQueries({ queryKey: ['quote-comparison', comparisonId] });
+      await queries.invalidateQueries({ queryKey: ['quote-comparisons'] });
+    },
+    onError: async () => {
+      await queries.invalidateQueries({ queryKey: ['quote-comparison', comparisonId] });
+    },
+  });
+  if (query.error && (!query.data || [401, 403, 404].includes(safeError(query.error).status)))
     return <Alert severity="error">{safeError(query.error).message}</Alert>;
   if (!query.data) return <Typography>Loading saved comparison…</Typography>;
   const comparison = query.data;
@@ -29,18 +52,74 @@ export function QuoteDetailPage() {
             Updates unavailable. Showing the last saved result; reconnecting…
           </Alert>
         )}
-        <QuoteProgress comparison={comparison} />
-        <Alert severity="warning">
-          Provider support unverified. Requested signature and insurance are not confirmed.
-        </Alert>
+        {mutation.error && <Alert severity="error">{safeError(mutation.error).message}</Alert>}
+        {comparison.deletedAt && (
+          <Alert severity="warning">
+            Deleted comparison — visible only to admins. Restore to make it available to staff.
+          </Alert>
+        )}
+        <QuoteProgress
+          comparison={comparison}
+          pending={mutation.isPending}
+          onRetry={(attemptId) => mutation.mutate({ type: 'retry', attemptId })}
+        />
         <Stack direction="row" spacing={2}>
-          <RouterButton to="/quotes/new" search={{ copy: comparisonId }} variant="contained">
+          <RouterButton
+            to="/quotes/new"
+            search={{ copy: comparisonId }}
+            variant="contained"
+            disabled={!!comparison.deletedAt}
+          >
             Copy to new comparison
           </RouterButton>
           <RouterButton to="/quotes" search={{ page: 1 }}>
             All comparisons
           </RouterButton>
+          {account?.role === 'admin' &&
+            (comparison.deletedAt ? (
+              <Button
+                disabled={mutation.isPending}
+                onClick={() => mutation.mutate({ type: 'restore' })}
+              >
+                Restore comparison
+              </Button>
+            ) : (
+              <Button
+                color="error"
+                disabled={
+                  mutation.isPending || !['completed', 'failed'].includes(comparison.status)
+                }
+                onClick={() => setConfirmDelete(true)}
+              >
+                Delete comparison
+              </Button>
+            ))}
         </Stack>
+        {comparison.lastDeletedAt && (
+          <Typography>Last deleted: {businessTimestamp(comparison.lastDeletedAt)} ET</Typography>
+        )}
+        {comparison.restoredAt && (
+          <Typography>Last restored: {businessTimestamp(comparison.restoredAt)} ET</Typography>
+        )}
+        <Dialog open={confirmDelete} onClose={() => !mutation.isPending && setConfirmDelete(false)}>
+          <DialogTitle>Delete comparison?</DialogTitle>
+          <DialogContent>
+            Comparison {comparison.externalId} will be hidden from staff. All attempts and rates are
+            retained, and admins can restore it.
+          </DialogContent>
+          <DialogActions>
+            <Button disabled={mutation.isPending} onClick={() => setConfirmDelete(false)}>
+              Cancel
+            </Button>
+            <Button
+              color="error"
+              disabled={mutation.isPending}
+              onClick={() => mutation.mutate({ type: 'delete' })}
+            >
+              Confirm delete
+            </Button>
+          </DialogActions>
+        </Dialog>
         <Typography>Ship date: {input.shipDate}</Typography>
         <Typography>
           Saved: {businessTimestamp(comparison.createdAt)} ET · Comparison {comparison.externalId}

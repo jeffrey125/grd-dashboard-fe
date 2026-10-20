@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 import { QuoteProgress } from './quote-progress';
 import type { Comparison } from './schemas';
 
@@ -36,6 +37,45 @@ const comparison = (
 });
 
 describe('Quote progress', () => {
+  it('offers Retry only for an eligible attempt and displays its chronology and origin', async () => {
+    const onRetry = vi.fn();
+    const failed = {
+      ...attempt('failed'),
+      retryBlockedReason: null,
+      createdAt: '2026-10-19T12:00:00.000Z',
+      sender: {
+        code: 'amazon' as const,
+        mode: 'explicit' as const,
+        retrievedAt: null,
+        address: {
+          name: 'Original warehouse',
+          street: '1 Example St',
+          city: 'Walworth',
+          division: 'WI',
+          postalCode: '53125',
+          country: 'US',
+        },
+      },
+    };
+    const value = comparison('failed', [failed]);
+    const { rerender } = render(<QuoteProgress comparison={value} onRetry={onRetry} />);
+    expect(screen.getByText(/Attempt 1 · Mode: request/)).toBeInTheDocument();
+    expect(screen.getByText(/Actual provider origin: Original warehouse/)).toBeInTheDocument();
+    expect(screen.getByText(/Queued: Oct 19, 2026, 8:00 AM ET/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Retry Amazon Shipping' }));
+    expect(onRetry).toHaveBeenCalledWith(failed.externalId);
+    rerender(<QuoteProgress comparison={value} onRetry={onRetry} pending />);
+    expect(screen.getByRole('button', { name: 'Retry Amazon Shipping' })).toBeDisabled();
+    rerender(
+      <QuoteProgress
+        comparison={comparison('failed', [{ ...failed, retryBlockedReason: 'ship_date_passed' }])}
+        onRetry={onRetry}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Retry Amazon Shipping' })).toBeDisabled();
+    expect(screen.getByText(/Ship date has passed/)).toBeInTheDocument();
+  });
+
   it('explains how to add missing browser contact details', () => {
     render(
       <QuoteProgress

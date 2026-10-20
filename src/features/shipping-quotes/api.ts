@@ -22,7 +22,12 @@ export async function getProviders(client: ApiClient, signal: AbortSignal) {
 export async function getComparison(client: ApiClient, id: string, signal: AbortSignal) {
   return parse(comparisonSchema, await client.request({ url: `/quote-comparisons/${id}`, signal }));
 }
-export async function listComparisons(client: ApiClient, page: number, signal: AbortSignal) {
+export async function listComparisons(
+  client: ApiClient,
+  page: number,
+  signal: AbortSignal,
+  deleted = false,
+) {
   return parse(
     z.object({
       items: z.array(comparisonSchema),
@@ -30,7 +35,27 @@ export async function listComparisons(client: ApiClient, page: number, signal: A
       page: z.number().int().positive(),
       pageSize: z.literal(25),
     }),
-    await client.request({ url: '/quote-comparisons', params: { page }, signal }),
+    await client.request({ url: '/quote-comparisons', params: { page, deleted }, signal }),
+  );
+}
+export async function changeComparison(
+  client: ApiClient,
+  id: string,
+  action: { type: 'retry'; attemptId: string } | { type: 'delete' | 'restore' },
+) {
+  const suffix =
+    action.type === 'retry'
+      ? `/attempts/${action.attemptId}/retry`
+      : action.type === 'restore'
+        ? '/restore'
+        : '';
+  return parse(
+    comparisonSchema,
+    await client.request({
+      url: `/quote-comparisons/${id}${suffix}`,
+      method: action.type === 'delete' ? 'DELETE' : 'POST',
+      data: {},
+    }),
   );
 }
 export async function saveComparison(client: ApiClient, input: QuoteInput) {

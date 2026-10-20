@@ -198,6 +198,9 @@ export const comparisonSchema = z.object({
   ratesRun: z.boolean(),
   createdAt: z.iso.datetime(),
   createdBy: z.uuidv4(),
+  deletedAt: z.iso.datetime().nullable().optional(),
+  lastDeletedAt: z.iso.datetime().nullable().optional(),
+  restoredAt: z.iso.datetime().nullable().optional(),
   input: createQuoteSchema,
   senders: z.array(
     z.object({
@@ -214,6 +217,16 @@ export const comparisonSchema = z.object({
       provider: providerCode,
       status: z.enum(['saved', 'queued', 'running', 'completed', 'failed']),
       attemptNumber: z.number().int().positive(),
+      createdAt: z.iso.datetime().optional(),
+      sender: z
+        .object({
+          code: providerCode,
+          address: addressSchema,
+          mode: z.enum(['explicit', 'account_default']),
+          retrievedAt: z.iso.datetime().nullable(),
+        })
+        .optional(),
+      retryBlockedReason: z.string().nullable().optional(),
       executionMode: z.enum(['request', 'browser']).nullable(),
       startedAt: z.iso.datetime().nullable(),
       completedAt: z.iso.datetime().nullable(),
@@ -242,6 +255,7 @@ export const comparisonSchema = z.object({
           transitDescription: z.string().nullable(),
           retrievedAt: z.iso.datetime(),
           expiresAt: z.iso.datetime().nullable(),
+          staleAt: z.iso.datetime().nullable().optional(),
           optionCoverage: z.enum(['included', 'unsupported', 'unverified']),
           dutyStatus: z.enum(['included', 'excluded', 'unknown']),
           taxStatus: z.enum(['included', 'excluded', 'unknown']),

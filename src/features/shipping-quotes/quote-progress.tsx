@@ -1,8 +1,12 @@
 import { businessTimestamp } from '@lib/dates';
 import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import { useEffect, useState } from 'react';
+import { rankQuotes } from './quote-ranking';
 import type { Comparison } from './schemas';
 
 const reasons: Record<string, string> = {
@@ -20,9 +24,41 @@ const reasons: Record<string, string> = {
   provider_failed: 'The provider request failed.',
 };
 
-export function QuoteProgress({ comparison }: { comparison: Comparison }) {
-  const successes = comparison.attempts.filter((attempt) => attempt.status === 'completed').length;
-  const failures = comparison.attempts.filter((attempt) => attempt.status === 'failed').length;
+const retryReasons: Record<string, string> = {
+  provider_disabled: 'Provider disabled. A new comparison is required with an available provider.',
+  ship_date_passed: 'Ship date has passed. Copy to new comparison and choose a new date.',
+  input_invalid: 'Current validation rejects these inputs. Copy to new comparison to correct them.',
+  outcome_not_retryable:
+    'This outcome cannot be retried. Copy to new comparison to change the inputs.',
+  newer_attempt: 'A newer attempt exists for this provider.',
+  attempt_active: 'This provider already has a queued or running attempt.',
+  comparison_deleted: 'Restore this comparison before retrying.',
+};
+
+export function QuoteProgress({
+  comparison,
+  onRetry,
+  pending = false,
+}: {
+  comparison: Comparison;
+  onRetry?: (id: string) => void;
+  pending?: boolean;
+}) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const ranked = rankQuotes(comparison, now);
+  const latest = comparison.attempts.filter(
+    (attempt) =>
+      !comparison.attempts.some(
+        (other) =>
+          other.provider === attempt.provider && other.attemptNumber > attempt.attemptNumber,
+      ),
+  );
+  const successes = latest.filter((attempt) => attempt.status === 'completed').length;
+  const failures = latest.filter((attempt) => attempt.status === 'failed').length;
   const label =
     comparison.status === 'saved'
       ? 'Saved — no rates run.'
@@ -43,11 +79,62 @@ export function QuoteProgress({ comparison }: { comparison: Comparison }) {
       <Alert severity={comparison.status === 'failed' ? 'error' : 'info'}>
         {label} These details are read-only.
       </Alert>
+      {ranked.warnings.map((warning) => (
+        <Alert severity="warning" key={warning}>
+          {warning}
+        </Alert>
+      ))}
+      {ranked.comparable && ranked.entries.length > 1 && (
+        <Paper variant="outlined" sx={{ p: 2 }}>
+          <Typography variant="h6">Comparable services — price low to high</Typography>
+          {ranked.entries.map((entry) => (
+            <Typography key={entry.key}>
+              {entry.quote.platform} · {entry.quote.service}: {entry.quote.transportationTotal}{' '}
+              {entry.quote.currency} · {entry.freshness}
+            </Typography>
+          ))}
+        </Paper>
+      )}
       {comparison.attempts.map((attempt) => (
         <Paper key={attempt.externalId} variant="outlined" sx={{ p: 2 }}>
           <Typography variant="h6">
             {attempt.provider === 'amazon' ? 'Amazon Shipping' : 'myUnishippers'} — {attempt.status}
           </Typography>
+          <Typography>
+            Attempt {attempt.attemptNumber} · Mode: {attempt.executionMode ?? 'Not started'}
+          </Typography>
+          <Typography>
+            Queued: {businessTimestamp(attempt.createdAt ?? null)} ET · Started:{' '}
+            {businessTimestamp(attempt.startedAt)} ET · Completed:{' '}
+            {businessTimestamp(attempt.completedAt)} ET
+          </Typography>
+          <Typography>
+            Actual provider origin:{' '}
+            {attempt.sender
+              ? Object.values(attempt.sender.address).filter(Boolean).join(', ')
+              : 'Not provided'}
+          </Typography>
+          {attempt.sender?.retrievedAt && (
+            <Typography>
+              Origin retrieved: {businessTimestamp(attempt.sender.retrievedAt)} ET
+            </Typography>
+          )}
+          {attempt.status === 'failed' && onRetry && (
+            <Stack spacing={1}>
+              <Button
+                disabled={pending || attempt.retryBlockedReason !== null}
+                onClick={() => onRetry(attempt.externalId)}
+              >
+                Retry {attempt.provider === 'amazon' ? 'Amazon Shipping' : 'myUnishippers'}
+              </Button>
+              {attempt.retryBlockedReason && (
+                <Typography>
+                  {retryReasons[attempt.retryBlockedReason] ??
+                    'Retry is unavailable. Copy to new comparison.'}
+                </Typography>
+              )}
+            </Stack>
+          )}
           {attempt.simulated && (
             <Alert severity="warning">Simulated rates — not provider quotes.</Alert>
           )}
@@ -71,11 +158,24 @@ export function QuoteProgress({ comparison }: { comparison: Comparison }) {
                     : 'Whole-shipment total'}
               </Typography>
               <Typography>Transit: {quote.transitDescription ?? 'Not provided'}</Typography>
+              {ranked.entries.find((entry) => entry.key === `${attempt.externalId}:${index}`)
+                ?.lowest && <Chip label="Lowest price" color="success" size="small" />}
+              <Typography>
+                Rate status:{' '}
+                {ranked.entries.find((entry) => entry.key === `${attempt.externalId}:${index}`)
+                  ?.freshness ?? 'unknown'}
+              </Typography>
               <Typography>Requested options: {quote.optionCoverage}</Typography>
               <Typography>
                 Duty: {quote.dutyStatus} · Tax: {quote.taxStatus} · Clearance:{' '}
                 {quote.clearanceStatus}
               </Typography>
+              {!quote.expiresAt && (
+                <Typography>
+                  Stale after:{' '}
+                  {quote.staleAt ? `${businessTimestamp(quote.staleAt)} ET` : 'Not provided'}
+                </Typography>
+              )}
               {quote.charges.length > 0 && (
                 <Stack spacing={0.25} sx={{ pl: 1 }}>
                   <Typography variant="body2">Charge breakdown</Typography>

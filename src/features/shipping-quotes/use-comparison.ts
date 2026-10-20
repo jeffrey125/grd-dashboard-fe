@@ -1,3 +1,4 @@
+import { safeError } from '@api/api';
 import { useSession } from '@features/auth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
@@ -12,10 +13,9 @@ export function useComparison(id: string) {
     queryFn: ({ signal }) => getComparison(session.client, id, signal),
     enabled: status === 'authenticated',
     refetchInterval: (query) =>
-      !query.state.data || ['queued', 'running'].includes(query.state.data.status) ? 15000 : false,
-    refetchIntervalInBackground: true,
+      [401, 403, 404].includes(safeError(query.state.error).status) ? false : 15000,
   });
-  const active = !query.data || ['queued', 'running'].includes(query.data.status);
+  const active = !query.data?.deletedAt && ![401, 403, 404].includes(safeError(query.error).status);
 
   useEffect(() => {
     if (status !== 'authenticated' || !active) return;
