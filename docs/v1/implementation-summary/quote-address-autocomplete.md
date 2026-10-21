@@ -3,8 +3,9 @@
 ## Summary
 
 Implemented the approved frontend-only Google Places autocomplete for Sender and
-Recipient, with explicit manual entry and editable selected addresses. No backend
-Google proxy, API contract, database, or deployment change is part of this work.
+Recipient, with explicit manual entry and editable selected addresses. The change
+was deployed as a frontend-only LAN release; no backend Google proxy, API contract,
+database migration, or worker change was introduced.
 
 ## Changes Made
 
@@ -54,11 +55,24 @@ Google proxy, API contract, database, or deployment change is part of this work.
 - Existing frontend `http://localhost:5173`: HTTP 200. Its
   `/api/v1/health/ready` proxy: HTTP 200 with application and database up. Existing
   server reused and left running. Direct localhost:3000 is not the configured service.
-- Full browser suite, real-backend/disposable database tests, coverage and container
-  acceptance were not run for this frontend-only change. Updated backend browser
-  fixture is typechecked but its execution remains unverified.
+- `pnpm test:acceptance`: passed — 238 unit tests, 136 isolated desktop/mobile
+  browser tests, 22 real-backend browser tests, 4 HTTPS container checks and 3
+  HTTP-only container checks. Five existing provider-gated scenarios were skipped.
 - Live Google suggestions, billing, API enablement and referrer/API restrictions
-  were not verified. No provider quotes, production changes or deployment performed.
+  were not verified. The browser checks use a synthetic SDK fixture and never call
+  Google.
+- LAN release `20261022-04` is active at `http://192.168.100.83`. Frontend image
+  identity is `sha256:5b36dfc92dc2f3b7f93852e0dcd190e5b192f71c36327451384332a112cf6c00`;
+  the transferred archive SHA-256 is
+  `4e28cd6ce495386085f0eafd83ab9da827d3d8b0ed1cb06fee1b9e2ff025fbef`.
+- The API and worker remain `grd-dashboard-be:20261022-03`; PostgreSQL remains
+  `postgres:18.3-alpine`. `/healthz` returned `ok`, API readiness returned
+  application/database `up`, `/quotes/new` returned HTTP 200, and the running
+  frontend bundle contains the Places loader.
+- Before activation, `/home/jeff/app/grd-dashboard/backups/grd-dashboard-pre-fe-20261022-04.dump`
+  was created with mode 600, size 274406 bytes and SHA-256
+  `0b35f6da3cff13c7ba11e103d2633b39b06f6dc2347c08251708dd5b06a28359`. The prior
+  remote environment was preserved as `.env.pre-fe-20261022-04` with mode 600.
 
 ## Review Notes
 
@@ -70,17 +84,17 @@ Selected addresses remain editable and are not proof of carrier deliverability.
 The key is public build-time configuration. Google Cloud must enable Maps JavaScript
 API and Places API (New), billing and appropriate website/API restrictions. Required
 terms/privacy disclosures are documented in README before rollout. An absent key
-degrades to manual fields. Test-built `dist` contains the fake key; rebuild with real
-configuration for deployment, which remains separately authorized work.
+degrades to manual fields. The LAN image was rebuilt with the configured public key;
+live Google project restrictions still require operator verification.
 
 Pre-existing deployment changes observed at the start were not edited; they were
 committed elsewhere during this task. Backend untracked Amazon documents and output
-remain untouched. No staging or commits were performed.
+remain untouched. The implementation commit is `0d4a219`.
 
 ## Remaining Issues
 
-Live Google/project configuration verification and deployment remain outstanding.
-Real-backend/container acceptance was not rerun. No known failing executed checks.
+Live Google/project configuration verification remains outstanding. No known failing
+executed checks.
 
 ## Suggested Review Order
 
@@ -90,7 +104,7 @@ Real-backend/container acceptance was not rerun. No known failing executed check
 
 ## Proposed commit
 
-One coherent frontend commit (pending approval):
+One coherent frontend commit (approved and created):
 `feat(shipping-quotes): add frontend address autocomplete`
 
 Include the implementation, its tests, dependency/config changes and docs listed
