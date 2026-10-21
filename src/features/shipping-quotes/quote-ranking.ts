@@ -61,8 +61,8 @@ export function rankQuotes(comparison: Comparison, now: number) {
     );
   if (options.size > 1 || options.has(null))
     warnings.push('Requested options differ or are unknown — no overall lowest price.');
-  if (new Set(entries.map(({ attempt }) => attempt.simulated)).size > 1)
-    warnings.push('Simulated and provider rates cannot be ranked together.');
+  if (entries.some(({ attempt }) => attempt.simulated))
+    warnings.push('Simulated rates are excluded from Lowest price.');
   const uncovered = entries.some(({ attempt, quote }) => {
     const requested = comparison.input.providers?.find(
       (provider) => provider.code === attempt.provider,

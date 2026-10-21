@@ -29,10 +29,10 @@ const reasons: Record<string, string> = {
   timeout: 'The provider request timed out.',
   authentication_failed: 'Could not sign in to this provider. Try again or contact an admin.',
   verification_required:
-    'Amazon needs verification. Choose Verify Amazon & retry to complete the challenge here.',
+    'This historical attempt used the retired Amazon browser flow. Retry to use the current API mode.',
   recovery_exhausted: 'This request was interrupted. Try again.',
   provider_setup_required:
-    'Amazon Shipping account setup is incomplete. An admin must finish pickup and contact setup in Amazon Shipping, then retry.',
+    'This historical attempt used the retired Amazon browser onboarding flow. Retry to use the current API mode.',
   provider_failed: 'The provider request failed.',
 };
 
@@ -68,13 +68,11 @@ const retryReasons: Record<string, string> = {
 export function QuoteProgress({
   comparison,
   onRetry,
-  onVerifyAmazon,
   pending = false,
   children,
 }: {
   comparison: Comparison;
   onRetry?: (id: string) => void;
-  onVerifyAmazon?: (id: string) => void;
   pending?: boolean;
   children?: ReactNode;
 }) {
@@ -118,12 +116,17 @@ export function QuoteProgress({
       <Alert severity={comparison.status === 'failed' ? 'error' : 'info'}>
         {label} These details are read-only.
       </Alert>
-      {comparison.attempts.some((attempt) => attempt.simulated) && (
+      {comparison.attempts.some((attempt) => attempt.provider === 'amazon' && attempt.simulated) ? (
+        <Alert severity="warning">
+          Amazon sandbox mode — test data, not live commercial prices. Sandbox rates are excluded
+          from Lowest price.
+        </Alert>
+      ) : comparison.attempts.some((attempt) => attempt.simulated) ? (
         <Alert severity="warning">
           Test data — example prices. Results marked “Test price” are simulated, not live provider
           quotes.
         </Alert>
-      )}
+      ) : null}
       {ranked.warnings.map((warning) => (
         <Alert severity="warning" key={warning}>
           {warning}
@@ -302,19 +305,9 @@ export function QuoteProgress({
               <Stack spacing={1}>
                 <Button
                   disabled={pending || attempt.retryBlockedReason !== null}
-                  onClick={() =>
-                    attempt.provider === 'amazon' &&
-                    attempt.reasonCode === 'verification_required' &&
-                    onVerifyAmazon
-                      ? onVerifyAmazon(attempt.externalId)
-                      : onRetry(attempt.externalId)
-                  }
+                  onClick={() => onRetry(attempt.externalId)}
                 >
-                  {attempt.provider === 'amazon' &&
-                  attempt.reasonCode === 'verification_required' &&
-                  onVerifyAmazon
-                    ? 'Verify Amazon & retry'
-                    : `Retry ${providerName(attempt.provider)}`}
+                  Retry {providerName(attempt.provider)}
                 </Button>
                 {attempt.retryBlockedReason && (
                   <Typography>

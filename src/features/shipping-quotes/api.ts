@@ -100,7 +100,7 @@ export async function saveProviderSettings(
 export async function testProviderReadiness(
   client: ApiClient,
   code: ProviderCode,
-  executionMode: 'request' | 'browser',
+  executionMode: 'api' | 'request' | 'browser',
 ) {
   return parse(
     readinessSchema,
@@ -122,92 +122,6 @@ export async function getProviderReadiness(
     await client.request({
       url: `/admin/shipping-providers/${code}/connection-tests/${id}`,
       signal,
-    }),
-  );
-}
-
-const amazonVerificationSchema = z.object({
-  id: z.string().uuid(),
-  state: z.enum(['preparing', 'challenge', 'verified', 'cancelled']),
-  expiresAt: z.string().datetime(),
-  image: z.string().max(3_000_000).optional(),
-  frame: z.string().uuid().optional(),
-  width: z.number().positive().optional(),
-  height: z.number().positive().optional(),
-});
-export type AmazonVerification = z.infer<typeof amazonVerificationSchema>;
-export type AmazonVerificationAction =
-  | { type: 'click'; x: number; y: number; frame: string }
-  | { type: 'text'; text: string; frame: string }
-  | {
-      type: 'key';
-      key: 'Enter' | 'Backspace' | 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown' | 'Space';
-      frame: string;
-    };
-
-const verificationCodeSchema = z.enum([
-  'busy',
-  'expired',
-  'unavailable',
-  'unsupported',
-  'owner_required',
-  'stale_frame',
-]);
-export type AmazonVerificationErrorCode = z.infer<typeof verificationCodeSchema>;
-const verificationMessages: Record<AmazonVerificationErrorCode, string> = {
-  busy: 'Amazon is still updating the challenge. Refreshing the latest image.',
-  expired: 'This verification window expired. Close it and choose Verify Amazon & retry again.',
-  unavailable: 'Staff verification is not available on this server. An admin needs to enable it.',
-  unsupported:
-    'Amazon opened a screen that cannot be shared safely. An admin needs to reconnect Amazon.',
-  owner_required: 'This verification belongs to another staff session. Close this window.',
-  stale_frame: 'The challenge changed. Refreshing the latest image.',
-};
-export class AmazonVerificationError extends ApiError {
-  constructor(
-    status: number,
-    message: string,
-    public readonly verificationCode: AmazonVerificationErrorCode,
-  ) {
-    super(status, message);
-    this.name = 'AmazonVerificationError';
-  }
-}
-export function isRecoverableAmazonVerificationError(
-  error: unknown,
-): error is AmazonVerificationError {
-  return (
-    error instanceof AmazonVerificationError &&
-    ['busy', 'stale_frame'].includes(error.verificationCode)
-  );
-}
-export async function amazonVerification(
-  client: ApiClient,
-  comparisonId: string,
-  attemptId: string,
-  command:
-    | { operation: 'start' }
-    | { operation: 'poll' | 'cancel'; id: string }
-    | { operation: 'action'; id: string; action: AmazonVerificationAction },
-  signal?: AbortSignal,
-) {
-  return parse(
-    amazonVerificationSchema,
-    await client.request({
-      url: `/quote-comparisons/${comparisonId}/attempts/${attemptId}/amazon-verification`,
-      method: 'POST',
-      data: command,
-      signal,
-      timeout: 20000,
-      mapError: (status, body) => {
-        const parsed = z.object({ verificationCode: verificationCodeSchema }).safeParse(body);
-        if (!parsed.success) return undefined;
-        return new AmazonVerificationError(
-          status,
-          verificationMessages[parsed.data.verificationCode],
-          parsed.data.verificationCode,
-        );
-      },
     }),
   );
 }

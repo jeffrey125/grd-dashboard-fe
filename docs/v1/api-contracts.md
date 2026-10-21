@@ -303,7 +303,7 @@ session, password-change, trusted-Origin and no-store policies apply.
 
 | Method/path (under `/api/v1`)                             | Contract                                                                                                                                                                                 |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET `/quote-comparisons/providers`                        | Array of `{code,name,enabled,executionMode}`; mode is `request` or `browser`, and codes are `amazon` and `unishippers`.                                                                  |
+| GET `/quote-comparisons/providers`                        | Array of `{code,name,enabled,executionMode}`; Amazon mode is `api`, myUnishippers mode is `request` or `browser`.                                                                         |
 | POST `/quote-comparisons/providers/:code/default-refresh` | Empty body; waits up to 90 seconds for the worker. Returns `{refreshId,address,retrievedAt}`; failure is 503 and explicit sender entry remains available. Client timeout is 120 seconds. |
 | POST `/quote-comparisons`                                 | Strict input below; returns `{outcome: created/existing,comparison}`, HTTP 201/200. Reused key with changed input is 409.                                                                |
 | GET `/quote-comparisons?page=1`                           | `{items,total,page,pageSize:25}`, newest first with a stable ID tie-breaker.                                                                                                             |
@@ -351,8 +351,9 @@ Known reasons are `adapter_unavailable,provider_disabled,validation_failed,
 sender_company_too_long,
 contact_details_required,
 unsupported,timeout,authentication_failed,provider_setup_required,provider_failed,
-recovery_exhausted`. Amazon uses `provider_setup_required` when its Shipping pickup/contact
-onboarding is incomplete; the attempt can be retried after an admin finishes setup.
+recovery_exhausted`. Historical Amazon browser attempts may retain
+`provider_setup_required`; an eligible retry uses the current API mode instead of
+the retired browser onboarding flow.
 Unknown reasons must use generic safe UI copy.
 
 Each quote contains `platform,carrier,service,transportationTotal,currency,
@@ -362,8 +363,9 @@ string; missing transit/expiry is null. `charges` contains `{description,amount,
 packageGroupPosition}` rows where scope is `package`, `shipment`, or `pickup` and
 shipment/pickup rows use a null group position. `groupContributions` contains
 `{packageGroupPosition,quantity,subtotal}` for calculated package totals.
-Demo results are always `simulated:true` on the attempt and must be visibly labelled
-**Simulated rates — not provider quotes**. Requested option coverage remains unverified.
+Amazon sandbox and demo results are always `simulated:true`. Amazon displays
+**Amazon sandbox mode — test data, not live commercial prices**. Simulated results
+never receive a Lowest price badge. Requested option coverage remains unverified.
 
 `GET /quote-comparisons/:externalId/events` is credentialed SSE. It emits
 `quote.changed` with only `{externalId}`, `resync` with `{}` on connect/listener
@@ -413,8 +415,8 @@ the same key while input is unchanged; edited input receives a new key.
   deadline without rewriting quote history.
 - Frontend price sorting and Lowest price require equivalent actual origin,
   currency, shared immutable shipment details, and requested options. Requested
-  options with unverified/unsupported coverage and mixed simulated/real rates also
-  suppress an overall winner. Ties share the badge. Stale/expired/unknown-freshness
+  options with unverified/unsupported coverage and any simulated rate also suppress
+  an overall winner. Ties share the badge. Stale/expired/unknown-freshness
   rates never receive it; all rates remain readable. Exact comparison uses decimal.js.
 - Visible details refresh every 15 seconds, including terminal comparisons. SSE
   stays subscribed to nondeleted detail so another user's retry is observed.
@@ -424,21 +426,20 @@ the same key while input is unchanged; edited input receives a new key.
 
 ### Sender refresh operational boundary
 
-The API queues a bounded refresh in the provider account row and the worker reads
-it through a feature-owned repository. Only the worker launches Playwright and
-holds browser credentials/cookies. Each operation uses a fresh isolated browser,
-with a 75-second browser deadline. Missing configuration, authentication challenges,
-incomplete addresses, and ambiguous Amazon pickup addresses fail closed. There is
-no quote request or provider-account mutation. Concurrent API refreshes for one
-provider share work. The worker handles one default lookup at a time; no rates run.
+The API queues a bounded myUnishippers refresh in the provider account row and the
+worker reads it through a feature-owned repository. Only the worker launches
+Playwright and holds myUnishippers browser credentials/cookies. Each operation uses
+a fresh isolated browser with a 75-second deadline. Amazon requires an explicit
+sender and rejects default refresh. There is no quote request or provider-account
+mutation. Concurrent refreshes share work; the worker handles one at a time.
 
 After success the API keeps an actor-bound immutable refresh snapshot (up to 2,000
 across the single API process). Later refreshes cannot overwrite it. API restart or
 capacity eviction requires refreshing again before saving; explicit input is the
 fallback. Completed comparisons persist their resolved sender permanently.
-Provider disablement is rechecked in the save transaction. Credentials are read only
-from `AMAZON_SHIPPING_EMAIL/PASSWORD` and `MYUNISHIPPERS_EMAIL/PASSWORD` environment
-variables; raw provider responses, tokens, and cookies are never persisted.
+Provider disablement is rechecked in the save transaction. myUnishippers credentials
+are read only from `MYUNISHIPPERS_EMAIL/PASSWORD`; raw provider responses, tokens,
+and cookies are never persisted.
 
 ## SQ-V1-008 provider administration API
 
@@ -448,7 +449,7 @@ All paths below use `/api/v1`. Admin-only routes:
 | --- | --- |
 | GET `/admin/shipping-providers` | Settings array: code/name/enabled/executionMode/maintenanceMessage/staleHours/revision/updatedAt/updatedBy/savedConnectionTest. |
 | PATCH `/admin/shipping-providers/:code` | Full editable settings plus revision; optional connectionTestId and acknowledgeFailure. Returns updated settings array. |
-| POST `/admin/shipping-providers/:code/connection-tests` | `{ executionMode: "request" or "browser" }`; returns durable test, HTTP 201. |
+| POST `/admin/shipping-providers/:code/connection-tests` | Amazon accepts `api`; myUnishippers accepts `request` or `browser`. Returns durable test, HTTP 201. |
 | GET `/admin/shipping-providers/:code/connection-tests/:id` | Testing admin's test; poll queued/running until succeeded/failed. |
 
 Test fields: `id`, `executionMode`, `state`, `failureSummary`, `createdAt`,
@@ -465,10 +466,10 @@ Staff/Admin discovery GET `/quote-comparisons/providers` additionally returns
 `maintenanceMessage`, `staleHours`, and `cachedDefault` (null or `{address,retrievedAt}`).
 These are effective read-only settings; no test/audit/session secrets are exposed.
 POST `/quote-comparisons/providers/:code/default-refresh` remains available to staff
-for enabled providers and now returns `expiresAt` alongside refreshId/address/retrievedAt.
+for enabled myUnishippers and returns `expiresAt` alongside refreshId/address/retrievedAt.
 Backend submission rejects expired refresh IDs after 15 minutes. Cached defaults
-never provide a refresh ID. Show full cached details as stale if a current refresh
-fails, and offer refresh or a comparison-only explicit sender.
+never provide a refresh ID. Amazon returns 400 because API quotes require an explicit
+sender. Show myUnishippers cached details as stale if a current refresh fails.
 
 Stale policy defaults to 1 hour, accepts 1–168 whole hours and applies on read to
 all history without provider expiry. Provider expiry remains authoritative. Disable
@@ -488,7 +489,8 @@ Historical response schemas remain readable.
 Signature/insurance appear once when supported by a selected provider, with unsupported
 providers explicitly identified. Both current adapters advertise no support. Discovery
 adds `inputRequirements: {sender, destination}` with `requiredFields` (contactName,
-phone, division) and `maxNameLength`. The union of selected providers' requirements
+phone, division), `maxNameLength`, `maxStreetLength`, and `maxContactNameLength`.
+The union of selected providers' requirements
 applies to shared fields; myUnishippers sender names are limited to 35 characters.
 Future providers use the shared inputs; only provider-exclusive fields get their own
 section. Existing React Hook Form, MUI, Zod and standards libraries are reused.

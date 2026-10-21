@@ -100,6 +100,9 @@ test('LAN image and Compose lifecycle', { timeout: 900_000 }, async (t) => {
       "UPS_ENVIRONMENT='cie'",
       "UPS_CLIENT_ID=''",
       "UPS_CLIENT_SECRET=''",
+      "AMAZON_SP_API_SANDBOX_CLIENT_ID=''",
+      "AMAZON_SP_API_SANDBOX_CLIENT_SECRET=''",
+      "AMAZON_SP_API_SANDBOX_REFRESH_TOKEN=''",
       "ECHOSHIP_URL='https://echoship.com/login'",
       "ECHOSHIP_USERNAME=''",
       "ECHOSHIP_PASSWORD=''",
@@ -200,7 +203,7 @@ test('LAN image and Compose lifecycle', { timeout: 900_000 }, async (t) => {
         )
       ).stdout.trim();
 
-      assert.equal(migrationCount, '15');
+      assert.equal(migrationCount, '16');
       assert.equal(carrierCount, '3');
       assert.equal((await compose('ps', '-q', 'worker')).stdout.trim(), '');
       await compose(

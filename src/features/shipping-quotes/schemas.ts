@@ -53,7 +53,7 @@ export const providersSchema = z.array(
       .object({ address: addressSchema, retrievedAt: z.iso.datetime() })
       .nullable()
       .optional(),
-    executionMode: z.enum(['request', 'browser']),
+    executionMode: z.enum(['api', 'request', 'browser']),
     usedInternationally: z.boolean(),
     internationalAvailable: z.boolean(),
     inputRequirements: z
@@ -61,10 +61,14 @@ export const providersSchema = z.array(
         sender: z.object({
           requiredFields: z.array(z.enum(['contactName', 'phone', 'division'])),
           maxNameLength: z.number().int().positive(),
+          maxStreetLength: z.number().int().positive().optional(),
+          maxContactNameLength: z.number().int().positive().optional(),
         }),
         destination: z.object({
           requiredFields: z.array(z.enum(['contactName', 'phone', 'division'])),
           maxNameLength: z.number().int().positive(),
+          maxStreetLength: z.number().int().positive().optional(),
+          maxContactNameLength: z.number().int().positive().optional(),
         }),
       })
       .optional(),
@@ -322,12 +326,29 @@ export function createSharedQuoteFormSchema(configurations: Provider[]) {
         const requirements = provider.inputRequirements?.[target];
         const maxNameLength =
           requirements?.maxNameLength ??
-          (target === 'sender' && provider.code === 'unishippers' ? 35 : 200);
+          (provider.code === 'amazon' ? 50 : target === 'sender' ? 35 : 200);
         if (input[target].name.length > maxNameLength)
           ctx.addIssue({
             code: 'custom',
             path: [target, 'name'],
             message: `${provider.name} requires ${maxNameLength} characters or fewer`,
+          });
+        const maxStreetLength =
+          requirements?.maxStreetLength ?? (provider.code === 'amazon' ? 60 : 200);
+        for (const field of ['street', 'street2'] as const)
+          if ((input[target][field]?.length ?? 0) > maxStreetLength)
+            ctx.addIssue({
+              code: 'custom',
+              path: [target, field],
+              message: `${provider.name} requires ${maxStreetLength} characters or fewer`,
+            });
+        const maxContactNameLength =
+          requirements?.maxContactNameLength ?? (provider.code === 'amazon' ? 50 : 100);
+        if ((input[target].contactName?.length ?? 0) > maxContactNameLength)
+          ctx.addIssue({
+            code: 'custom',
+            path: [target, 'contactName'],
+            message: `${provider.name} requires ${maxContactNameLength} characters or fewer`,
           });
         for (const field of requirements?.requiredFields ?? [])
           if (!input[target][field]?.trim())
@@ -338,6 +359,15 @@ export function createSharedQuoteFormSchema(configurations: Provider[]) {
             });
       }
     }
+    if (
+      input.providers.some((provider) => provider.code === 'amazon') &&
+      input.packageGroups.reduce((total, group) => total + group.quantity, 0) > 100
+    )
+      ctx.addIssue({
+        code: 'custom',
+        path: ['packageGroups'],
+        message: 'Amazon supports at most 100 physical packages per comparison',
+      });
   });
 }
 export type QuoteInput = z.infer<typeof createQuoteSchema>;
@@ -378,7 +408,7 @@ export const comparisonSchema = z.object({
         })
         .optional(),
       retryBlockedReason: z.string().nullable().optional(),
-      executionMode: z.enum(['request', 'browser']).nullable(),
+      executionMode: z.enum(['api', 'request', 'browser']).nullable(),
       startedAt: z.iso.datetime().nullable(),
       completedAt: z.iso.datetime().nullable(),
       recoveryCount: z.number().int().min(0).max(1),

@@ -31,13 +31,19 @@ const provider = {
   code: 'amazon',
   name: 'Amazon Shipping',
   enabled: true,
-  executionMode: 'request',
+  executionMode: 'api',
   maintenanceMessage: null,
   staleHours: 1,
   revision: 0,
   updatedAt: '2026-10-20T10:00:00Z',
   updatedBy: null,
   savedConnectionTest: null,
+};
+const unishippers = {
+  ...provider,
+  code: 'unishippers',
+  name: 'myUnishippers',
+  executionMode: 'request',
 };
 const failure = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -67,26 +73,48 @@ beforeEach(() => {
   mocks.test.mockResolvedValue(failure);
   mocks.result.mockResolvedValue(failure);
   mocks.save.mockResolvedValue([
-    { ...provider, executionMode: 'browser', revision: 1, savedConnectionTest: failure },
+    { ...unishippers, executionMode: 'browser', revision: 1, savedConnectionTest: failure },
   ]);
 });
 
-it('shows the one-hour initial policy and requires explicit failed-test acknowledgment', async () => {
+it('locks Amazon to API mode, warns about sandbox data, and removes default refresh', async () => {
   const user = userEvent.setup();
+  const apiResult = { ...failure, executionMode: 'api', state: 'succeeded', failureSummary: null };
+  mocks.test.mockResolvedValue(apiResult);
+  mocks.result.mockResolvedValue(apiResult);
+  mount();
+
+  await screen.findByText(/Sandbox mode — test data only/);
+  const mode = screen.getByRole('combobox', { name: 'Execution mode' });
+  expect(mode).toHaveTextContent('API');
+  await user.click(mode);
+  expect(screen.getByRole('option', { name: 'API' })).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: 'Browser' })).not.toBeInTheDocument();
+  await user.keyboard('{Escape}');
+  expect(
+    screen.queryByRole('button', { name: 'Refresh Amazon Shipping default' }),
+  ).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Test api readiness' }));
+  await waitFor(() => expect(mocks.test).toHaveBeenCalledWith({}, 'amazon', 'api'));
+});
+
+it('shows the one-hour policy and requires failed-test acknowledgment for myUnishippers', async () => {
+  const user = userEvent.setup();
+  mocks.settings.mockResolvedValue([unishippers]);
   mount();
   expect(await screen.findByLabelText('Stale period (hours)')).toHaveValue(1);
   await user.click(screen.getByRole('combobox', { name: 'Execution mode' }));
   await user.click(screen.getByRole('option', { name: 'Browser' }));
-  expect(screen.getByRole('button', { name: 'Save Amazon Shipping settings' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Save myUnishippers settings' })).toBeDisabled();
   await user.click(screen.getByRole('button', { name: 'Test browser readiness' }));
   expect(await screen.findByText(/Connection test failed/)).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Save Amazon Shipping settings' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Save myUnishippers settings' })).toBeDisabled();
   await user.click(screen.getByRole('checkbox', { name: /I acknowledge/ }));
-  await user.click(screen.getByRole('button', { name: 'Save Amazon Shipping settings' }));
+  await user.click(screen.getByRole('button', { name: 'Save myUnishippers settings' }));
   await waitFor(() =>
     expect(mocks.save).toHaveBeenCalledWith(
       {},
-      'amazon',
+      'unishippers',
       expect.objectContaining({
         executionMode: 'browser',
         connectionTestId: failure.id,
@@ -110,6 +138,7 @@ it('does not fetch settings or show editing controls to staff', () => {
 
 it('requires a new test when a result has expired', async () => {
   const user = userEvent.setup();
+  mocks.settings.mockResolvedValue([unishippers]);
   const expired = {
     ...failure,
     state: 'succeeded',
@@ -124,11 +153,12 @@ it('requires a new test when a result has expired', async () => {
   await user.click(screen.getByRole('option', { name: 'Browser' }));
   await user.click(screen.getByRole('button', { name: 'Test browser readiness' }));
   expect(await screen.findByText(/Connection test expired/)).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Save Amazon Shipping settings' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Save myUnishippers settings' })).toBeDisabled();
 });
 
 it('refreshes and displays account-default details on the settings surface', async () => {
   const user = userEvent.setup();
+  mocks.settings.mockResolvedValue([unishippers]);
   mocks.refresh.mockResolvedValue({
     refreshId: crypto.randomUUID(),
     address: {
@@ -143,7 +173,7 @@ it('refreshes and displays account-default details on the settings surface', asy
     expiresAt: new Date(Date.now() + 900000).toISOString(),
   });
   mount();
-  await user.click(await screen.findByRole('button', { name: 'Refresh Amazon Shipping default' }));
+  await user.click(await screen.findByRole('button', { name: 'Refresh myUnishippers default' }));
   expect(await screen.findByText(/Admin warehouse.*Retrieved/)).toBeInTheDocument();
-  expect(mocks.refresh).toHaveBeenCalledWith({}, 'amazon');
+  expect(mocks.refresh).toHaveBeenCalledWith({}, 'unishippers');
 });

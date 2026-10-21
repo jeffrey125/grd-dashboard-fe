@@ -101,6 +101,19 @@ describe('Quote ranking', () => {
     ).toBe(false);
   });
 
+  it('never awards Lowest price when every result is simulated', () => {
+    const value = comparison();
+    value.attempts.forEach((attempt) => {
+      attempt.simulated = true;
+    });
+
+    const ranked = rankQuotes(value, now);
+
+    expect(ranked.comparable).toBe(false);
+    expect(ranked.entries.some((entry) => entry.lowest)).toBe(false);
+    expect(ranked.warnings).toContain('Simulated rates are excluded from Lowest price.');
+  });
+
   it('treats provider expiry as authoritative even beyond a stale threshold', () => {
     const value = comparison();
     Object.assign(present(present(value.attempts[0]).quotes[0]), {

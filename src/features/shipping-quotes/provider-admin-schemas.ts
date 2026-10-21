@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const readinessSchema = z.object({
   id: z.uuid(),
-  executionMode: z.enum(['request', 'browser']),
+  executionMode: z.enum(['api', 'request', 'browser']),
   state: z.enum(['queued', 'running', 'succeeded', 'failed']),
   failureSummary: z.enum(['readiness_failed', 'readiness_timeout']).nullable(),
   createdAt: z.iso.datetime(),
@@ -16,7 +16,7 @@ export const providerSettingsSchema = z.array(
     code: z.enum(['amazon', 'unishippers']),
     name: z.string(),
     enabled: z.boolean(),
-    executionMode: z.enum(['request', 'browser']),
+    executionMode: z.enum(['api', 'request', 'browser']),
     maintenanceMessage: z.string().nullable(),
     staleHours: z.number().int().min(1).max(168),
     revision: z.number().int(),
@@ -28,7 +28,7 @@ export const providerSettingsSchema = z.array(
 export const providerSettingsInput = z.object({
   revision: z.number().int(),
   enabled: z.boolean(),
-  executionMode: z.enum(['request', 'browser']),
+  executionMode: z.enum(['api', 'request', 'browser']),
   maintenanceMessage: z.string().trim().max(500),
   staleHours: z.number().int().min(1).max(168),
   connectionTestId: z.uuid().optional(),

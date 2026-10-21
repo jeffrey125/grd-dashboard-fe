@@ -21,7 +21,7 @@ const amazonProvider = {
   code: 'amazon' as const,
   name: 'Amazon Shipping',
   enabled: true,
-  executionMode: 'request' as const,
+  executionMode: 'api' as const,
   usedInternationally: false,
   internationalAvailable: false,
   supportsSignature: false,
@@ -273,6 +273,37 @@ describe('Quote comparison form', () => {
     );
     expect(save).not.toHaveBeenCalled();
   });
+
+  it('validates Amazon API address and physical-package limits before saving', async () => {
+    const user = userEvent.setup();
+    const save = vi.fn();
+    const body = initial();
+    body.destination = {
+      ...address,
+      name: 'N'.repeat(51),
+      street: 'S'.repeat(61),
+      contactName: 'C'.repeat(51),
+    };
+    const group = body.packageGroups[0];
+    if (!group) throw new Error('Missing package group fixture');
+    group.quantity = 101;
+    render(<QuoteForm providers={[amazonProvider]} initial={body} onSave={save} />);
+
+    await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(/Recipient company or name/)).toHaveAccessibleDescription(
+        'Amazon Shipping requires 50 characters or fewer',
+      ),
+    );
+    expect(screen.getByLabelText(/Recipient address/)).toHaveAccessibleDescription(
+      'Amazon Shipping requires 60 characters or fewer',
+    );
+    expect(screen.getByLabelText(/Recipient contact name/)).toHaveAccessibleDescription(
+      'Amazon Shipping requires 50 characters or fewer',
+    );
+    expect(save).not.toHaveBeenCalled();
+  });
   it('rejects a historical account default if passed directly to the new form', async () => {
     const user = userEvent.setup();
     const save = vi.fn();
@@ -391,7 +422,7 @@ it('displays disabled-provider maintenance without offering its sender fields', 
     code: 'amazon' as const,
     name: 'Amazon Shipping',
     enabled: true,
-    executionMode: 'request' as const,
+    executionMode: 'api' as const,
     usedInternationally: false,
     internationalAvailable: false,
     supportsSignature: false,

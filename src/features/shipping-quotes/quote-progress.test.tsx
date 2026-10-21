@@ -12,7 +12,7 @@ const attempt = (
   provider,
   status,
   attemptNumber: 1,
-  executionMode: 'request',
+  executionMode: provider === 'amazon' ? 'api' : 'request',
   startedAt: null,
   completedAt: null,
   recoveryCount: 0,
@@ -59,9 +59,9 @@ describe('Quote progress', () => {
     };
     const value = comparison('failed', [failed]);
     const { rerender } = render(<QuoteProgress comparison={value} onRetry={onRetry} />);
-    expect(screen.getByText(/Attempt 1 · Mode: request/)).not.toBeVisible();
+    expect(screen.getByText(/Attempt 1 · Mode: api/)).not.toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Technical details' }));
-    expect(screen.getByText(/Attempt 1 · Mode: request/)).toBeVisible();
+    expect(screen.getByText(/Attempt 1 · Mode: api/)).toBeVisible();
     expect(screen.getByText(/Actual provider origin: Original warehouse/)).toBeInTheDocument();
     expect(screen.getByText(/Queued: Oct 19, 2026, 8:00 AM ET/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Retry Amazon Shipping' }));
@@ -93,7 +93,7 @@ describe('Quote progress', () => {
     ).toBe(true);
   });
 
-  it('explains Amazon reconnection while keeping other provider results visible', () => {
+  it('explains that a historical Amazon browser failure retries through API mode', () => {
     render(
       <QuoteProgress
         comparison={comparison('completed', [
@@ -104,7 +104,7 @@ describe('Quote progress', () => {
     );
     expect(
       screen
-        .getAllByText(/Amazon needs verification/)
+        .getAllByText(/retired Amazon browser flow/)
         .some((node) => node.closest('[role="alert"]')),
     ).toBe(true);
     expect(screen.getAllByText(/myUnishippers/).length).toBeGreaterThan(0);
@@ -121,7 +121,7 @@ describe('Quote progress', () => {
 
     expect(
       screen
-        .getAllByText(/finish pickup and contact setup/)
+        .getAllByText(/retired Amazon browser onboarding flow/)
         .some((node) => node.closest('[role="alert"]')),
     ).toBe(true);
   });
@@ -192,7 +192,7 @@ describe('Quote progress', () => {
       />,
     );
     expect(screen.getByText(/Some prices are ready/)).toBeInTheDocument();
-    expect(screen.getAllByText(/Test data — example prices/)).toHaveLength(1);
+    expect(screen.getAllByText(/Amazon sandbox mode — test data/)).toHaveLength(1);
     expect(screen.getByText(/BASE_CHARGE: 7\.83 USD/)).not.toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: /What’s included in this price/ }));
     expect(screen.getByText(/BASE_CHARGE: 7\.83 USD/)).toBeVisible();
@@ -271,8 +271,9 @@ describe('Quote progress', () => {
     expect(within(stale).getByText(/18\.50/)).toBeVisible();
     expect(within(stale).getByText('Needs a new quote')).toBeVisible();
     expect(within(stale).queryByText('Lowest price', { exact: true })).not.toBeInTheDocument();
-    expect(within(current).getByText('Lowest price', { exact: true })).toBeVisible();
-    expect(screen.getAllByText(/Test data — example prices/)).toHaveLength(1);
+    expect(within(current).queryByText('Lowest price', { exact: true })).not.toBeInTheDocument();
+    expect(screen.getAllByText(/Amazon sandbox mode — test data/)).toHaveLength(1);
+    expect(screen.getByText('Simulated rates are excluded from Lowest price.')).toBeVisible();
     rerender(
       <QuoteProgress
         comparison={{
@@ -281,9 +282,7 @@ describe('Quote progress', () => {
         }}
       />,
     );
-    expect(
-      screen.getByText('Simulated and provider rates cannot be ranked together.'),
-    ).toBeVisible();
+    expect(screen.getByText('Simulated rates are excluded from Lowest price.')).toBeVisible();
     expect(screen.queryByText('Lowest price', { exact: true })).not.toBeInTheDocument();
     expect(screen.getAllByText('Test price')).toHaveLength(1);
     vi.useFakeTimers();
@@ -312,8 +311,7 @@ describe('Quote progress', () => {
   });
 });
 
-it('offers staff verification only for a retryable Amazon verification failure', async () => {
-  const onVerifyAmazon = vi.fn();
+it('retries a historical Amazon verification failure through the normal action', async () => {
   const onRetry = vi.fn();
   const failed = {
     ...attempt('failed'),
@@ -321,21 +319,15 @@ it('offers staff verification only for a retryable Amazon verification failure',
     retryBlockedReason: null,
   };
   const { rerender } = render(
-    <QuoteProgress
-      comparison={comparison('failed', [failed])}
-      onRetry={onRetry}
-      onVerifyAmazon={onVerifyAmazon}
-    />,
+    <QuoteProgress comparison={comparison('failed', [failed])} onRetry={onRetry} />,
   );
-  await userEvent.click(screen.getByRole('button', { name: 'Verify Amazon & retry' }));
-  expect(onVerifyAmazon).toHaveBeenCalledWith(failed.externalId);
-  expect(onRetry).not.toHaveBeenCalled();
+  await userEvent.click(screen.getByRole('button', { name: 'Retry Amazon Shipping' }));
+  expect(onRetry).toHaveBeenCalledWith(failed.externalId);
   rerender(
     <QuoteProgress
       comparison={comparison('failed', [{ ...failed, retryBlockedReason: 'ship_date_passed' }])}
       onRetry={onRetry}
-      onVerifyAmazon={onVerifyAmazon}
     />,
   );
-  expect(screen.getByRole('button', { name: 'Verify Amazon & retry' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Retry Amazon Shipping' })).toBeDisabled();
 });

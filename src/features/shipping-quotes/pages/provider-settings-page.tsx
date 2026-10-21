@@ -88,7 +88,8 @@ function ProviderSettingsForm({
     mutationFn: () => refreshSender(session.client, provider.code),
     onSuccess: () => queries.invalidateQueries({ queryKey: ['quote-providers'] }),
   });
-  const displayedDefault = defaultRefresh.data ?? cachedDefault;
+  const displayedDefault =
+    provider.code === 'amazon' ? undefined : (defaultRefresh.data ?? cachedDefault);
   const defaultCurrent =
     defaultRefresh.data?.expiresAt && now.isBefore(dayjs(defaultRefresh.data.expiresAt));
   const current = result.data;
@@ -103,6 +104,7 @@ function ProviderSettingsForm({
   const canSave =
     mode === provider.executionMode ||
     (valid && (current?.state === 'succeeded' || (failed && watch('acknowledgeFailure'))));
+  const modes = provider.code === 'amazon' ? (['api'] as const) : (['request', 'browser'] as const);
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
       <Box
@@ -122,19 +124,29 @@ function ProviderSettingsForm({
                 ' Cached default — refresh to verify.'}
             </Alert>
           )}
-          {defaultRefresh.error && (
+          {provider.code !== 'amazon' && defaultRefresh.error && (
             <Alert severity="warning">{safeError(defaultRefresh.error).message}</Alert>
           )}
-          <Button
-            disabled={!provider.enabled || defaultRefresh.isPending || pending}
-            onClick={() => defaultRefresh.mutate()}
-          >
-            {defaultRefresh.isPending ? 'Refreshing default…' : `Refresh ${provider.name} default`}
-          </Button>
+          {provider.code !== 'amazon' && (
+            <Button
+              disabled={!provider.enabled || defaultRefresh.isPending || pending}
+              onClick={() => defaultRefresh.mutate()}
+            >
+              {defaultRefresh.isPending
+                ? 'Refreshing default…'
+                : `Refresh ${provider.name} default`}
+            </Button>
+          )}
+          {provider.code === 'amazon' && (
+            <Alert severity="warning">
+              Sandbox mode — test data only, not live commercial Amazon prices.
+            </Alert>
+          )}
           {!provider.enabled && (
             <Typography variant="body2">
-              Enable this provider to refresh its default. Readiness testing remains available while
-              disabled.
+              {provider.code === 'amazon'
+                ? 'Enable this provider to include it in quote comparisons. Readiness testing remains available while disabled.'
+                : 'Enable this provider to refresh its default. Readiness testing remains available while disabled.'}
             </Typography>
           )}
           <FormControlLabel
@@ -147,15 +159,21 @@ function ProviderSettingsForm({
             value={mode}
             {...register('executionMode')}
             onChange={(event) => {
-              setValue('executionMode', event.target.value as 'request' | 'browser');
+              setValue(
+                'executionMode',
+                event.target.value as ProviderSettingsInput['executionMode'],
+              );
               setValue('acknowledgeFailure', false);
               setTestId(undefined);
               test.reset();
             }}
             disabled={pending || save.isPending}
           >
-            <MenuItem value="request">Request</MenuItem>
-            <MenuItem value="browser">Browser</MenuItem>
+            {modes.map((value) => (
+              <MenuItem value={value} key={value}>
+                {value === 'api' ? 'API' : value === 'request' ? 'Request' : 'Browser'}
+              </MenuItem>
+            ))}
           </TextField>
           <TextField
             label="Maintenance message"
@@ -180,7 +198,9 @@ function ProviderSettingsForm({
             Test {mode} readiness
           </Button>
           <Typography variant="body2">
-            Checks login, account defaults, and quote readiness. Does not request a sample rate.
+            {provider.code === 'amazon'
+              ? 'Checks sandbox API authentication. Does not request a sample rate.'
+              : 'Checks login, account defaults, and quote readiness. Does not request a sample rate.'}
           </Typography>
           {pending && <Alert severity="info">Connection test pending…</Alert>}
           {(test.error || result.error || save.error) && (

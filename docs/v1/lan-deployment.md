@@ -29,9 +29,9 @@ fixtures, backend code, and known secrets.
 ## 2. Create the release environment and images
 
 Choose a monotonically increasing release such as `20261017-01`. The generator
-copies only the carrier/runtime keys from `../grd-dashboard-be/.env`, generates new
-database and authentication secrets, refuses to overwrite an existing file, and
-writes mode 600:
+copies only the carrier/runtime keys from `../grd-dashboard-be/.env`, including the
+three Amazon SP-API sandbox credentials, generates new database and authentication
+secrets, refuses to overwrite an existing file, and writes mode 600:
 
 ```sh
 pnpm env:lan --release 20261017-01 --ip 192.168.100.83

@@ -285,6 +285,11 @@ Mark required fields and explain when all three box sizes may be left blank.
 The primary action is Compare quotes; explain that this requests prices without
 booking a shipment. Keep adapter execution modes out of the entry form.
 
+Amazon results currently come from the Shipping API sandbox. Show **Amazon sandbox
+mode — test data, not live commercial prices** on comparison detail and never show
+Lowest price on a simulated result. Provider administration fixes Amazon to API mode,
+hides Amazon default refresh, and retains request/browser choices for myUnishippers.
+
 An invalid submission shows an error toast and a persistent summary, highlights
 individual fields with explanatory helper text, and focuses/scrolls to the first
 invalid input. Revalidate corrected fields and retain all other entries. Display
