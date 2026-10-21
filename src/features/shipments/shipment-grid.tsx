@@ -7,6 +7,7 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
+import LinearProgress from '@mui/material/LinearProgress';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
@@ -25,6 +26,23 @@ import { type ShipmentSearch, sorts } from './search-state';
 
 const RouterMenuItem = createLink(MenuItem);
 const RouterButton = createLink(Button);
+
+function UpdatingIndicator() {
+  return (
+    <LinearProgress
+      aria-label="Updating shipment results"
+      sx={{
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        left: 0,
+        zIndex: 2,
+        pointerEvents: 'none',
+      }}
+    />
+  );
+}
+
 function needsAttention(row: Shipment) {
   return (
     row.monitoringStatus === 'paused' ||
@@ -188,6 +206,7 @@ export function ShipmentGrid({
   total,
   search,
   loading,
+  updating,
   placeholder,
   returnTo,
   onPage,
@@ -197,6 +216,7 @@ export function ShipmentGrid({
   total: number;
   search: ShipmentSearch;
   loading: boolean;
+  updating: boolean;
   placeholder: boolean;
   returnTo: string;
   onPage: (page: number, pageSize: number) => void;
@@ -379,7 +399,13 @@ export function ShipmentGrid({
   );
   if (mobile)
     return (
-      <Stack spacing={2} aria-label="Shipment cards" aria-busy={loading}>
+      <Stack
+        spacing={2}
+        aria-label="Shipment cards"
+        aria-busy={loading || updating}
+        sx={{ position: 'relative' }}
+      >
+        {updating && <UpdatingIndicator />}
         <Stack direction="row" spacing={1}>
           <TextField
             select
@@ -532,7 +558,8 @@ export function ShipmentGrid({
       </Stack>
     );
   return (
-    <Box sx={{ width: '100%', minWidth: 0, height: 620 }}>
+    <Box sx={{ position: 'relative', width: '100%', minWidth: 0, height: 620 }}>
+      {updating && <UpdatingIndicator />}
       <DataGrid
         slotProps={{
           footer: { sx: { minHeight: { xs: 104, sm: 52 } } },

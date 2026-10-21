@@ -74,6 +74,14 @@ export function ShipmentsPage() {
   });
   const hasEnabledCarrier = carriers.data?.some((carrier) => carrier.isActive) ?? false;
   const data = search ? query.data : undefined;
+  const queryStatus =
+    search && query.isFetching
+      ? query.isPlaceholderData
+        ? 'Loading requested results; previous results are shown and row actions are unavailable.'
+        : data
+          ? 'Updating results…'
+          : 'Loading shipments…'
+      : undefined;
   const tabLabel = (value: keyof typeof tabs, label: string) =>
     `${label} (${data && !query.isPlaceholderData ? data.tabCounts[value] : '—'})`;
   useEffect(() => {
@@ -247,21 +255,29 @@ export function ShipmentsPage() {
             {safeError(query.error).message}
           </Alert>
         )}
-        {search && query.isFetching && (
-          <Typography role="status">
-            {query.isPlaceholderData
-              ? 'Loading requested results; previous results are shown and row actions are unavailable.'
-              : data
-                ? 'Updating results…'
-                : 'Loading shipments…'}
-          </Typography>
-        )}
+        <Typography
+          role="status"
+          sx={{
+            position: 'absolute',
+            width: '1px',
+            height: '1px',
+            p: 0,
+            m: '-1px',
+            overflow: 'hidden',
+            clip: 'rect(0 0 0 0)',
+            whiteSpace: 'nowrap',
+            border: 0,
+          }}
+        >
+          {queryStatus ?? ''}
+        </Typography>
         {search && !query.isError && (!data || data.total > 0 || query.isFetching) && (
           <ShipmentGrid
             rows={data?.items ?? []}
             total={data?.total ?? 0}
             search={search}
             loading={query.isFetching && !data}
+            updating={query.isFetching && !!data}
             placeholder={query.isPlaceholderData}
             returnTo={returnTo}
             onPage={(page, pageSize) =>
@@ -276,6 +292,7 @@ export function ShipmentsPage() {
             total={data.total}
             search={search}
             loading={false}
+            updating={query.isFetching}
             placeholder={false}
             returnTo={returnTo}
             onPage={(page, pageSize) =>

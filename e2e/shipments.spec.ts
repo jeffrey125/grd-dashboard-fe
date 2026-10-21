@@ -204,6 +204,28 @@ test('default, pagination, debounced search, sort and back/detail return retain 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
+test('tab transitions keep the shipment results anchored while they update', async ({ page }) => {
+  const state = await setup(page);
+  await page.goto('/shipments');
+  await expectShipmentView(page, 'active', 'Active (30)');
+  const results = mobile(page)
+    ? page.getByLabel('Shipment cards')
+    : page.getByRole('grid', { name: 'Shipments' });
+  const documentTop = () =>
+    results.evaluate((element) => element.getBoundingClientRect().top + window.scrollY);
+  const top = await documentTop();
+  state.delay = 1_000;
+
+  await chooseShipmentView(page, 'all', 'All Shipments (30)');
+
+  await expect(page.getByRole('status')).toContainText('previous results are shown');
+  await expect(page.getByRole('progressbar', { name: 'Updating shipment results' })).toBeVisible();
+  expect(await documentTop()).toBe(top);
+  await expectShipmentView(page, 'all', 'All Shipments (30)');
+  await expect(page.getByRole('progressbar', { name: 'Updating shipment results' })).toHaveCount(0);
+  await expect.poll(documentTop).toBe(top);
+});
+
 test('removed filters stay hidden while invalid legacy values remain clearable', async ({
   page,
 }) => {
