@@ -1,6 +1,7 @@
 import { safeError } from '@api/api';
 import { PageHeader } from '@components/layout/page-header';
 import { useSession } from '@features/auth';
+import { AmazonVerificationDialog } from '@features/shipping-quotes/amazon-verification-dialog';
 import { changeComparison } from '@features/shipping-quotes/api';
 import { QuoteDecimal } from '@features/shipping-quotes/quote-decimal';
 import { QuoteProgress } from '@features/shipping-quotes/quote-progress';
@@ -30,6 +31,7 @@ export function QuoteDetailPage() {
   const query = useComparison(comparisonId);
   const { session, account } = useSession();
   const queries = useQueryClient();
+  const [verificationAttempt, setVerificationAttempt] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const mutation = useMutation({
     mutationFn: (action: Parameters<typeof changeComparison>[2]) =>
@@ -52,6 +54,19 @@ export function QuoteDetailPage() {
   return (
     <>
       <PageHeader title="Your shipping prices" />
+      {verificationAttempt && (
+        <AmazonVerificationDialog
+          key={verificationAttempt}
+          comparisonId={comparisonId}
+          attemptId={verificationAttempt}
+          client={session.client}
+          onClose={() => setVerificationAttempt(null)}
+          onVerified={async () => {
+            await mutation.mutateAsync({ type: 'retry', attemptId: verificationAttempt });
+            setVerificationAttempt(null);
+          }}
+        />
+      )}
       <Stack spacing={2}>
         {query.error && (
           <Alert severity="warning">
@@ -99,6 +114,7 @@ export function QuoteDetailPage() {
         <QuoteProgress
           comparison={comparison}
           pending={mutation.isPending}
+          onVerifyAmazon={setVerificationAttempt}
           onRetry={(attemptId) => mutation.mutate({ type: 'retry', attemptId })}
         >
           <Accordion disableGutters variant="outlined">

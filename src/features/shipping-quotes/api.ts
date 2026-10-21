@@ -125,3 +125,60 @@ export async function getProviderReadiness(
     }),
   );
 }
+
+const amazonVerificationSchema = z.object({
+  id: z.string().uuid(),
+  state: z.enum(['preparing', 'challenge', 'verified', 'cancelled']),
+  expiresAt: z.string().datetime(),
+  image: z.string().max(3_000_000).optional(),
+  frame: z.string().uuid().optional(),
+  width: z.number().positive().optional(),
+  height: z.number().positive().optional(),
+});
+export type AmazonVerification = z.infer<typeof amazonVerificationSchema>;
+export type AmazonVerificationAction =
+  | { type: 'click'; x: number; y: number; frame: string }
+  | { type: 'text'; text: string; frame: string }
+  | {
+      type: 'key';
+      key: 'Enter' | 'Backspace' | 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown' | 'Space';
+      frame: string;
+    };
+
+const verificationMessages: Record<string, string> = {
+  busy: 'Another Amazon request or staff verification is in progress. Wait a moment and try again.',
+  expired: 'This verification window expired. Close it and choose Verify Amazon & retry again.',
+  unavailable: 'Staff verification is not available on this server. An admin needs to enable it.',
+  unsupported:
+    'Amazon opened a screen that cannot be shared safely. An admin needs to reconnect Amazon.',
+  owner_required: 'This verification belongs to another staff session. Close this window.',
+  stale_frame: 'The challenge changed. Close this window and reopen verification to continue.',
+};
+export async function amazonVerification(
+  client: ApiClient,
+  comparisonId: string,
+  attemptId: string,
+  command:
+    | { operation: 'start' }
+    | { operation: 'poll' | 'cancel'; id: string }
+    | { operation: 'action'; id: string; action: AmazonVerificationAction },
+  signal?: AbortSignal,
+) {
+  return parse(
+    amazonVerificationSchema,
+    await client.request({
+      url: `/quote-comparisons/${comparisonId}/attempts/${attemptId}/amazon-verification`,
+      method: 'POST',
+      data: command,
+      signal,
+      timeout: 20000,
+      mapError: (status, body) => {
+        const parsed = z.object({ verificationCode: z.string() }).safeParse(body);
+        const message = parsed.success
+          ? verificationMessages[parsed.data.verificationCode]
+          : undefined;
+        return message ? new ApiError(status, message) : undefined;
+      },
+    }),
+  );
+}

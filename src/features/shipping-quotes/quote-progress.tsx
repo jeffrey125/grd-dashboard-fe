@@ -28,6 +28,8 @@ const reasons: Record<string, string> = {
   unsupported: 'This request is not supported by the provider.',
   timeout: 'The provider request timed out.',
   authentication_failed: 'Could not sign in to this provider. Try again or contact an admin.',
+  verification_required:
+    'Amazon needs verification. Choose Verify Amazon & retry to complete the challenge here.',
   recovery_exhausted: 'This request was interrupted. Try again.',
   provider_setup_required:
     'Amazon Shipping account setup is incomplete. An admin must finish pickup and contact setup in Amazon Shipping, then retry.',
@@ -66,11 +68,13 @@ const retryReasons: Record<string, string> = {
 export function QuoteProgress({
   comparison,
   onRetry,
+  onVerifyAmazon,
   pending = false,
   children,
 }: {
   comparison: Comparison;
   onRetry?: (id: string) => void;
+  onVerifyAmazon?: (id: string) => void;
   pending?: boolean;
   children?: ReactNode;
 }) {
@@ -298,9 +302,19 @@ export function QuoteProgress({
               <Stack spacing={1}>
                 <Button
                   disabled={pending || attempt.retryBlockedReason !== null}
-                  onClick={() => onRetry(attempt.externalId)}
+                  onClick={() =>
+                    attempt.provider === 'amazon' &&
+                    attempt.reasonCode === 'verification_required' &&
+                    onVerifyAmazon
+                      ? onVerifyAmazon(attempt.externalId)
+                      : onRetry(attempt.externalId)
+                  }
                 >
-                  Retry {providerName(attempt.provider)}
+                  {attempt.provider === 'amazon' &&
+                  attempt.reasonCode === 'verification_required' &&
+                  onVerifyAmazon
+                    ? 'Verify Amazon & retry'
+                    : `Retry ${providerName(attempt.provider)}`}
                 </Button>
                 {attempt.retryBlockedReason && (
                   <Typography>

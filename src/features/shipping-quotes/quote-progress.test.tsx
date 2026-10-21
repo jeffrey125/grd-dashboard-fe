@@ -93,6 +93,23 @@ describe('Quote progress', () => {
     ).toBe(true);
   });
 
+  it('explains Amazon reconnection while keeping other provider results visible', () => {
+    render(
+      <QuoteProgress
+        comparison={comparison('completed', [
+          { ...attempt('failed', 'amazon'), reasonCode: 'verification_required' },
+          attempt('completed', 'unishippers'),
+        ])}
+      />,
+    );
+    expect(
+      screen
+        .getAllByText(/Amazon needs verification/)
+        .some((node) => node.closest('[role="alert"]')),
+    ).toBe(true);
+    expect(screen.getAllByText(/myUnishippers/).length).toBeGreaterThan(0);
+  });
+
   it('explains how an admin can complete Amazon Shipping setup', () => {
     render(
       <QuoteProgress
@@ -293,4 +310,32 @@ describe('Quote progress', () => {
     expect(screen.getAllByRole('article')).toHaveLength(2);
     vi.useRealTimers();
   });
+});
+
+it('offers staff verification only for a retryable Amazon verification failure', async () => {
+  const onVerifyAmazon = vi.fn();
+  const onRetry = vi.fn();
+  const failed = {
+    ...attempt('failed'),
+    reasonCode: 'verification_required',
+    retryBlockedReason: null,
+  };
+  const { rerender } = render(
+    <QuoteProgress
+      comparison={comparison('failed', [failed])}
+      onRetry={onRetry}
+      onVerifyAmazon={onVerifyAmazon}
+    />,
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Verify Amazon & retry' }));
+  expect(onVerifyAmazon).toHaveBeenCalledWith(failed.externalId);
+  expect(onRetry).not.toHaveBeenCalled();
+  rerender(
+    <QuoteProgress
+      comparison={comparison('failed', [{ ...failed, retryBlockedReason: 'ship_date_passed' }])}
+      onRetry={onRetry}
+      onVerifyAmazon={onVerifyAmazon}
+    />,
+  );
+  expect(screen.getByRole('button', { name: 'Verify Amazon & retry' })).toBeDisabled();
 });
