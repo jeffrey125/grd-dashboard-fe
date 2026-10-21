@@ -33,6 +33,8 @@ test('guides staff to missing quote fields and retains entries on desktop and mo
     page.getByRole('heading', { name: '1. Choose your shipping services' }),
   ).toBeVisible();
   await expect(page.getByText(/Mode: request/)).toHaveCount(0);
+  const manualRecipient = page.getByRole('button', { name: 'Recipient: Enter address manually' });
+  if (await manualRecipient.isVisible()) await manualRecipient.click();
   await page.getByLabel('Recipient company or name', { exact: false }).fill('Test recipient');
   await page.getByRole('button', { name: 'Compare quotes', exact: true }).click();
   await expect(

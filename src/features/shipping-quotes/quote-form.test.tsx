@@ -3,11 +3,37 @@ import { businessCalendarDate } from '@lib/dates';
 import { render as renderUi, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { QuoteForm } from './quote-form';
 import type { QuoteInput } from './schemas';
 
 const render = (ui: ReactElement) => renderUi(<NotificationProvider>{ui}</NotificationProvider>);
+
+beforeEach(() => vi.stubEnv('VITE_GOOGLE_PLACES_API_KEY', ''));
+
+it('defaults both empty addresses to search and exposes independent manual entry without Google requests', async () => {
+  vi.stubEnv('VITE_GOOGLE_PLACES_API_KEY', 'test-browser-key');
+  const user = userEvent.setup();
+  render(<QuoteForm providers={[amazonProvider]} onSave={vi.fn()} />);
+  expect(screen.getByRole('combobox', { name: 'Sender address search' })).toBeVisible();
+  expect(screen.getByRole('combobox', { name: 'Recipient address search' })).toBeVisible();
+  expect(screen.queryByLabelText(/Sender company or name/)).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Sender: Enter address manually' }));
+  await user.type(screen.getByLabelText(/Sender company or name/), 'Manual sender');
+  expect(screen.queryByLabelText(/Recipient company or name/)).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Recipient: Enter address manually' }));
+  expect(screen.getByLabelText(/Recipient address/)).toBeVisible();
+  expect(screen.getByLabelText(/Sender company or name/)).toHaveValue('Manual sender');
+});
+
+it('reveals missing address fields on submit even when search has not been used', async () => {
+  vi.stubEnv('VITE_GOOGLE_PLACES_API_KEY', 'test-browser-key');
+  const user = userEvent.setup();
+  render(<QuoteForm providers={[amazonProvider]} onSave={vi.fn()} />);
+  await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+  await waitFor(() => expect(screen.getByLabelText(/Sender company or name/)).toHaveFocus());
+  expect(screen.getByLabelText(/Recipient company or name/)).toBeInvalid();
+});
 
 const address = {
   name: 'Test warehouse',

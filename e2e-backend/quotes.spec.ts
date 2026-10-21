@@ -15,6 +15,11 @@ test('staff saves, reopens, and copies an immutable comparison through the real 
   await signIn(page);
   await page.goto('/quotes/new');
   for (const label of ['Sender', 'Recipient']) {
+    await expect(
+      page.getByRole('heading', { name: '2. Where are you shipping from?' }),
+    ).toBeVisible();
+    const manual = page.getByRole('button', { name: `${label}: Enter address manually` });
+    if (await manual.isVisible()) await manual.click();
     await page.getByLabel(`${label} company or name`, { exact: false }).fill('Fixture warehouse');
     await page.getByLabel(`${label} address`, { exact: false }).fill('1 Example Street');
     await page.getByLabel(`${label} city`, { exact: false }).fill('Walworth');
@@ -98,6 +103,11 @@ test('saves a myUnishippers request comparison with blank dimensions', async ({ 
       },
     ],
   ] as const) {
+    await expect(
+      page.getByRole('heading', { name: '2. Where are you shipping from?' }),
+    ).toBeVisible();
+    const manual = page.getByRole('button', { name: `${label}: Enter address manually` });
+    if (await manual.isVisible()) await manual.click();
     for (const [field, value] of Object.entries(values)) {
       if (field === 'state / province') {
         await page.getByRole('combobox', { name: `${label} ${field}`, exact: true }).click();

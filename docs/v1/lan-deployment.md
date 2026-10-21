@@ -38,6 +38,7 @@ pnpm env:lan --release 20261017-01 --ip 192.168.100.83
 docker build --tag grd-dashboard-be:20261017-01 ../grd-dashboard-be
 docker build \
   --build-arg VITE_API_ORIGIN=https://192.168.100.83 \
+  --build-arg VITE_GOOGLE_PLACES_API_KEY \
   --tag grd-dashboard-fe:20261017-01 \
   .
 docker pull postgres:18.3-alpine
@@ -45,7 +46,9 @@ docker compose --env-file .env.lan -f docker-compose.lan.yml config --quiet
 ```
 
 Never print, source in a shared shell, or commit `.env.lan`. Changing
-`VITE_API_ORIGIN` requires rebuilding the frontend image.
+`VITE_API_ORIGIN` or `VITE_GOOGLE_PLACES_API_KEY` requires rebuilding the frontend
+image. Set `VITE_GOOGLE_PLACES_API_KEY` in the local frontend environment before
+the build; the value is public browser configuration, but do not print it or commit it.
 
 ### Optional HTTP-only LAN mode
 
@@ -60,6 +63,7 @@ pnpm env:lan --scheme http --release 20261017-02 --ip 192.168.100.83 --output .e
 docker build --tag grd-dashboard-be:20261017-02 ../grd-dashboard-be
 docker build \
   --build-arg VITE_API_ORIGIN=http://192.168.100.83 \
+  --build-arg VITE_GOOGLE_PLACES_API_KEY \
   --build-arg CADDYFILE=Caddyfile.http \
   --tag grd-dashboard-fe:http-20261017-02 \
   .

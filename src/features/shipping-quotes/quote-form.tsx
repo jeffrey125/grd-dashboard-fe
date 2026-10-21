@@ -22,6 +22,7 @@ import {
   useFormContext,
 } from 'react-hook-form';
 import { v4 as randomUUID } from 'uuid';
+import { AddressSearch } from './address-search';
 import { QuoteDecimal } from './quote-decimal';
 import { regionsForCountry } from './quote-standards';
 import {
@@ -85,6 +86,14 @@ function AddressFields({
   const division = watch(divisionPath);
   const regions = regionsForCountry(country);
   const selected = watch('providers');
+  const [expanded, setExpanded] = useState(() =>
+    Object.entries(form.getValues(prefix)).some(
+      ([key, value]) => key !== 'country' && Boolean(value),
+    ),
+  );
+  const [searching, setSearching] = useState(true);
+  const hasErrors = Boolean(form.formState.errors[prefix]);
+  const configured = Boolean(import.meta.env.VITE_GOOGLE_PLACES_API_KEY?.trim());
   const requiring = (field: 'contactName' | 'phone' | 'division') =>
     configurations
       .filter(
@@ -97,70 +106,113 @@ function AddressFields({
     requiring(field).length ? `Required by ${requiring(field).join(', ')}` : undefined;
 
   return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-      {(['name', 'street', 'street2', 'city'] as const).map((field) => (
-        <TextField
-          key={field}
-          required={field !== 'street2'}
-          label={`${label} ${{ name: 'company or name', street: 'address', street2: 'apartment / suite (optional)', city: 'city' }[field]}`}
-          {...quoteField(form, `${prefix}.${field}`)}
-        />
-      ))}
-      <TextField
-        label={`${label} country`}
-        value={country === 'US' ? 'United States' : country}
-        slotProps={{ htmlInput: { readOnly: true } }}
-        error={Boolean(form.getFieldState(countryPath, form.formState).error)}
-        helperText={
-          form.getFieldState(countryPath, form.formState).error?.message ?? 'US shipping only'
-        }
-      />
-      {regions.length ? (
-        <TextField
-          select
-          label={`${label} state / province`}
-          value={division}
-          required={requiring('division').length > 0}
-          {...quoteField(form, divisionPath, requirementHint('division') ?? 'State, if applicable')}
-        >
-          {division && !regions.some(([, code]) => code === division) && (
-            <MenuItem value={division}>
-              {regions.find(([name]) => name === division)?.[0] ?? division}
-            </MenuItem>
-          )}
-          {regions.map(([name, code]) => (
-            <MenuItem key={code} value={code}>
-              {name}
-            </MenuItem>
-          ))}
-        </TextField>
-      ) : (
-        <TextField
-          label={`${label} state / province`}
-          required={requiring('division').length > 0}
-          {...quoteField(form, divisionPath, requirementHint('division') ?? 'State, if applicable')}
+    <Stack spacing={2}>
+      {configured && searching && (
+        <AddressSearch
+          label={label}
+          onSelect={(address) => {
+            for (const field of ['street', 'city', 'division', 'postalCode', 'country'] as const) {
+              form.setValue(`${prefix}.${field}`, address[field], {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+            }
+            setExpanded(true);
+            setSearching(false);
+          }}
         />
       )}
-      <TextField
-        required
-        label={`${label} ZIP / postal code`}
-        {...quoteField(form, `${prefix}.postalCode`)}
-      />
-      <TextField
-        required={requiring('contactName').length > 0}
-        label={`${label} contact name${requiring('contactName').length ? '' : ' (optional)'}`}
-        {...quoteField(form, `${prefix}.contactName`, requirementHint('contactName'))}
-      />
-      <TextField
-        required={requiring('phone').length > 0}
-        label={`${label} phone${requiring('phone').length ? '' : ' (optional)'}`}
-        {...quoteField(
-          form,
-          `${prefix}.phone`,
-          requirementHint('phone') ?? 'Include the country code, for example +1 202 555 0147',
-        )}
-      />
-    </Box>
+      {configured && (
+        <Button
+          type="button"
+          sx={{ alignSelf: 'flex-start' }}
+          aria-label={`${label}: ${searching ? 'Enter address manually' : 'Search for another address'}`}
+          onClick={() => {
+            setExpanded(true);
+            setSearching(!searching);
+          }}
+        >
+          {searching ? 'Enter address manually' : 'Search for another address'}
+        </Button>
+      )}
+      {(expanded || hasErrors || !configured) && (
+        <Box
+          onChange={() => setSearching(false)}
+          sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}
+        >
+          {(['name', 'street', 'street2', 'city'] as const).map((field) => (
+            <TextField
+              key={field}
+              required={field !== 'street2'}
+              label={`${label} ${{ name: 'company or name', street: 'address', street2: 'apartment / suite (optional)', city: 'city' }[field]}`}
+              {...quoteField(form, `${prefix}.${field}`)}
+            />
+          ))}
+          <TextField
+            label={`${label} country`}
+            value={country === 'US' ? 'United States' : country}
+            slotProps={{ htmlInput: { readOnly: true } }}
+            error={Boolean(form.getFieldState(countryPath, form.formState).error)}
+            helperText={
+              form.getFieldState(countryPath, form.formState).error?.message ?? 'US shipping only'
+            }
+          />
+          {regions.length ? (
+            <TextField
+              select
+              label={`${label} state / province`}
+              value={division}
+              required={requiring('division').length > 0}
+              {...quoteField(
+                form,
+                divisionPath,
+                requirementHint('division') ?? 'State, if applicable',
+              )}
+            >
+              {division && !regions.some(([, code]) => code === division) && (
+                <MenuItem value={division}>
+                  {regions.find(([name]) => name === division)?.[0] ?? division}
+                </MenuItem>
+              )}
+              {regions.map(([name, code]) => (
+                <MenuItem key={code} value={code}>
+                  {name}
+                </MenuItem>
+              ))}
+            </TextField>
+          ) : (
+            <TextField
+              label={`${label} state / province`}
+              required={requiring('division').length > 0}
+              {...quoteField(
+                form,
+                divisionPath,
+                requirementHint('division') ?? 'State, if applicable',
+              )}
+            />
+          )}
+          <TextField
+            required
+            label={`${label} ZIP / postal code`}
+            {...quoteField(form, `${prefix}.postalCode`)}
+          />
+          <TextField
+            required={requiring('contactName').length > 0}
+            label={`${label} contact name${requiring('contactName').length ? '' : ' (optional)'}`}
+            {...quoteField(form, `${prefix}.contactName`, requirementHint('contactName'))}
+          />
+          <TextField
+            required={requiring('phone').length > 0}
+            label={`${label} phone${requiring('phone').length ? '' : ' (optional)'}`}
+            {...quoteField(
+              form,
+              `${prefix}.phone`,
+              requirementHint('phone') ?? 'Include the country code, for example +1 202 555 0147',
+            )}
+          />
+        </Box>
+      )}
+    </Stack>
   );
 }
 function SharedOptions({

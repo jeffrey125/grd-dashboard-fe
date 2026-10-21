@@ -47,6 +47,7 @@ configuration, copy `.env.example` to `.env.local`, edit it, and restart Vite.
 | Variable | Default | Validation |
 | --- | --- | --- |
 | `VITE_API_ORIGIN` | `http://localhost:3000` | HTTP(S) origin; no credentials, path beyond `/`, query, or fragment. A trailing slash is normalized away. |
+| `VITE_GOOGLE_PLACES_API_KEY` | Unset (manual address entry) | Optional public browser key for quote address autocomplete; restrict website referrers and API access in Google Cloud. |
 
 Configuration is validated at dev/build/preview startup and again in the browser.
 An explicit empty or invalid origin fails with a safe message that does not echo
@@ -54,6 +55,36 @@ its value. **Every `VITE_*` variable is public build-time configuration.** Never
 put credentials or secrets in these variables or in `public/`. Changing the
 environment after building does not reconfigure an existing static artifact;
 rebuild it. Non-public environment files are ignored by Git.
+
+### Quote address autocomplete
+
+Sender and Recipient default to US address search when the optional Google key is
+configured. Select a suggestion to fill street, city, state and ZIP; review the
+editable fields and enter company/name, apartment/suite and contacts manually.
+**Enter address manually** works without Google and preserves existing entries.
+Without a key the complete manual form is shown immediately. A Google failure
+never blocks manual entry or changes the existing shipping validation.
+
+Set `VITE_GOOGLE_PLACES_API_KEY` in the frontend `.env` or `.env.local`, then restart
+Vite (or rebuild static assets). Enable Maps JavaScript API and Places API (New),
+with billing, on that Google project. Use a browser key restricted to your allowed
+website referrers (including the exact local testing origins) and the required APIs.
+This key is intentionally browser-visible; never reuse an unrestricted server key.
+Google Cloud restrictions and billing are not configured by this application.
+
+The approved `@googlemaps/js-api-loader` loads Places on the first search. Queries
+go directly from the browser to Google after 300 ms with at least three characters;
+each address search uses its own session token. Only address components are fetched
+on selection. Suggestions and Google place IDs are not persisted; the confirmed
+shipping address uses the existing comparison payload. No backend proxy is added.
+Provide the required application terms/privacy disclosures before rollout; see
+[Google's policies](https://developers.google.com/maps/documentation/javascript/policies)
+and [autocomplete documentation](https://developers.google.com/maps/documentation/javascript/place-autocomplete-data).
+
+The browser autocomplete tests use an SDK fixture and a non-secret build-time key:
+`VITE_GOOGLE_PLACES_API_KEY=browser-test-key pnpm build`, then
+`pnpm exec playwright test e2e/quote-address-search.spec.ts e2e/quote-form.spec.ts`.
+They do not verify Google billing, API enablement, key restrictions, or live results.
 
 ## Commands
 
@@ -71,7 +102,7 @@ rebuild it. Non-public environment files are ignored by Git.
 | `pnpm test` | `vitest run` — unit/component tests once, never watch. |
 | `pnpm test:watch` | `vitest` — explicit interactive watch mode. |
 | `pnpm test:coverage` | `vitest run --coverage` — text, HTML, LCOV, and JSON summary in `coverage/`. |
-| `pnpm test:e2e` | `pnpm build && playwright test` — fresh production build and Chromium desktop/mobile smoke tests. |
+| `pnpm test:e2e` | `VITE_GOOGLE_PLACES_API_KEY=browser-test-key pnpm build && playwright test` — fresh test build and Chromium desktop/mobile smoke tests, using a non-secret Google SDK fixture key. |
 | `pnpm test:e2e:backend` | Build both repositories and run the browser suite against a disposable PostgreSQL database and real API. |
 | `pnpm test:container` | Build disposable application images and verify fresh-database migration, same-origin HTTPS, isolation, and runtime contents. |
 | `pnpm test:container:http` | Build the explicit insecure HTTP-only LAN override and verify HTTP/API/SPA behavior with no HTTPS or worker. |
