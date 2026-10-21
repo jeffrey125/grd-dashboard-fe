@@ -11,7 +11,7 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByRole('tab', { name: 'Active (798)', exact: true })).toBeVisible();
     await expect(
-      page.getByRole('tab', { name: 'All shipments (1000)', exact: true }),
+      page.getByRole('tab', { name: 'All Shipments (1000)', exact: true }),
     ).toBeVisible();
     await expect(
       page.getByRole('tab', { name: 'Needs attention (152)', exact: true }),
@@ -74,9 +74,6 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
     await page.goto(`${origin}/shipments?q=${reference}`);
     await expect(page.getByRole('tab', { name: 'Active (1)', exact: true })).toBeVisible();
     const openActions = async () => {
-      await page.locator('.MuiDataGrid-virtualScroller').evaluate((element) => {
-        element.scrollLeft = element.scrollWidth;
-      });
       await page.getByRole('button', { name: `Actions for ${reference}`, exact: true }).click();
     };
     await openActions();

@@ -165,7 +165,7 @@ test('disable confirmation refreshes previously cached creation and shipment eli
   expect(state.patches).toEqual([{ isActive: false }]);
   if ((page.viewportSize()?.width ?? 1280) < 900)
     await page.getByRole('button', { name: /open navigation/i }).click();
-  await page.getByRole('link', { name: 'Shipments', exact: true }).click();
+  await page.getByRole('link', { name: 'Monitoring', exact: true }).click();
   await expect(
     page.getByText('No enabled carriers are available.', { exact: false }),
   ).toBeVisible();

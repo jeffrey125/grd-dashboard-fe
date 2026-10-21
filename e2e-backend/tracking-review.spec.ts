@@ -94,7 +94,11 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
     const result = origin.endsWith('4175')
       ? page.getByRole('row').filter({ hasText: trackingReference })
       : page.getByRole('article', { name: `Shipment ${trackingReference}` });
-    await result.click({ position: { x: 20, y: 30 } });
+    await result.getByText('FE-V1-011 committed tracking change', { exact: true }).click();
+    await expect(page).toHaveURL(/\/shipments\?/);
+    await expect(page.getByText(/^(● )?Updated$/)).toHaveCount(1);
+    await result.getByRole('link', { name: trackingReference, exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/shipments/${id}`));
     await expect(
       page.getByText('FE-V1-011 committed tracking change', { exact: true }),
     ).toBeVisible();
@@ -102,7 +106,8 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
     await expect(page.getByText(/^(● )?Updated$/)).toHaveCount(0);
     changeTracking(id, true);
     await expect(page.getByText(/^(● )?Needs attention$/)).toHaveCount(1);
-    await result.click({ position: { x: 20, y: 30 } });
+    await result.getByRole('link', { name: trackingReference, exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/shipments/${id}`));
     await expect(
       page.getByText('FE-V1-011 committed tracking change', { exact: true }),
     ).toBeVisible();

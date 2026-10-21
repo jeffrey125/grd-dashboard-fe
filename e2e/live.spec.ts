@@ -13,7 +13,7 @@ test('one connection survives navigation and a persistent warning recovers witho
   for (let i = 0; i < 3; i++) {
     if ((page.viewportSize()?.width ?? 0) < 768)
       await page.getByRole('button', { name: 'Open navigation' }).click();
-    await page.getByRole('link', { name: 'Shipments', exact: true }).click();
+    await page.getByRole('link', { name: 'Monitoring', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Shipments' })).toBeVisible();
     await page.goBack();
     await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();

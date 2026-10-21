@@ -76,14 +76,14 @@ test('built shell supports branding, navigation, themes, and keyboard recovery',
     await menuButton.focus();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible();
-    await page.getByRole('link', { name: 'Shipments', exact: true }).focus();
+    await page.getByRole('link', { name: 'Monitoring', exact: true }).focus();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('button', { name: 'Open navigation' })).toHaveAttribute(
       'aria-expanded',
       'false',
     );
   } else {
-    await page.getByRole('link', { name: 'Shipments', exact: true }).click();
+    await page.getByRole('link', { name: 'Monitoring', exact: true }).click();
   }
   await expect(page.getByRole('heading', { name: 'Shipments' })).toBeVisible();
   await expect(
