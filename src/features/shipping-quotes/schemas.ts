@@ -56,6 +56,18 @@ export const providersSchema = z.array(
     executionMode: z.enum(['request', 'browser']),
     usedInternationally: z.boolean(),
     internationalAvailable: z.boolean(),
+    inputRequirements: z
+      .object({
+        sender: z.object({
+          requiredFields: z.array(z.enum(['contactName', 'phone', 'division'])),
+          maxNameLength: z.number().int().positive(),
+        }),
+        destination: z.object({
+          requiredFields: z.array(z.enum(['contactName', 'phone', 'division'])),
+          maxNameLength: z.number().int().positive(),
+        }),
+      })
+      .optional(),
     supportsSignature: z.boolean(),
     supportsInsurance: z.boolean(),
   }),
@@ -200,8 +212,14 @@ const createQuoteSchema = z
         message: 'Total customs value must equal item quantity × unit value × box quantity',
       });
   });
-export function createQuoteFormSchema(_providers: Provider[]) {
+function createQuoteFormSchema(_providers: Provider[]) {
   return createQuoteSchema.superRefine((value, ctx) => {
+    if (value.destination.country !== 'US')
+      ctx.addIssue({
+        code: 'custom',
+        path: ['destination', 'country'],
+        message: 'V1 supports US destinations only',
+      });
     const dimensionlessUnishippersOnly =
       value.providers.length === 1 && value.providers[0]?.code === 'unishippers';
 
@@ -236,6 +254,90 @@ export function createQuoteFormSchema(_providers: Provider[]) {
             message: 'Amazon requires length, width, and height. Enter all three sizes.',
           });
     });
+  });
+}
+const sharedFormBase = z.strictObject({
+  idempotencyKey: createQuoteSchema.shape.idempotencyKey,
+  shipDate: createQuoteSchema.shape.shipDate,
+  destination: addressSchema,
+  sender: addressSchema.safeExtend({ country: z.literal('US') }),
+  options: z.strictObject({
+    signature: z.enum(['none', 'signature', 'adult_signature']),
+    insurance: z.strictObject({ amount: z.string(), currency: z.string() }).nullable(),
+  }),
+  providers: z
+    .array(z.strictObject({ code: providerCode }))
+    .min(1, 'Select at least one shipping service'),
+  packageGroups: createQuoteSchema.shape.packageGroups,
+});
+export type SharedQuoteInput = z.infer<typeof sharedFormBase>;
+
+export function quoteInputFromShared(
+  input: SharedQuoteInput,
+  configurations: Provider[],
+): QuoteInput {
+  const { sender, options, providers, ...shipment } = input;
+  return {
+    ...shipment,
+    providers: providers.map(({ code }) => {
+      const configuration = configurations.find((provider) => provider.code === code);
+      return {
+        code,
+        sender: { mode: 'explicit', address: { ...sender } },
+        options: {
+          signature: configuration?.supportsSignature ? options.signature : 'none',
+          insurance: configuration?.supportsInsurance ? options.insurance : null,
+        },
+      };
+    }),
+  };
+}
+
+export function createSharedQuoteFormSchema(configurations: Provider[]) {
+  return sharedFormBase.superRefine((input, ctx) => {
+    const result = createQuoteFormSchema(configurations).safeParse(
+      quoteInputFromShared(input, configurations),
+    );
+    if (!result.success)
+      for (const issue of result.error.issues) {
+        const path =
+          issue.path[0] === 'providers' && issue.path[2] === 'sender'
+            ? ['sender', ...issue.path.slice(4)]
+            : issue.path[0] === 'providers' && issue.path[2] === 'options'
+              ? ['options', ...issue.path.slice(3)]
+              : issue.path;
+        ctx.addIssue({ code: 'custom', path, message: issue.message });
+      }
+    for (const selected of input.providers) {
+      const provider = configurations.find((entry) => entry.code === selected.code);
+      if (!provider?.enabled) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['providers'],
+          message: 'Select an available shipping service',
+        });
+        continue;
+      }
+      for (const target of ['sender', 'destination'] as const) {
+        const requirements = provider.inputRequirements?.[target];
+        const maxNameLength =
+          requirements?.maxNameLength ??
+          (target === 'sender' && provider.code === 'unishippers' ? 35 : 200);
+        if (input[target].name.length > maxNameLength)
+          ctx.addIssue({
+            code: 'custom',
+            path: [target, 'name'],
+            message: `${provider.name} requires ${maxNameLength} characters or fewer`,
+          });
+        for (const field of requirements?.requiredFields ?? [])
+          if (!input[target][field]?.trim())
+            ctx.addIssue({
+              code: 'custom',
+              path: [target, field],
+              message: `Required by ${provider.name}`,
+            });
+      }
+    }
   });
 }
 export type QuoteInput = z.infer<typeof createQuoteSchema>;

@@ -14,7 +14,7 @@ test('staff saves, reopens, and copies an immutable comparison through the real 
 }) => {
   await signIn(page);
   await page.goto('/quotes/new');
-  for (const label of ['Amazon Shipping sender', 'myUnishippers sender', 'Recipient']) {
+  for (const label of ['Sender', 'Recipient']) {
     await page.getByLabel(`${label} company or name`, { exact: false }).fill('Fixture warehouse');
     await page.getByLabel(`${label} address`, { exact: false }).fill('1 Example Street');
     await page.getByLabel(`${label} city`, { exact: false }).fill('Walworth');
@@ -22,7 +22,7 @@ test('staff saves, reopens, and copies an immutable comparison through the real 
     await page.getByRole('option', { name: 'Wisconsin', exact: true }).click();
     await page.getByLabel(`${label} ZIP / postal code`, { exact: false }).fill('53125');
   }
-  for (const label of ['myUnishippers sender', 'Recipient']) {
+  for (const label of ['Sender', 'Recipient']) {
     await page
       .getByLabel(`${label} contact name (optional)`, { exact: true })
       .fill('Fixture Contact');
@@ -54,7 +54,7 @@ test('staff saves, reopens, and copies an immutable comparison through the real 
   await page.getByRole('button', { name: 'Check shipment details', exact: true }).click();
   await expect(page.getByText(/10.00 × 8 × 6 in/)).toBeVisible();
   await page.getByRole('link', { name: 'Copy to new comparison' }).click();
-  for (const label of ['myUnishippers sender', 'Recipient']) {
+  for (const label of ['Sender', 'Recipient']) {
     await expect(page.getByLabel(`${label} contact name (optional)`, { exact: true })).toHaveValue(
       'Fixture Contact',
     );
@@ -78,7 +78,7 @@ test('saves a myUnishippers request comparison with blank dimensions', async ({ 
   await page.getByRole('checkbox', { name: 'Amazon Shipping', exact: true }).uncheck();
   for (const [label, values] of [
     [
-      'myUnishippers sender',
+      'Sender',
       {
         name: 'US Spice Mills',
         street: '200 Regency Drive',

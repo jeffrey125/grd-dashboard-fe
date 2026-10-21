@@ -56,8 +56,7 @@ export function NewQuotePage() {
       {copy && (
         <Alert severity="info" sx={{ mb: 2 }}>
           This starts a new comparison using the previous addresses and box details. Check the
-          sender addresses and ship date before comparing. Unavailable shipping services are left
-          out.
+          shared sender and ship date before comparing. Unavailable shipping services are left out.
         </Alert>
       )}
       <QuoteForm

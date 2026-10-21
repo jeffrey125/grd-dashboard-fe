@@ -140,41 +140,28 @@ test('deduplicates submissions, refetches after SSE reconnect, and calculates mu
   await expect(page.getByText('Calculated estimate', { exact: true })).toHaveCount(2);
 });
 
-test('fails closed for international options while preserving the saved shipment details', async ({
-  page,
-}) => {
+test('rejects international submissions before creating a comparison', async ({ page }) => {
   const body = input();
-  const saved = await create(page, {
-    ...body,
-    destination: {
-      ...address,
-      country: 'CA',
-      city: 'Toronto',
-      division: 'ON',
-      postalCode: 'M5V 3L9',
+  const response = await page.request.post(`${api}/quote-comparisons`, {
+    headers: { Origin: 'http://localhost:4175' },
+    data: {
+      ...body,
+      destination: {
+        ...address,
+        country: 'CA',
+        city: 'Toronto',
+        division: 'ON',
+        postalCode: 'M5V 3L9',
+      },
+      international: {
+        contentsDescription: 'Fixture goods',
+        customsMode: 'summary',
+        totalValue: { amount: '20', currency: 'USD' },
+      },
     },
-    international: {
-      contentsDescription: 'Fixture goods',
-      customsMode: 'summary',
-      totalValue: { amount: '20', currency: 'USD' },
-    },
-    providers: body.providers.map((provider) => ({
-      ...provider,
-      options: { signature: 'signature', insurance: { amount: '10', currency: 'USD' } },
-    })),
   });
-  await page.goto(`/quotes/${saved.externalId}`);
-  await expect(
-    page.getByText(
-      'No prices available. Review the provider messages below. These details are read-only.',
-    ),
-  ).toBeVisible({ timeout: 15000 });
-  await expect(
-    page.getByRole('alert').filter({ hasText: 'This request is not supported by the provider.' }),
-  ).toHaveCount(2);
-  await expect(page.getByText('45.00 CAD', { exact: true })).toHaveCount(0);
-  await expect(page.getByText('Lowest price', { exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Check shipment details', exact: true }).click();
-  await expect(page.getByText(/25.4 × 20.32 × 15.24 cm/)).toBeVisible();
-  await noPurchaseActions(page);
+  expect(response.status()).toBe(400);
+  expect((await response.json()).fields).toEqual(
+    expect.arrayContaining([expect.objectContaining({ field: 'destination.country' })]),
+  );
 });

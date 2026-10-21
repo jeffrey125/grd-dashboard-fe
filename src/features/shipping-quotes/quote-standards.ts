@@ -11,11 +11,11 @@ export const currencyCodeSchema = z
   .string()
   .refine(validator.isISO4217, 'Enter a currency abbreviation, such as USD for US dollars');
 
-export const addressCountries: CountryData[] = allCountries.filter(([, code]) =>
+const addressCountries: CountryData[] = allCountries.filter(([, code]) =>
   validator.isISO31661Alpha2(code),
 );
 
-export function isSupportedCountryCode(value: string): boolean {
+function isSupportedCountryCode(value: string): boolean {
   return validator.isISO31661Alpha2(value);
 }
 

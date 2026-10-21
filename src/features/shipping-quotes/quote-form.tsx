@@ -23,8 +23,15 @@ import {
 } from 'react-hook-form';
 import { v4 as randomUUID } from 'uuid';
 import { QuoteDecimal } from './quote-decimal';
-import { addressCountries, isSupportedCountryCode, regionsForCountry } from './quote-standards';
-import { type Address, createQuoteFormSchema, type Provider, type QuoteInput } from './schemas';
+import { regionsForCountry } from './quote-standards';
+import {
+  type Address,
+  createSharedQuoteFormSchema,
+  type Provider,
+  type QuoteInput,
+  quoteInputFromShared,
+  type SharedQuoteInput,
+} from './schemas';
 
 const emptyAddress = (): Address => ({
   name: '',
@@ -45,8 +52,8 @@ const emptyGroup = (): QuoteInput['packageGroups'][number] => ({
 });
 // Connect MUI's actual input (including selects) to React Hook Form for focus and errors.
 function quoteField(
-  form: UseFormReturn<QuoteInput>,
-  name: FieldPath<QuoteInput>,
+  form: UseFormReturn<SharedQuoteInput>,
+  name: FieldPath<SharedQuoteInput>,
   hint?: string,
   numeric = false,
 ) {
@@ -64,20 +71,30 @@ function quoteField(
 function AddressFields({
   prefix,
   label,
-  origin = false,
+  configurations,
 }: {
-  prefix: 'destination' | `providers.${number}.sender.address`;
+  prefix: 'destination' | 'sender';
   label: string;
-  origin?: boolean;
+  configurations: Provider[];
 }) {
-  const form = useFormContext<QuoteInput>();
-  const { setValue, watch } = form;
+  const form = useFormContext<SharedQuoteInput>();
+  const { watch } = form;
   const countryPath = `${prefix}.country` as const;
   const divisionPath = `${prefix}.division` as const;
   const country = watch(countryPath);
   const division = watch(divisionPath);
   const regions = regionsForCountry(country);
-  const countryRegistration = quoteField(form, countryPath);
+  const selected = watch('providers');
+  const requiring = (field: 'contactName' | 'phone' | 'division') =>
+    configurations
+      .filter(
+        (provider) =>
+          selected.some((entry) => entry.code === provider.code) &&
+          provider.inputRequirements?.[prefix].requiredFields.includes(field),
+      )
+      .map((provider) => provider.name);
+  const requirementHint = (field: 'contactName' | 'phone' | 'division') =>
+    requiring(field).length ? `Required by ${requiring(field).join(', ')}` : undefined;
 
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
@@ -90,29 +107,21 @@ function AddressFields({
         />
       ))}
       <TextField
-        select
-        required
         label={`${label} country`}
-        value={country}
-        disabled={origin}
-        {...countryRegistration}
-        onChange={(event) => {
-          void countryRegistration.onChange(event);
-          setValue(divisionPath, '', { shouldDirty: true, shouldValidate: true });
-        }}
-      >
-        {addressCountries.map(([name, code]) => (
-          <MenuItem key={code} value={code}>
-            {name}
-          </MenuItem>
-        ))}
-      </TextField>
+        value={country === 'US' ? 'United States' : country}
+        slotProps={{ htmlInput: { readOnly: true } }}
+        error={Boolean(form.getFieldState(countryPath, form.formState).error)}
+        helperText={
+          form.getFieldState(countryPath, form.formState).error?.message ?? 'US shipping only'
+        }
+      />
       {regions.length ? (
         <TextField
           select
           label={`${label} state / province`}
           value={division}
-          {...quoteField(form, divisionPath, 'State or province, if applicable')}
+          required={requiring('division').length > 0}
+          {...quoteField(form, divisionPath, requirementHint('division') ?? 'State, if applicable')}
         >
           {division && !regions.some(([, code]) => code === division) && (
             <MenuItem value={division}>
@@ -128,7 +137,8 @@ function AddressFields({
       ) : (
         <TextField
           label={`${label} state / province`}
-          {...quoteField(form, divisionPath, 'State or province, if applicable')}
+          required={requiring('division').length > 0}
+          {...quoteField(form, divisionPath, requirementHint('division') ?? 'State, if applicable')}
         />
       )}
       <TextField
@@ -137,188 +147,115 @@ function AddressFields({
         {...quoteField(form, `${prefix}.postalCode`)}
       />
       <TextField
-        label={`${label} contact name (optional)`}
-        {...quoteField(form, `${prefix}.contactName`)}
+        required={requiring('contactName').length > 0}
+        label={`${label} contact name${requiring('contactName').length ? '' : ' (optional)'}`}
+        {...quoteField(form, `${prefix}.contactName`, requirementHint('contactName'))}
       />
       <TextField
-        label={`${label} phone (optional)`}
+        required={requiring('phone').length > 0}
+        label={`${label} phone${requiring('phone').length ? '' : ' (optional)'}`}
         {...quoteField(
           form,
           `${prefix}.phone`,
-          'Include the country code, for example +1 202 555 0147',
+          requirementHint('phone') ?? 'Include the country code, for example +1 202 555 0147',
         )}
       />
     </Box>
   );
 }
-function CustomsFields({ index }: { index: number }) {
-  const form = useFormContext<QuoteInput>();
-  const { control, watch } = form;
-  const items = useFieldArray({ control, name: `packageGroups.${index}.customsItems` });
-  const currency = watch('international.totalValue.currency') || 'USD';
-  return (
-    <Stack spacing={2}>
-      <Typography>
-        List the items inside one box. Use the same weight unit selected for the box.
-      </Typography>
-      {items.fields.map((item, j) => (
-        <Paper key={item.id} variant="outlined" sx={{ p: 2 }}>
-          <Stack spacing={2}>
-            {(
-              [
-                'description',
-                'quantity',
-                'unitValue',
-                'currency',
-                'countryOfManufacture',
-                'weight',
-                'hsCode',
-              ] as const
-            ).map((field) => {
-              const input = (
-                <TextField
-                  key={field}
-                  select={field === 'countryOfManufacture'}
-                  defaultValue={
-                    field === 'countryOfManufacture' ? item.countryOfManufacture : undefined
-                  }
-                  required={field !== 'hsCode'}
-                  label={`Box type ${index + 1}, item ${j + 1}: ${{ description: 'description', quantity: 'number of items', unitValue: 'value per item', currency: 'currency', countryOfManufacture: 'made in', weight: 'weight per item', hsCode: 'HS tariff code (optional)' }[field]}`}
-                  slotProps={field === 'currency' ? { htmlInput: { readOnly: true } } : undefined}
-                  {...quoteField(
-                    form,
-                    `packageGroups.${index}.customsItems.${j}.${field}`,
-                    undefined,
-                    field === 'quantity',
-                  )}
-                >
-                  {field === 'countryOfManufacture' &&
-                    addressCountries.map(([name, code]) => (
-                      <MenuItem key={code} value={code}>
-                        {name}
-                      </MenuItem>
-                    ))}
-                </TextField>
-              );
-
-              return input;
-            })}
-            <Button onClick={() => items.remove(j)}>Remove item {j + 1}</Button>
-          </Stack>
-        </Paper>
-      ))}
-      <Button
-        onClick={() =>
-          items.append({
-            description: '',
-            quantity: 1,
-            unitValue: '',
-            currency,
-            countryOfManufacture: 'US',
-            weight: '',
-          })
-        }
-      >
-        Add an item to box type {index + 1}
-      </Button>
-    </Stack>
-  );
-}
-function ProviderFields({
-  index,
-  configuration,
+function SharedOptions({
+  configurations,
   totalBoxes,
 }: {
-  index: number;
-  configuration: Provider;
+  configurations: Provider[];
   totalBoxes: number;
 }) {
-  const name = configuration.name;
-  const form = useFormContext<QuoteInput>();
-  const { watch, setValue, getValues } = form;
-  const provider = watch(`providers.${index}`);
-  if (provider.sender.mode !== 'explicit')
-    return (
-      <Alert severity="error">
-        Enter a sender address for {name}: deselect this service and select it again to fill in the
-        address.
-      </Alert>
-    );
-
+  const form = useFormContext<SharedQuoteInput>();
+  const options = form.watch('options');
+  const selected = form.watch('providers');
+  const active = configurations.filter((provider) =>
+    selected.some((entry) => entry.code === provider.code),
+  );
+  const signatureProviders = active.filter((provider) => provider.supportsSignature);
+  const insuranceProviders = active.filter((provider) => provider.supportsInsurance);
   return (
-    <Paper variant="outlined" sx={{ p: 2 }}>
-      <Stack spacing={2}>
-        <Typography variant="h6">{name}</Typography>
-        {configuration.maintenanceMessage && (
-          <Alert severity="info">{configuration.maintenanceMessage}</Alert>
-        )}
-        {provider.code === 'unishippers' && (
-          <Alert severity="info">
-            For shipping within the US today. We estimate the total by multiplying each box price by
-            the number of identical boxes. Signature and insurance are unavailable. Box sizes are
-            optional only when comparing myUnishippers alone; weight is required.
-          </Alert>
-        )}
-        <Typography variant="body2">
-          Where are you shipping from? Enter the pickup address for this service.
-        </Typography>
-        <AddressFields
-          prefix={`providers.${index}.sender.address`}
-          label={`${name} sender`}
-          origin
-        />
-        {configuration.supportsSignature && (
-          <TextField
-            select
-            label={`${name} signature request`}
-            {...quoteField(form, `providers.${index}.options.signature`)}
-            defaultValue={provider.options.signature}
-          >
-            <MenuItem value="none">None</MenuItem>
-            <MenuItem value="signature">Signature</MenuItem>
-            <MenuItem value="adult_signature">Adult signature</MenuItem>
-          </TextField>
-        )}
-        {configuration.supportsInsurance && (
+    <Stack spacing={2}>
+      {signatureProviders.length > 0 && (
+        <TextField
+          select
+          label="Signature request"
+          value={options.signature}
+          {...quoteField(
+            form,
+            'options.signature',
+            `Supported by ${signatureProviders.map((p) => p.name).join(', ')}`,
+          )}
+        >
+          <MenuItem value="none">None</MenuItem>
+          <MenuItem value="signature">Signature</MenuItem>
+          <MenuItem value="adult_signature">Adult signature</MenuItem>
+        </TextField>
+      )}
+      {options.signature !== 'none' && active.some((provider) => !provider.supportsSignature) && (
+        <Alert severity="warning">
+          Signature will not be requested from{' '}
+          {active
+            .filter((p) => !p.supportsSignature)
+            .map((p) => p.name)
+            .join(', ')}{' '}
+          because it is unsupported.
+        </Alert>
+      )}
+      {insuranceProviders.length > 0 && (
+        <>
           <FormControlLabel
-            label={`${name} request insurance`}
+            label="Request insurance"
             control={
               <Checkbox
-                checked={provider.options.insurance !== null}
+                checked={options.insurance !== null}
                 onChange={(_, checked) =>
-                  setValue(
-                    `providers.${index}.options.insurance`,
+                  form.setValue(
+                    'options.insurance',
                     checked ? { amount: '', currency: 'USD' } : null,
+                    { shouldDirty: true, shouldValidate: form.formState.isSubmitted },
                   )
                 }
               />
             }
           />
-        )}
-        {configuration.supportsInsurance && provider.options.insurance && (
-          <>
-            <TextField
-              label={`${name} insured value per box`}
-              required
-              {...quoteField(form, `providers.${index}.options.insurance.amount`)}
-            />
-            <TextField
-              label={`${name} insurance currency`}
-              defaultValue={getValues(`providers.${index}.options.insurance.currency`)}
-              slotProps={{ htmlInput: { readOnly: true } }}
-              {...quoteField(form, `providers.${index}.options.insurance.currency`)}
-            />
-            {/^(?:0|[1-9]\d{0,8})(?:\.\d{1,6})?$/.test(provider.options.insurance.amount) && (
-              <Typography variant="body2">
-                Total requested insurance:{' '}
-                {new QuoteDecimal(provider.options.insurance.amount).times(totalBoxes).toFixed(2)}{' '}
-                {provider.options.insurance.currency}
-              </Typography>
-            )}
-          </>
-        )}
-      </Stack>
-    </Paper>
+          {options.insurance && (
+            <>
+              <TextField
+                label="Insured value per box"
+                required
+                {...quoteField(
+                  form,
+                  'options.insurance.amount',
+                  `Supported by ${insuranceProviders.map((p) => p.name).join(', ')}`,
+                )}
+              />
+              <Typography>Insurance currency: USD</Typography>
+              {/^(?:0|[1-9]\d{0,8})(?:\.\d{1,6})?$/.test(options.insurance.amount) && (
+                <Typography>
+                  Total requested insurance:{' '}
+                  {new QuoteDecimal(options.insurance.amount).times(totalBoxes).toFixed(2)} USD
+                </Typography>
+              )}
+            </>
+          )}
+        </>
+      )}
+      {options.insurance && active.some((provider) => !provider.supportsInsurance) && (
+        <Alert severity="warning">
+          Insurance will not be requested from{' '}
+          {active
+            .filter((p) => !p.supportsInsurance)
+            .map((p) => p.name)
+            .join(', ')}{' '}
+          because it is unsupported.
+        </Alert>
+      )}
+    </Stack>
   );
 }
 export function QuoteForm({
@@ -330,24 +267,25 @@ export function QuoteForm({
   initial?: QuoteInput;
   onSave: (input: QuoteInput) => Promise<unknown>;
 }) {
-  const formSchema = useMemo(() => createQuoteFormSchema(providers), [providers]);
-  const defaultValues: QuoteInput = initial ?? {
-    idempotencyKey: randomUUID(),
-    shipDate: businessCalendarDate(),
-    destination: emptyAddress(),
-    providers: providers
-      .filter((p) => p.enabled)
-      .map((p) => ({
-        code: p.code,
-        sender: {
-          mode: 'explicit',
-          address: { ...emptyAddress(), country: 'US' as const },
-        },
-        options: { signature: 'none', insurance: null },
-      })),
-    packageGroups: [emptyGroup()],
+  const formSchema = useMemo(() => createSharedQuoteFormSchema(providers), [providers]);
+  const originalSender = initial?.providers[0]?.sender;
+  const defaultValues: SharedQuoteInput = {
+    idempotencyKey: initial?.idempotencyKey ?? randomUUID(),
+    shipDate: initial?.shipDate ?? businessCalendarDate(),
+    destination: initial?.destination ?? emptyAddress(),
+    sender:
+      originalSender?.mode === 'explicit'
+        ? originalSender.address
+        : { ...emptyAddress(), country: 'US' },
+    options: initial?.providers[0]?.options ?? { signature: 'none', insurance: null },
+    providers: (initial?.providers ?? providers.filter((p) => p.enabled)).map(({ code }) => ({
+      code,
+    })),
+    packageGroups: initial?.packageGroups.map((group) => ({ ...group, customsItems: [] })) ?? [
+      emptyGroup(),
+    ],
   };
-  const form = useForm<QuoteInput>({
+  const form = useForm<SharedQuoteInput>({
     resolver: zodResolver(formSchema),
     defaultValues,
     shouldFocusError: false,
@@ -371,60 +309,13 @@ export function QuoteForm({
   const groups = useFieldArray({ control, name: 'packageGroups' });
   const selected = watch('providers');
   const dimensionsOptional = selected.length === 1 && selected[0]?.code === 'unishippers';
-  const country = watch('destination.country');
   const packageGroups = watch('packageGroups');
-  const international = watch('international');
-  const isInternational = isSupportedCountryCode(country) && country !== 'US';
   const totalBoxes = packageGroups.reduce((sum, group) => sum + (group.quantity || 0), 0);
-  const detailedCustomsTotal = useMemo(() => {
-    if (international?.customsMode !== 'detailed') return '';
-    try {
-      let total = new QuoteDecimal(0);
-      for (const group of packageGroups)
-        for (const item of group.customsItems) {
-          if (!item.unitValue || !item.quantity || !group.quantity) return '';
-          total = total.add(
-            new QuoteDecimal(item.unitValue).times(item.quantity).times(group.quantity),
-          );
-        }
-      return total.isPositive() ? total.toFixed(6) : '';
-    } catch {
-      return '';
-    }
-  }, [international?.customsMode, packageGroups]);
-  useEffect(() => {
-    if (!isSupportedCountryCode(country)) return;
-    if (country === 'US') {
-      if (form.getValues('international')) setValue('international', undefined);
-      for (const [index, group] of form.getValues('packageGroups').entries())
-        if (group.customsItems.length) setValue(`packageGroups.${index}.customsItems`, []);
-      return;
-    }
-    if (!form.getValues('international'))
-      setValue('international', {
-        contentsDescription: '',
-        customsMode: 'summary',
-        totalValue: { amount: '', currency: 'USD' },
-      });
-    const eligible = form
-      .getValues('providers')
-      .filter(
-        (provider) =>
-          providers.find((configuration) => configuration.code === provider.code)
-            ?.internationalAvailable,
-      );
-    if (eligible.length !== form.getValues('providers').length) setValue('providers', eligible);
-  }, [country, form, providers, setValue]);
-  useEffect(() => {
-    if (international?.customsMode === 'detailed')
-      setValue('international.totalValue.amount', detailedCustomsTotal, {
-        shouldValidate: true,
-      });
-  }, [detailedCustomsTotal, international?.customsMode, setValue]);
   const [failure, setFailure] = useState('');
   const lastSubmission = useRef<{ body: string; key: string } | undefined>(undefined);
   const submit = handleSubmit(
-    async (input) => {
+    async (valuesInput) => {
+      const input = quoteInputFromShared(valuesInput, providers);
       setFailure('');
       const { idempotencyKey, ...values } = input;
       const body = JSON.stringify(values);
@@ -496,14 +387,12 @@ export function QuoteForm({
                 {providers
                   .filter((p) => p.enabled)
                   .map((provider) => {
-                    const unavailable = isInternational && !provider.internationalAvailable;
                     return (
                       <Box key={provider.code}>
                         <FormControlLabel
                           label={provider.name}
                           control={
                             <Checkbox
-                              disabled={unavailable}
                               checked={selected.some((p) => p.code === provider.code)}
                               onChange={(_, checked) =>
                                 setValue(
@@ -513,14 +402,6 @@ export function QuoteForm({
                                         ...selected,
                                         {
                                           code: provider.code,
-                                          sender: {
-                                            mode: 'explicit',
-                                            address: {
-                                              ...emptyAddress(),
-                                              country: 'US' as const,
-                                            },
-                                          },
-                                          options: { signature: 'none', insurance: null },
                                         },
                                       ]
                                     : selected.filter((p) => p.code !== provider.code),
@@ -530,13 +411,6 @@ export function QuoteForm({
                             />
                           }
                         />
-                        {unavailable && (
-                          <Typography variant="caption" sx={{ display: 'block' }}>
-                            {provider.usedInternationally
-                              ? 'International quotes are not currently available'
-                              : 'Not available for international destinations'}
-                          </Typography>
-                        )}
                       </Box>
                     );
                   })}
@@ -561,76 +435,37 @@ export function QuoteForm({
                 </Alert>
               )}
               <Typography variant="h6">2. Where are you shipping from?</Typography>
-              {selected.map((p, index) => {
-                const configuration = providers.find((x) => x.code === p.code);
-                return configuration ? (
-                  <ProviderFields
-                    key={p.code}
-                    index={index}
-                    configuration={configuration}
-                    totalBoxes={totalBoxes}
-                  />
-                ) : null;
-              })}
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Stack spacing={2}>
+                  <Typography>
+                    Enter the pickup address once. All selected shipping services use this sender.
+                  </Typography>
+                  <AddressFields prefix="sender" label="Sender" configurations={providers} />
+                </Stack>
+              </Paper>
               <Typography variant="h6">3. Where is it going?</Typography>
-              <AddressFields prefix="destination" label="Recipient" />
-              {isInternational && international && (
-                <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Stack spacing={2}>
-                    <Typography variant="h6">International shipping details</Typography>
-                    <TextField
-                      label="Specific description of contents for label"
-                      required
-                      {...quoteField(
-                        form,
-                        'international.contentsDescription',
-                        'For example: flour samples',
-                      )}
-                    />
-                    <TextField
-                      select
-                      label="Customs detail level"
-                      value={international.customsMode}
-                      onChange={(event) => {
-                        const mode = event.target.value as 'summary' | 'detailed';
-                        setValue('international.customsMode', mode);
-                        if (mode === 'summary')
-                          for (const [index, group] of packageGroups.entries())
-                            if (group.customsItems.length)
-                              setValue(`packageGroups.${index}.customsItems`, []);
-                      }}
-                    >
-                      <MenuItem value="summary">Shipment summary</MenuItem>
-                      <MenuItem value="detailed">Detailed items per box</MenuItem>
-                    </TextField>
-                    <TextField
-                      label="Total customs value"
-                      slotProps={{
-                        htmlInput: {
-                          readOnly: international.customsMode === 'detailed',
-                        },
-                      }}
-                      required
-                      {...quoteField(
-                        form,
-                        'international.totalValue.amount',
-                        international.customsMode === 'detailed'
-                          ? 'Calculated from the items and number of boxes you entered.'
-                          : 'Combined value of everything in the shipment',
-                      )}
-                    />
-                    <TextField
-                      label="Customs currency"
-                      required
-                      {...quoteField(
-                        form,
-                        'international.totalValue.currency',
-                        'Use a currency abbreviation, such as USD for US dollars.',
-                      )}
-                    />
+              <AddressFields prefix="destination" label="Recipient" configurations={providers} />
+              {selected.map(({ code }) => {
+                const provider = providers.find((entry) => entry.code === code);
+                return (
+                  <Stack key={code} spacing={1}>
+                    {provider?.maintenanceMessage && (
+                      <Alert severity="info">
+                        {provider.name}: {provider.maintenanceMessage}
+                      </Alert>
+                    )}
+                    {code === 'unishippers' && (
+                      <Alert severity="info">
+                        myUnishippers: For shipping within the US today. We estimate the total by
+                        multiplying each box price by the number of identical boxes. Signature and
+                        insurance are unavailable. Box sizes are optional only when comparing
+                        myUnishippers alone; weight is required.
+                      </Alert>
+                    )}
                   </Stack>
-                </Paper>
-              )}
+                );
+              })}
+              <SharedOptions configurations={providers} totalBoxes={totalBoxes} />
               <Typography variant="h6">4. What are you shipping?</Typography>
               <Typography variant="body2">
                 Enter the size and weight of one box, then how many identical boxes you have. Add
@@ -687,14 +522,6 @@ export function QuoteForm({
                         />
                       ))}
                     </Box>
-                    {(formState.errors.packageGroups?.[index]?.customsItems?.message ||
-                      formState.errors.packageGroups?.[index]?.customsItems?.root?.message) && (
-                      <Alert severity="error">
-                        {formState.errors.packageGroups[index]?.customsItems?.message ||
-                          formState.errors.packageGroups[index]?.customsItems?.root?.message}
-                      </Alert>
-                    )}
-                    {international?.customsMode === 'detailed' && <CustomsFields index={index} />}
                     <Button
                       disabled={groups.fields.length === 1}
                       onClick={() => groups.remove(index)}

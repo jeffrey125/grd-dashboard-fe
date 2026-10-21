@@ -92,15 +92,12 @@ describe('Quote comparison form', () => {
     render(<QuoteForm providers={[unishippersRequestProvider]} initial={body} onSave={save} />);
 
     expect(screen.queryByText(/Account default/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Where are you shipping from\? Enter the pickup/)).toBeInTheDocument();
+    expect(screen.getByText(/Enter the pickup address once/)).toBeInTheDocument();
     expect(
       screen.getByText(/We estimate the total by multiplying each box price/),
     ).toBeInTheDocument();
-    await user.clear(screen.getByLabelText(/myUnishippers sender company or name/));
-    await user.type(
-      screen.getByLabelText(/myUnishippers sender company or name/),
-      'Entered warehouse',
-    );
+    await user.clear(screen.getByLabelText(/Sender company or name/));
+    await user.type(screen.getByLabelText(/Sender company or name/), 'Entered warehouse');
     await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
     await waitFor(() =>
       expect(save).toHaveBeenCalledWith(
@@ -161,43 +158,120 @@ describe('Quote comparison form', () => {
     expect(screen.getByLabelText(/Box type 2: length/)).toBeInTheDocument();
     expect(screen.getByText(/This does not book a shipment/)).toBeInTheDocument();
   });
-  it('disables domestic-only providers for international destinations', async () => {
+  it('keeps both countries US-only and preserves the shared sender through deselecting all providers', async () => {
     const user = userEvent.setup();
-    const body = initial();
+    const save = vi.fn().mockResolvedValue(undefined);
     render(
       <QuoteForm
         providers={[amazonProvider, unishippersRequestProvider]}
-        initial={body}
-        onSave={vi.fn()}
+        initial={initial()}
+        onSave={save}
       />,
     );
-
-    await user.click(screen.getByRole('combobox', { name: /Recipient country/ }));
-    await user.click(screen.getByRole('option', { name: 'Canada' }));
-
-    expect(screen.getByRole('checkbox', { name: 'Amazon Shipping' })).toBeDisabled();
-    expect(screen.getByRole('checkbox', { name: 'myUnishippers' })).toBeDisabled();
-    expect(screen.getByText('Not available for international destinations')).toBeInTheDocument();
+    expect(screen.getByLabelText('Recipient country')).toHaveValue('United States');
+    expect(screen.getByLabelText('Recipient country')).toHaveAttribute('readonly');
+    expect(screen.getByLabelText('Sender country')).toHaveAttribute('readonly');
+    await user.clear(screen.getByLabelText(/Sender company or name/));
+    await user.type(screen.getByLabelText(/Sender company or name/), 'Shared warehouse');
+    await user.click(screen.getByRole('checkbox', { name: 'Amazon Shipping' }));
+    expect(screen.getByLabelText(/Sender company or name/)).toHaveValue('Shared warehouse');
+    await user.click(screen.getByRole('checkbox', { name: 'myUnishippers' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Amazon Shipping' }));
+    expect(screen.getAllByLabelText(/Sender company or name/)).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+    await waitFor(() => expect(save).toHaveBeenCalledOnce());
+    const submitted = save.mock.calls[0]?.[0] as QuoteInput;
+    expect(submitted.providers).toHaveLength(2);
+    expect(submitted.providers[0]?.sender).toEqual(submitted.providers[1]?.sender);
+    expect(submitted.providers[0]?.sender).toMatchObject({ address: { name: 'Shared warehouse' } });
   });
 
-  it('uses maintained country and region data for international addresses', async () => {
+  it('uses US state options from the installed region data', async () => {
     const user = userEvent.setup();
-
     render(<QuoteForm providers={[amazonProvider]} initial={initial()} onSave={vi.fn()} />);
-
-    await user.click(screen.getByRole('combobox', { name: /Recipient country/ }));
-    await user.click(screen.getByRole('option', { name: 'Canada' }));
     await user.click(screen.getByRole('combobox', { name: 'Recipient state / province' }));
-
-    expect(screen.getByRole('option', { name: 'British Columbia' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Wisconsin' })).toBeInTheDocument();
   });
 
-  it('starts new providers with explicit sender fields', async () => {
+  it('requires a shared contact field only while its provider is selected', async () => {
     const user = userEvent.setup();
-    render(<QuoteForm providers={[amazonProvider]} onSave={vi.fn()} />);
-    expect(screen.getByLabelText(/Amazon Shipping sender address/)).toBeInTheDocument();
-    await user.click(screen.getByRole('checkbox', { name: /^Amazon Shipping$/ }));
-    expect(screen.queryByLabelText(/Amazon Shipping sender address/)).not.toBeInTheDocument();
+    const save = vi.fn().mockResolvedValue(undefined);
+    const requirements = {
+      sender: { requiredFields: ['phone' as const], maxNameLength: 35 },
+      destination: { requiredFields: [], maxNameLength: 200 },
+    };
+    render(
+      <QuoteForm
+        providers={[
+          amazonProvider,
+          { ...unishippersRequestProvider, inputRequirements: requirements },
+        ]}
+        initial={initial()}
+        onSave={save}
+      />,
+    );
+    await user.click(screen.getByRole('checkbox', { name: 'myUnishippers' }));
+    expect(screen.getByLabelText(/^Sender phone/)).toBeRequired();
+    await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+    await waitFor(() =>
+      expect(screen.getByLabelText(/^Sender phone/)).toHaveAccessibleDescription(
+        'Required by myUnishippers',
+      ),
+    );
+    expect(save).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('checkbox', { name: 'myUnishippers' }));
+    expect(screen.getByLabelText(/^Sender phone/)).not.toBeRequired();
+    await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+    await waitFor(() => expect(save).toHaveBeenCalledOnce());
+  });
+
+  it('applies shared options only to supporting services and flags unsupported services', async () => {
+    const user = userEvent.setup();
+    const save = vi.fn().mockResolvedValue(undefined);
+    render(
+      <QuoteForm
+        providers={[
+          { ...amazonProvider, supportsSignature: true, supportsInsurance: true },
+          unishippersRequestProvider,
+        ]}
+        initial={initial()}
+        onSave={save}
+      />,
+    );
+    await user.click(screen.getByRole('checkbox', { name: 'myUnishippers' }));
+    await user.click(screen.getByRole('combobox', { name: /Signature request/ }));
+    await user.click(screen.getByRole('option', { name: /^Signature$/ }));
+    await user.click(screen.getByRole('checkbox', { name: 'Request insurance' }));
+    await user.type(screen.getByLabelText(/Insured value per box/), '25');
+    expect(screen.getByText(/Signature will not be requested from myUnishippers/)).toBeVisible();
+    expect(screen.getByText(/Insurance will not be requested from myUnishippers/)).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+    await waitFor(() => expect(save).toHaveBeenCalledOnce());
+    const submitted = save.mock.calls[0]?.[0] as QuoteInput;
+    expect(submitted.providers[0]?.options).toEqual({
+      signature: 'signature',
+      insurance: { amount: '25', currency: 'USD' },
+    });
+    expect(submitted.providers[1]?.options).toEqual({ signature: 'none', insurance: null });
+  });
+
+  it('validates the shared sender against the selected provider name limit', async () => {
+    const user = userEvent.setup();
+    const save = vi.fn();
+    const body = initial();
+    body.providers[0] = {
+      code: 'unishippers',
+      sender: { mode: 'explicit', address: { ...address, name: 'A'.repeat(36) } },
+      options: { signature: 'none', insurance: null },
+    };
+    render(<QuoteForm providers={[unishippersRequestProvider]} initial={body} onSave={save} />);
+    await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
+    await waitFor(() =>
+      expect(screen.getByLabelText(/Sender company or name/)).toHaveAccessibleDescription(
+        'myUnishippers requires 35 characters or fewer',
+      ),
+    );
+    expect(save).not.toHaveBeenCalled();
   });
   it('rejects a historical account default if passed directly to the new form', async () => {
     const user = userEvent.setup();
@@ -409,41 +483,15 @@ it('shows errors on the correct added box and clears a removed box error', async
   expect(screen.queryByLabelText(/Box type 2: weight/)).not.toBeInTheDocument();
 });
 
-it('shows customs item errors without crashing on a nonnumeric declared value', async () => {
+it('blocks a copied international destination without silently changing its country', async () => {
   const user = userEvent.setup();
   const save = vi.fn();
   const body = initial();
   body.destination = { ...address, country: 'CA', division: 'ON', postalCode: 'M5V 2T6' };
-  body.international = {
-    contentsDescription: 'Samples',
-    customsMode: 'detailed',
-    totalValue: { amount: '20', currency: 'USD' },
-  };
-  body.packageGroups = body.packageGroups.map((group) => ({
-    ...group,
-    customsItems: [
-      {
-        description: '',
-        quantity: 1,
-        unitValue: 'abc',
-        currency: 'USD',
-        countryOfManufacture: 'US',
-        weight: '1',
-      },
-    ],
-  }));
-  render(
-    <QuoteForm
-      providers={[{ ...amazonProvider, internationalAvailable: true }]}
-      initial={body}
-      onSave={save}
-    />,
-  );
+  render(<QuoteForm providers={[amazonProvider]} initial={body} onSave={save} />);
   await user.click(screen.getByRole('button', { name: 'Compare quotes' }));
-  await waitFor(() =>
-    expect(screen.getByLabelText(/Box type 1, item 1: description/)).toBeInvalid(),
-  );
-  expect(screen.getByLabelText(/Box type 1, item 1: value per item/)).toBeInvalid();
+  expect(await screen.findByText('V1 supports US destinations only')).toBeVisible();
+  expect(screen.queryByText('International shipping details')).not.toBeInTheDocument();
   expect(save).not.toHaveBeenCalled();
 });
 

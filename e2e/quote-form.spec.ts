@@ -38,7 +38,7 @@ test('guides staff to missing quote fields and retains entries on desktop and mo
   await expect(
     page.getByText('Please complete or correct the highlighted fields before comparing quotes.'),
   ).toBeVisible();
-  const sender = page.getByLabel('myUnishippers sender company or name', { exact: false });
+  const sender = page.getByLabel('Sender company or name', { exact: false });
   await expect(sender).toBeFocused();
   await expect(sender).toHaveAttribute('aria-invalid', 'true');
   await expect(sender).toHaveAccessibleDescription('This field is required');

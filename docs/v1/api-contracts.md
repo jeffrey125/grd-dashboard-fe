@@ -474,3 +474,21 @@ Stale policy defaults to 1 hour, accepts 1–168 whole hours and applies on read
 all history without provider expiry. Provider expiry remains authoritative. Disable
 blocks new work and queued execution; running quotes may finish. Historical actual
 mode/origin remain unchanged. Frontend settings route: `/admin/shipping-providers`.
+
+
+## Shared US-only quote form (2026-10-22)
+
+The approved v1 release uses one sender for all selected shipping providers.
+Sender and destination countries are US-only; international/customs inputs are absent.
+Changing or clearing provider selections preserves shared address and option entries.
+The form expands the sender into the existing per-provider API snapshots, and the
+backend rejects different pickup addresses or non-US destinations for new requests.
+Historical response schemas remain readable.
+
+Signature/insurance appear once when supported by a selected provider, with unsupported
+providers explicitly identified. Both current adapters advertise no support. Discovery
+adds `inputRequirements: {sender, destination}` with `requiredFields` (contactName,
+phone, division) and `maxNameLength`. The union of selected providers' requirements
+applies to shared fields; myUnishippers sender names are limited to 35 characters.
+Future providers use the shared inputs; only provider-exclusive fields get their own
+section. Existing React Hook Form, MUI, Zod and standards libraries are reused.
