@@ -188,12 +188,11 @@ test('only the Tracking Number link opens detail and acknowledges the displayed 
   await emit(page, row(state, 0).externalId, 3);
   await expect(marks(page)).toHaveCount(1);
 
-  if ((page.viewportSize()?.width ?? 0) < 900)
-    await page
-      .getByRole('article', { name: 'Shipment 0001', exact: true })
-      .getByText('Carrier status', { exact: true })
-      .click();
-  else await page.getByRole('gridcell', { name: 'Tracking 3', exact: true }).click();
+  if ((page.viewportSize()?.width ?? 0) < 900) {
+    const card = page.getByRole('article', { name: 'Shipment 0001', exact: true });
+    await expect(card.getByText('Tracking 3', { exact: true })).toBeVisible();
+    await card.getByText('Carrier status', { exact: true }).click();
+  } else await page.getByRole('gridcell', { name: 'Tracking 3', exact: true }).click();
 
   await expect(page).toHaveURL(/\/shipments(?:\?|$)/);
   await expect(marks(page)).toHaveCount(1);
