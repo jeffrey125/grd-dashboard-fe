@@ -5,6 +5,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { afterEach, expect, it, vi } from 'vitest';
 import { AmazonVerificationDialog } from './amazon-verification-dialog';
+import { AmazonVerificationError } from './api';
 
 const id = '11111111-1111-4111-8111-111111111111';
 const frame = '22222222-2222-4222-8222-222222222222';
@@ -95,6 +96,47 @@ it('hides challenge pixels after an action fails and provides error feedback', a
   );
   expect(screen.getAllByText('Your session has ended. Sign in again.').length).toBeGreaterThan(0);
   expect(onVerified).not.toHaveBeenCalled();
+});
+
+it('refreshes the challenge and accepts another action after a recoverable busy response', async () => {
+  const freshFrame = '33333333-3333-4333-8333-333333333333';
+  let actions = 0;
+  const request = vi.fn(async (config: { data: { operation: string } }) => {
+    if (config.data.operation === 'action') {
+      actions++;
+      if (actions === 1)
+        throw new AmazonVerificationError(
+          409,
+          'Amazon is still updating the challenge. Refreshing the latest image.',
+          'busy',
+        );
+      return { ...base, state: 'verified' };
+    }
+    return {
+      ...base,
+      state: 'challenge',
+      image: 'fixture',
+      frame: actions ? freshFrame : frame,
+      width: 400,
+      height: 200,
+    };
+  });
+  const { onVerified } = setup(request);
+  await userEvent.click(
+    await screen.findByRole('button', {
+      name: 'Amazon verification challenge',
+    }),
+  );
+  expect(
+    await screen.findByText('Amazon is still updating the challenge. Refreshing the latest image.'),
+  ).toBeVisible();
+  const refreshed = await screen.findByRole('button', {
+    name: 'Amazon verification challenge',
+  });
+  await waitFor(() => expect(refreshed).toBeEnabled());
+  await userEvent.click(refreshed);
+  await waitFor(() => expect(onVerified).toHaveBeenCalledTimes(1));
+  expect(actions).toBe(2);
 });
 
 it('reports retry failure without automatically retrying the quote again', async () => {

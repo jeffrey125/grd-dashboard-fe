@@ -145,15 +145,42 @@ export type AmazonVerificationAction =
       frame: string;
     };
 
-const verificationMessages: Record<string, string> = {
-  busy: 'Another Amazon request or staff verification is in progress. Wait a moment and try again.',
+const verificationCodeSchema = z.enum([
+  'busy',
+  'expired',
+  'unavailable',
+  'unsupported',
+  'owner_required',
+  'stale_frame',
+]);
+export type AmazonVerificationErrorCode = z.infer<typeof verificationCodeSchema>;
+const verificationMessages: Record<AmazonVerificationErrorCode, string> = {
+  busy: 'Amazon is still updating the challenge. Refreshing the latest image.',
   expired: 'This verification window expired. Close it and choose Verify Amazon & retry again.',
   unavailable: 'Staff verification is not available on this server. An admin needs to enable it.',
   unsupported:
     'Amazon opened a screen that cannot be shared safely. An admin needs to reconnect Amazon.',
   owner_required: 'This verification belongs to another staff session. Close this window.',
-  stale_frame: 'The challenge changed. Close this window and reopen verification to continue.',
+  stale_frame: 'The challenge changed. Refreshing the latest image.',
 };
+export class AmazonVerificationError extends ApiError {
+  constructor(
+    status: number,
+    message: string,
+    public readonly verificationCode: AmazonVerificationErrorCode,
+  ) {
+    super(status, message);
+    this.name = 'AmazonVerificationError';
+  }
+}
+export function isRecoverableAmazonVerificationError(
+  error: unknown,
+): error is AmazonVerificationError {
+  return (
+    error instanceof AmazonVerificationError &&
+    ['busy', 'stale_frame'].includes(error.verificationCode)
+  );
+}
 export async function amazonVerification(
   client: ApiClient,
   comparisonId: string,
@@ -173,11 +200,13 @@ export async function amazonVerification(
       signal,
       timeout: 20000,
       mapError: (status, body) => {
-        const parsed = z.object({ verificationCode: z.string() }).safeParse(body);
-        const message = parsed.success
-          ? verificationMessages[parsed.data.verificationCode]
-          : undefined;
-        return message ? new ApiError(status, message) : undefined;
+        const parsed = z.object({ verificationCode: verificationCodeSchema }).safeParse(body);
+        if (!parsed.success) return undefined;
+        return new AmazonVerificationError(
+          status,
+          verificationMessages[parsed.data.verificationCode],
+          parsed.data.verificationCode,
+        );
       },
     }),
   );

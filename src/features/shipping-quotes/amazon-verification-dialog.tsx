@@ -13,7 +13,12 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { type AmazonVerification, type AmazonVerificationAction, amazonVerification } from './api';
+import {
+  type AmazonVerification,
+  type AmazonVerificationAction,
+  amazonVerification,
+  isRecoverableAmazonVerificationError,
+} from './api';
 
 export function AmazonVerificationDialog({
   client,
@@ -52,6 +57,20 @@ export function AmazonVerificationDialog({
       queries.setQueryData(key, view);
     },
     onError: (error) => {
+      if (isRecoverableAmazonVerificationError(error)) {
+        showNotification({ message: error.message, severity: 'info' });
+        queries.setQueryData<AmazonVerification>(key, (current) =>
+          current
+            ? {
+                id: current.id,
+                state: 'preparing',
+                expiresAt: current.expiresAt,
+              }
+            : current,
+        );
+        void queries.invalidateQueries({ queryKey: key });
+        return;
+      }
       showNotification({ message: safeError(error).message, severity: 'error' });
     },
     retry: false,
@@ -60,10 +79,15 @@ export function AmazonVerificationDialog({
     queryKey: key,
     gcTime: 0,
     retry: false,
-    enabled: !action.isPending && !action.error && !retried.current,
+    enabled: !action.isPending && !retried.current,
     refetchOnWindowFocus: false,
-    refetchInterval: (current) =>
-      current.state.error || current.state.data?.state === 'verified' ? false : 1500,
+    refetchInterval: (current) => {
+      const error = current.state.error;
+      return (error && !isRecoverableAmazonVerificationError(error)) ||
+        current.state.data?.state === 'verified'
+        ? false
+        : 1500;
+    },
     queryFn: async ({ signal }) => {
       const view = await amazonVerification(
         client,
@@ -106,13 +130,15 @@ export function AmazonVerificationDialog({
       });
   }, [query.data?.state, onVerified, showNotification]);
   const view = query.data;
-  const error =
-    retryError ??
-    (action.error
+  const actionError =
+    action.error && !isRecoverableAmazonVerificationError(action.error)
       ? safeError(action.error).message
-      : query.error
-        ? safeError(query.error).message
-        : null);
+      : null;
+  const queryError =
+    query.error && !isRecoverableAmazonVerificationError(query.error)
+      ? safeError(query.error).message
+      : null;
+  const error = retryError ?? actionError ?? queryError;
   const frame = view?.frame;
   const disabled =
     action.isPending || query.isFetching || !!error || !frame || view?.state !== 'challenge';
