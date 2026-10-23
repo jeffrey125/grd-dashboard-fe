@@ -228,18 +228,24 @@ export function ShipmentGrid({
   const mobile = useMediaQuery(theme.breakpoints.down('md'));
   const compactTable = useMediaQuery(theme.breakpoints.down('xl'));
   const condensedTable = useMediaQuery(theme.breakpoints.down('lg'));
-  const openRow = useCallback(
+  const acknowledgeRow = useCallback(
     async (row: Shipment) => {
       const snapshotId = row.currentTracking?.externalId;
-      if (runtime && snapshotId && isUnseen(row.externalId))
+      if (!placeholder && runtime && snapshotId && isUnseen(row.externalId))
         await runtime.controller.acknowledge({ shipmentId: row.externalId, snapshotId });
+    },
+    [isUnseen, placeholder, runtime],
+  );
+  const openRow = useCallback(
+    async (row: Shipment) => {
+      await acknowledgeRow(row);
       await navigate({
         to: '/shipments/$shipmentId',
         params: { shipmentId: row.externalId },
         search: { returnTo },
       });
     },
-    [isUnseen, navigate, returnTo, runtime],
+    [acknowledgeRow, navigate, returnTo],
   );
   const sortModel = useMemo(
     () => [{ field: search.sortBy, sort: search.sortDirection }],
@@ -439,6 +445,7 @@ export function ShipmentGrid({
             component="article"
             variant="outlined"
             aria-label={`Shipment ${row.trackingReference}`}
+            onClickCapture={() => void acknowledgeRow(row)}
             sx={{
               overflowWrap: 'anywhere',
               ...(isUnseen(row.externalId)
@@ -562,6 +569,12 @@ export function ShipmentGrid({
       {updating && <UpdatingIndicator />}
       <DataGrid
         slotProps={{
+          row: {
+            onClickCapture: (event) => {
+              const row = rows.find((item) => item.externalId === event.currentTarget.dataset.id);
+              if (row) void acknowledgeRow(row);
+            },
+          },
           footer: { sx: { minHeight: { xs: 104, sm: 52 } } },
           basePagination: {
             material: {

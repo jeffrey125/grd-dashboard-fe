@@ -92,8 +92,10 @@ action buttons, explicit sort controls and server pagination; desktop retains th
 tabs and table. Only the Tracking Number link opens Shipment detail; explicit
 links preserve native modified-click behavior. Unseen updates use a green highlight and text
 indicator. Unseen rows currently in Needs attention, including due follow-ups, use
-a red highlight. Opening the Tracking Number link acknowledges the displayed revision
-before navigation so that highlight clears without consuming a newer update.
+a red highlight. Clicking or tapping anywhere on a row or mobile card, including
+its links and action buttons, acknowledges the displayed revision and clears its
+highlight without consuming a newer update. Only the Tracking Number link opens
+detail from the row body; action controls retain their existing behavior.
 
 Page header contains sound preference and **Mark displayed changes
 as seen** when appropriate. Row menu offers detail, refresh, and permitted

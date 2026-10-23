@@ -178,7 +178,7 @@ test('bursts include filtered-out shipments, deduplicate sound, and mark only di
   await expect.poll(() => plays(page)).toBe(1);
 });
 
-test('only the Tracking Number link opens detail and acknowledges the displayed update', async ({
+test('clicking anywhere reviews the row while only the Tracking Number link opens detail', async ({
   page,
   context,
 }) => {
@@ -195,7 +195,22 @@ test('only the Tracking Number link opens detail and acknowledges the displayed 
   } else await page.getByRole('gridcell', { name: 'Tracking 3', exact: true }).click();
 
   await expect(page).toHaveURL(/\/shipments(?:\?|$)/);
+  await expect(marks(page)).toHaveCount(0);
+  row(state, 0).currentTracking = snapshot(4);
+  await emit(page, row(state, 0).externalId, 4);
   await expect(marks(page)).toHaveCount(1);
+  if ((page.viewportSize()?.width ?? 0) < 900) {
+    const card = page.getByRole('article', { name: 'Shipment 0001', exact: true });
+    await expect(card.getByText('Tracking 4', { exact: true })).toBeVisible();
+    await card.getByRole('link', { name: 'View details' }).click({ modifiers: ['Control'] });
+  } else {
+    await expect(page.getByRole('gridcell', { name: 'Tracking 4', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Actions for 0001', exact: true }).click();
+    await expect(page.getByRole('menuitem', { name: 'View details' })).toBeVisible();
+    await page.keyboard.press('Escape');
+  }
+  await expect(marks(page)).toHaveCount(0);
+  await expect(page).toHaveURL(/\/shipments(?:\?|$)/);
   await page.getByRole('link', { name: '0001', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/shipments/${row(state, 0).externalId}`));
   await page.goBack();
