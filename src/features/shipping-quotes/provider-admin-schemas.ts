@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { maxPackageWeightSchema } from './provider-weight-policy';
 
 export const readinessSchema = z.object({
   id: z.uuid(),
@@ -19,6 +20,7 @@ export const providerSettingsSchema = z.array(
     executionMode: z.enum(['api', 'request', 'browser']),
     maintenanceMessage: z.string().nullable(),
     staleHours: z.number().int().min(1).max(168),
+    maxPackageWeightLb: z.string().optional(),
     revision: z.number().int(),
     updatedAt: z.iso.datetime(),
     updatedBy: z.uuid().nullable(),
@@ -26,6 +28,7 @@ export const providerSettingsSchema = z.array(
   }),
 );
 export const providerSettingsInput = z.object({
+  maxPackageWeightLb: maxPackageWeightSchema,
   revision: z.number().int(),
   enabled: z.boolean(),
   executionMode: z.enum(['api', 'request', 'browser']),

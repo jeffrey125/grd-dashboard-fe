@@ -1,5 +1,6 @@
 import { businessCalendarDate } from '@lib/dates';
 import { z } from 'zod';
+import { overweightGroups } from './provider-weight-policy';
 import { QuoteDecimal } from './quote-decimal';
 import { countryCodeSchema, currencyCodeSchema, isPossibleAddressPhone } from './quote-standards';
 
@@ -49,6 +50,8 @@ export const providersSchema = z.array(
     enabled: z.boolean(),
     maintenanceMessage: z.string().nullable().optional(),
     staleHours: z.number().int().min(1).max(168).optional(),
+    maxPackageWeightLb: z.string().optional(),
+    maxPackageWeightKg: z.string().optional(),
     cachedDefault: z
       .object({ address: addressSchema, retrievedAt: z.iso.datetime() })
       .nullable()
@@ -312,6 +315,25 @@ export function createSharedQuoteFormSchema(configurations: Provider[]) {
               : issue.path;
         ctx.addIssue({ code: 'custom', path, message: issue.message });
       }
+    const selectedProviders = configurations.filter(
+      (provider) =>
+        provider.enabled && input.providers.some((selected) => selected.code === provider.code),
+    );
+    if (
+      selectedProviders.length &&
+      selectedProviders.every(
+        (provider) => overweightGroups(input.packageGroups, provider).length > 0,
+      )
+    ) {
+      for (const provider of selectedProviders) {
+        for (const position of overweightGroups(input.packageGroups, provider))
+          ctx.addIssue({
+            code: 'custom',
+            path: ['packageGroups', position, 'weight'],
+            message: `${provider.name}: exceeds ${provider.maxPackageWeightLb} lb per box`,
+          });
+      }
+    }
     for (const selected of input.providers) {
       const provider = configurations.find((entry) => entry.code === selected.code);
       if (!provider?.enabled) {
@@ -425,6 +447,7 @@ export const comparisonSchema = z.object({
       reasonCode: z.string().nullable(),
       simulated: z.boolean(),
       conversionSnapshot: z.record(z.string(), z.unknown()).optional(),
+      weightPolicy: z.record(z.string(), z.unknown()).nullable().optional(),
       quotes: z.array(
         z.object({
           platform: z.string(),

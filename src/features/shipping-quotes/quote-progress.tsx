@@ -13,6 +13,7 @@ import Stack from '@mui/material/Stack';
 import { alpha } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import { type ReactNode, useEffect, useState } from 'react';
+import { weightLimitMessage } from './provider-weight-policy';
 import { QuoteDecimal } from './quote-decimal';
 import { rankQuotes } from './quote-ranking';
 import type { Comparison } from './schemas';
@@ -55,6 +56,8 @@ const validity: Record<string, string> = {
 };
 
 const retryReasons: Record<string, string> = {
+  weight_limit_exceeded:
+    'A box exceeds the current provider weight limit. Copy to a new comparison or ask an admin to review the limit.',
   provider_disabled: 'Provider disabled. A new comparison is required with an available provider.',
   ship_date_passed: 'Ship date has passed. Copy to new comparison and choose a new date.',
   input_invalid: 'Current validation rejects these inputs. Copy to new comparison to correct them.',
@@ -298,7 +301,9 @@ export function QuoteProgress({
             </Typography>
             {attempt.reasonCode && (
               <Alert severity="error" sx={{ my: 1 }}>
-                {reasons[attempt.reasonCode] ?? 'The provider request failed.'}
+                {attempt.reasonCode === 'weight_limit_exceeded'
+                  ? weightLimitMessage(attempt.weightPolicy)
+                  : (reasons[attempt.reasonCode] ?? 'The provider request failed.')}
               </Alert>
             )}
             {attempt.status === 'failed' && onRetry && (
@@ -356,7 +361,9 @@ export function QuoteProgress({
                 )}
                 {attempt.reasonCode && (
                   <Typography variant="body2">
-                    {reasons[attempt.reasonCode] ?? 'The provider request failed.'}
+                    {attempt.reasonCode === 'weight_limit_exceeded'
+                      ? weightLimitMessage(attempt.weightPolicy)
+                      : (reasons[attempt.reasonCode] ?? 'The provider request failed.')}
                   </Typography>
                 )}
               </Stack>

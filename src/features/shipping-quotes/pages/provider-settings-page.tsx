@@ -14,6 +14,8 @@ import {
   type ProviderSettingsInput,
   providerSettingsInput,
 } from '@features/shipping-quotes/provider-admin-schemas';
+import { publishedWeightLimits } from '@features/shipping-quotes/provider-weight-policy';
+import { QuoteDecimal } from '@features/shipping-quotes/quote-decimal';
 import type { Provider } from '@features/shipping-quotes/schemas';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { businessTimestamp } from '@lib/dates';
@@ -55,10 +57,17 @@ function ProviderSettingsForm({
       executionMode: provider.executionMode,
       maintenanceMessage: provider.maintenanceMessage ?? '',
       staleHours: provider.staleHours,
+      maxPackageWeightLb: new QuoteDecimal(
+        provider.maxPackageWeightLb ?? publishedWeightLimits[provider.code],
+      ).toString(),
       acknowledgeFailure: false,
     },
   });
   const mode = watch('executionMode');
+  const maxWeight = watch('maxPackageWeightLb');
+  const abovePublished =
+    providerSettingsInput.shape.maxPackageWeightLb.safeParse(maxWeight).success &&
+    new QuoteDecimal(maxWeight).gt(publishedWeightLimits[provider.code]);
   const result = useQuery({
     queryKey: ['provider-readiness', provider.code, testId],
     enabled: !!testId,
@@ -181,6 +190,21 @@ function ProviderSettingsForm({
             error={!!formState.errors.maintenanceMessage}
             helperText="Visible to staff; maximum 500 characters."
           />
+          <TextField
+            label="Maximum weight per box (lb)"
+            {...register('maxPackageWeightLb')}
+            error={!!formState.errors.maxPackageWeightLb}
+            helperText={
+              formState.errors.maxPackageWeightLb?.message ??
+              'Actual packed weight per box. Applies to new requests and retries.'
+            }
+          />
+          {abovePublished && (
+            <Alert severity="warning">
+              Above the published {publishedWeightLimits[provider.code]} lb limit. Changing this
+              setting does not guarantee provider acceptance.
+            </Alert>
+          )}
           <TextField
             label="Stale period (hours)"
             type="number"

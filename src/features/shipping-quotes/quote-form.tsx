@@ -23,6 +23,7 @@ import {
 } from 'react-hook-form';
 import { v4 as randomUUID } from 'uuid';
 import { AddressSearch } from './address-search';
+import { overweightGroups } from './provider-weight-policy';
 import { QuoteDecimal } from './quote-decimal';
 import { regionsForCountry } from './quote-standards';
 import {
@@ -362,6 +363,12 @@ export function QuoteForm({
   const selected = watch('providers');
   const dimensionsOptional = selected.length === 1 && selected[0]?.code === 'unishippers';
   const packageGroups = watch('packageGroups');
+  const selectedProviders = providers.filter(
+    (provider) => provider.enabled && selected.some((entry) => entry.code === provider.code),
+  );
+  const noWeightEligibleProvider =
+    selectedProviders.length > 0 &&
+    selectedProviders.every((provider) => overweightGroups(packageGroups, provider).length > 0);
   const totalBoxes = packageGroups.reduce((sum, group) => sum + (group.quantity || 0), 0);
   const [failure, setFailure] = useState('');
   const lastSubmission = useRef<{ body: string; key: string } | undefined>(undefined);
@@ -463,6 +470,11 @@ export function QuoteForm({
                             />
                           }
                         />
+                        {provider.maxPackageWeightLb && (
+                          <Typography variant="caption" component="div">
+                            Maximum {Number(provider.maxPackageWeightLb)} lb per box
+                          </Typography>
+                        )}
                       </Box>
                     );
                   })}
@@ -560,6 +572,21 @@ export function QuoteForm({
                         gap: 2,
                       }}
                     >
+                      {selectedProviders
+                        .filter((provider) =>
+                          overweightGroups(packageGroups, provider).includes(index),
+                        )
+                        .map((provider) => (
+                          <Alert
+                            key={provider.code}
+                            severity="warning"
+                            sx={{ gridColumn: '1 / -1' }}
+                          >
+                            Box type {index + 1} exceeds {provider.name}’s{' '}
+                            {Number(provider.maxPackageWeightLb)} lb per-box limit. {provider.name}{' '}
+                            will be skipped for this entire shipment.
+                          </Alert>
+                        ))}
                       {(['length', 'width', 'height', 'weight'] as const).map((field) => (
                         <TextField
                           key={field}
@@ -584,10 +611,20 @@ export function QuoteForm({
                 </Paper>
               ))}
               <Button onClick={() => groups.append(emptyGroup())}>Add another box type</Button>
+              {noWeightEligibleProvider && (
+                <Alert severity="error">
+                  No selected provider can quote every box. Correct the weight or ask an admin to
+                  adjust a provider limit.
+                </Alert>
+              )}
               <Button
                 type="submit"
                 variant="contained"
-                disabled={!providers.some((p) => p.enabled) || formState.isSubmitting}
+                disabled={
+                  !providers.some((p) => p.enabled) ||
+                  noWeightEligibleProvider ||
+                  formState.isSubmitting
+                }
               >
                 {formState.isSubmitting ? 'Requesting prices…' : 'Compare quotes'}
               </Button>

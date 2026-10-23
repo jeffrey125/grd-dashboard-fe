@@ -177,3 +177,35 @@ it('refreshes and displays account-default details on the settings surface', asy
   expect(await screen.findByText(/Admin warehouse.*Retrieved/)).toBeInTheDocument();
   expect(mocks.refresh).toHaveBeenCalledWith({}, 'unishippers');
 });
+
+it('warns above the published limit and saves a configured weight without a mode test', async () => {
+  const user = userEvent.setup();
+  mocks.settings.mockResolvedValue([{ ...provider, maxPackageWeightLb: '50.000000' }]);
+  mocks.save.mockResolvedValue([{ ...provider, maxPackageWeightLb: '60', revision: 1 }]);
+  mount();
+  const weight = await screen.findByLabelText('Maximum weight per box (lb)');
+  expect(weight).toHaveValue('50');
+  await user.clear(weight);
+  await user.type(weight, '60');
+  expect(screen.getByText(/Above the published 50 lb limit/)).toBeVisible();
+  await user.click(screen.getByRole('button', { name: 'Save Amazon Shipping settings' }));
+  await waitFor(() =>
+    expect(mocks.save).toHaveBeenCalledWith(
+      {},
+      'amazon',
+      expect.objectContaining({ maxPackageWeightLb: '60' }),
+    ),
+  );
+  expect(mocks.test).not.toHaveBeenCalled();
+});
+
+it('rejects zero weight without saving', async () => {
+  const user = userEvent.setup();
+  mount();
+  const weight = await screen.findByLabelText('Maximum weight per box (lb)');
+  await user.clear(weight);
+  await user.type(weight, '0');
+  await user.click(screen.getByRole('button', { name: 'Save Amazon Shipping settings' }));
+  expect(await screen.findByText('Enter a positive weight in pounds')).toBeVisible();
+  expect(mocks.save).not.toHaveBeenCalled();
+});

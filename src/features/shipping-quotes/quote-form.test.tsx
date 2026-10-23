@@ -571,3 +571,62 @@ it('explains invalid box quantities and dimensions beside the fields', async () 
     /Enter a number greater than 0/,
   );
 });
+
+describe('Configured per-box limits', () => {
+  const providers = [
+    { ...amazonProvider, maxPackageWeightLb: '50', maxPackageWeightKg: '22.6796185' },
+    { ...unishippersRequestProvider, maxPackageWeightLb: '150', maxPackageWeightKg: '68.0388555' },
+  ];
+  const comparison = (weight: string): QuoteInput => {
+    const body = initial();
+    body.packageGroups = body.packageGroups.map((group) => ({
+      ...group,
+      units: 'imperial',
+      weight,
+    }));
+    body.providers.push({
+      code: 'unishippers',
+      sender: { mode: 'explicit', address },
+      options: { signature: 'none', insurance: null },
+    });
+    return body;
+  };
+
+  it('shows which provider will be skipped and still submits both selections for a durable outcome', async () => {
+    const save = vi.fn().mockResolvedValue(undefined);
+    render(<QuoteForm providers={providers} initial={comparison('60')} onSave={save} />);
+    expect(screen.getByText(/Box type 1 exceeds Amazon Shipping/)).toHaveTextContent(
+      '50 lb per-box limit',
+    );
+    expect(screen.getByRole('button', { name: 'Compare quotes' })).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Compare quotes' }));
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          providers: expect.arrayContaining([
+            expect.objectContaining({ code: 'amazon' }),
+            expect.objectContaining({ code: 'unishippers' }),
+          ]),
+        }),
+      ),
+    );
+  });
+
+  it('blocks all-overweight submission and becomes available after correction', async () => {
+    const user = userEvent.setup();
+    render(<QuoteForm providers={providers} initial={comparison('151')} onSave={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Compare quotes' })).toBeDisabled();
+    expect(screen.getByText(/No selected provider can quote every box/)).toBeVisible();
+    await user.clear(screen.getByLabelText(/Box type 1: weight/));
+    await user.type(screen.getByLabelText(/Box type 1: weight/), '150');
+    expect(screen.getByRole('button', { name: 'Compare quotes' })).toBeEnabled();
+  });
+
+  it('compares kilograms using the API-converted limit', () => {
+    const body = comparison('22.679619');
+    body.packageGroups = body.packageGroups.map((group) => ({ ...group, units: 'metric' }));
+    render(<QuoteForm providers={providers} initial={body} onSave={vi.fn()} />);
+    expect(screen.getByText(/Box type 1 exceeds Amazon Shipping/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Compare quotes' })).toBeEnabled();
+  });
+});
