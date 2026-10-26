@@ -8,7 +8,7 @@ import { parseEnv, promisify } from 'node:util';
 
 const execute = promisify(execFile);
 
-test('LAN environment passes myUnishippers credentials only to the worker', async () => {
+test('LAN environment passes provider credentials only to the worker', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'grd-fe-lan-config-'));
   const sourceFile = join(directory, 'source.env');
   const envFile = join(directory, 'lan.env');
@@ -17,6 +17,9 @@ test('LAN environment passes myUnishippers credentials only to the worker', asyn
     await writeFile(
       sourceFile,
       [
+        'AMAZON_SP_API_CLIENT_ID=fixture-client',
+        'AMAZON_SP_API_CLIENT_SECRET=fixture-secret',
+        'AMAZON_SP_API_REFRESH_TOKEN=fixture-refresh',
         'MYUNISHIPPERS_EMAIL=quote-user@example.test',
         'MYUNISHIPPERS_PASSWORD=disposable-password',
         '',
@@ -42,6 +45,10 @@ test('LAN environment passes myUnishippers credentials only to the worker', asyn
     assert.equal(generated.MYUNISHIPPERS_EMAIL, 'quote-user@example.test');
     assert.equal(generated.MYUNISHIPPERS_PASSWORD, 'disposable-password');
     assert.equal(mode, 0o600);
+    assert.equal(generated.AMAZON_SP_API_CLIENT_ID, 'fixture-client');
+    assert.equal(generated.AMAZON_SP_API_CLIENT_SECRET, 'fixture-secret');
+    assert.equal(generated.AMAZON_SP_API_REFRESH_TOKEN, 'fixture-refresh');
+    assert.equal(generated.AMAZON_SP_API_SANDBOX_CLIENT_ID, undefined);
 
     const { stdout } = await execute(
       'docker',
@@ -72,6 +79,18 @@ test('LAN environment passes myUnishippers credentials only to the worker', asyn
       'disposable-password',
     );
     assert.equal(configuration.services.api?.environment?.MYUNISHIPPERS_EMAIL, undefined);
+    for (const [key, value] of Object.entries({
+      AMAZON_SP_API_CLIENT_ID: 'fixture-client',
+      AMAZON_SP_API_CLIENT_SECRET: 'fixture-secret',
+      AMAZON_SP_API_REFRESH_TOKEN: 'fixture-refresh',
+    })) {
+      assert.equal(configuration.services.worker?.environment?.[key], value);
+      assert.equal(configuration.services.api?.environment?.[key], undefined);
+    }
+    assert.equal(
+      configuration.services.worker?.environment?.AMAZON_SP_API_SANDBOX_CLIENT_ID,
+      undefined,
+    );
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

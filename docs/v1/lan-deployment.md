@@ -30,7 +30,7 @@ fixtures, backend code, and known secrets.
 
 Choose a monotonically increasing release such as `20261017-01`. The generator
 copies only the carrier/runtime keys from `../grd-dashboard-be/.env`, including the
-three Amazon SP-API sandbox credentials and the two myUnishippers credentials,
+three Amazon SP-API production credentials and the two myUnishippers credentials,
 generates new database and authentication secrets, refuses to overwrite an
 existing file, and writes mode 600:
 
