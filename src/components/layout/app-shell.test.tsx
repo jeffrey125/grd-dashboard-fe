@@ -17,7 +17,7 @@ import { PageHeader } from './page-header';
 async function renderShell(user: AppShellUser, onSignOut = vi.fn()) {
   const rootRoute = createRootRoute({
     component: () => (
-      <AppShell user={user} onSignOut={onSignOut}>
+      <AppShell user={user} onSignOut={onSignOut} quoteComparisonEnabled={true}>
         <Outlet />
       </AppShell>
     ),

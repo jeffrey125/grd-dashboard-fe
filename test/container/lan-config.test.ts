@@ -17,6 +17,7 @@ test('LAN environment passes provider credentials only to the worker', async () 
     await writeFile(
       sourceFile,
       [
+        'QUOTE_COMPARISON_ENABLED=false',
         'AMAZON_SP_API_CLIENT_ID=fixture-client',
         'AMAZON_SP_API_CLIENT_SECRET=fixture-secret',
         'AMAZON_SP_API_REFRESH_TOKEN=fixture-refresh',
@@ -45,6 +46,7 @@ test('LAN environment passes provider credentials only to the worker', async () 
     assert.equal(generated.MYUNISHIPPERS_EMAIL, 'quote-user@example.test');
     assert.equal(generated.MYUNISHIPPERS_PASSWORD, 'disposable-password');
     assert.equal(mode, 0o600);
+    assert.equal(generated.QUOTE_COMPARISON_ENABLED, 'false');
     assert.equal(generated.AMAZON_SP_API_CLIENT_ID, 'fixture-client');
     assert.equal(generated.AMAZON_SP_API_CLIENT_SECRET, 'fixture-secret');
     assert.equal(generated.AMAZON_SP_API_REFRESH_TOKEN, 'fixture-refresh');
@@ -79,6 +81,8 @@ test('LAN environment passes provider credentials only to the worker', async () 
       'disposable-password',
     );
     assert.equal(configuration.services.api?.environment?.MYUNISHIPPERS_EMAIL, undefined);
+    assert.equal(configuration.services.api?.environment?.QUOTE_COMPARISON_ENABLED, 'false');
+    assert.equal(configuration.services.worker?.environment?.QUOTE_COMPARISON_ENABLED, 'false');
     for (const [key, value] of Object.entries({
       AMAZON_SP_API_CLIENT_ID: 'fixture-client',
       AMAZON_SP_API_CLIENT_SECRET: 'fixture-secret',

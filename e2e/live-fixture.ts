@@ -16,6 +16,9 @@ declare global {
 
 /** Deterministic transport only; the backend suite uses the browser's real EventSource. */
 export async function installLiveFixture(surface: BrowserContext | Page) {
+  await surface.route('**/api/v1/features', (route) =>
+    route.fulfill({ json: { quoteComparisonEnabled: true } }),
+  );
   await surface.route('**/api/v1/dashboard/overview', (route) =>
     route.fulfill({ json: emptyOverview }),
   );

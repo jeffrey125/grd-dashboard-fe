@@ -9,6 +9,7 @@ x-backend-runtime: &backend-runtime
     - no-new-privileges:true
 
 x-database: &database
+  QUOTE_COMPARISON_ENABLED: ${QUOTE_COMPARISON_ENABLED:-false}
   DB_HOST: db
   DB_PORT: '5432'
   DB_NAME: ${GRD_DB_NAME:?Set GRD_DB_NAME}

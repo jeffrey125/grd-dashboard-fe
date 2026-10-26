@@ -85,6 +85,7 @@ test('HTTP-only LAN override is explicit and functional', { timeout: 900_000 }, 
       "GRD_DB_PASSWORD='disposable-database-password'",
       `GRD_AUTH_SECRET='${'disposable-auth-secret-'.repeat(3)}'`,
       "LOG_LEVEL='silent'",
+      "QUOTE_COMPARISON_ENABLED='false'",
       "UPS_ENVIRONMENT='cie'",
       "UPS_CLIENT_ID=''",
       "UPS_CLIENT_SECRET=''",
@@ -167,6 +168,9 @@ test('HTTP-only LAN override is explicit and functional', { timeout: 900_000 }, 
 
       assert.deepEqual(health, { body: 'ok', status: 200 });
       assert.equal(apiHealth.status, 200);
+      const features = await request(httpPort, '/api/v1/features');
+      assert.equal(features.status, 200);
+      assert.deepEqual(JSON.parse(features.body), { quoteComparisonEnabled: false });
       assert.equal(protectedApi.status, 401);
       assert.equal(deepLink.status, 200);
       assert.match(deepLink.body, /<div id="root"><\/div>/);

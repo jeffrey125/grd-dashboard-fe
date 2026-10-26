@@ -494,3 +494,13 @@ The union of selected providers' requirements
 applies to shared fields; myUnishippers sender names are limited to 35 characters.
 Future providers use the shared inputs; only provider-exclusive fields get their own
 section. Existing React Hook Form, MUI, Zod and standards libraries are reused.
+
+## Runtime quote feature flag (SQ-V1-013)
+
+Public `GET /api/v1/features` returns `{ quoteComparisonEnabled: boolean }` with
+`Cache-Control: no-store`. The flag comes from the API/worker environment variable
+`QUOTE_COMPARISON_ENABLED` (strict `true|false`, default `false`). When false,
+authenticated quote/provider API requests, including quote SSE, return 404.
+Navigation and all quote pages are unavailable. Metadata loading/failure never
+enables quote tools by default or prevents shipment tracking. No frontend rebuild
+is needed after changing the server environment and restarting both processes.

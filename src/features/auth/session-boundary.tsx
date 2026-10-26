@@ -1,5 +1,6 @@
 import { AppShell } from '@components/layout/app-shell';
 import { AuthLayout } from '@features/auth/pages/auth-layout';
+import { useRuntimeFeatures } from '@features/runtime-features';
 import { LiveStatus } from '@features/tracking-updates';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -13,6 +14,9 @@ import { useCooldown } from './use-cooldown';
 
 export function SessionBoundary({ children }: { children: ReactNode }) {
   const { session, status, account, error, retryAt, pending } = useSession();
+  const features = useRuntimeFeatures(session.client, status === 'authenticated');
+  const quoteComparisonEnabled =
+    features.isSuccess && !features.isError && features.data.quoteComparisonEnabled;
   const location = useLocation();
   const navigate = useNavigate();
   const remaining = useCooldown(retryAt);
@@ -54,13 +58,30 @@ export function SessionBoundary({ children }: { children: ReactNode }) {
   const forbidden =
     (location.pathname === '/admin' || location.pathname.startsWith('/admin/')) &&
     account.role !== 'admin';
+  const quotePage =
+    location.pathname === '/quotes' ||
+    location.pathname.startsWith('/quotes/') ||
+    location.pathname === '/admin/shipping-providers';
   return (
     <AppShell
       user={{ displayName: `${account.firstName} ${account.lastName}`, role: account.role }}
       onSignOut={() => void session.signOut()}
+      quoteComparisonEnabled={quoteComparisonEnabled}
     >
       <LiveStatus />
-      {forbidden ? (
+      {quotePage && !quoteComparisonEnabled ? (
+        features.isPending ? (
+          <CircularProgress aria-label="Checking available pages" />
+        ) : (
+          <Stack spacing={2}>
+            <Alert severity="warning">This page is not available in the current dashboard.</Alert>
+            {features.isError && <Button onClick={() => void features.refetch()}>Retry</Button>}
+            <Button component={Link} to="/">
+              Return to dashboard
+            </Button>
+          </Stack>
+        )
+      ) : forbidden ? (
         <Stack spacing={2}>
           <Alert severity="error">You do not have permission to view this page.</Alert>
           <Button component={Link} to="/">

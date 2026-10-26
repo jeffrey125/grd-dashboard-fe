@@ -24,6 +24,8 @@ test('built shell supports branding, navigation, themes, and keyboard recovery',
       await route.fulfill({ json: accountFixture });
       return;
     }
+    if (request.url().endsWith('/api/v1/features'))
+      return route.fulfill({ json: { quoteComparisonEnabled: true } });
     if (request.url().includes('/api/v1/shipments/search'))
       return route.fulfill({ json: emptyShipments });
     if (request.url().endsWith('/api/v1/carriers')) return route.fulfill({ json: [] });

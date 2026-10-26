@@ -52,6 +52,7 @@ const variables = {
   GRD_DB_PASSWORD: randomBytes(32).toString('hex'),
   GRD_AUTH_SECRET: randomBytes(48).toString('base64url'),
   LOG_LEVEL: source.LOG_LEVEL || 'info',
+  QUOTE_COMPARISON_ENABLED: source.QUOTE_COMPARISON_ENABLED || 'false',
   UPS_ENVIRONMENT: source.UPS_ENVIRONMENT || 'cie',
   UPS_CLIENT_ID: source.UPS_CLIENT_ID,
   UPS_CLIENT_SECRET: source.UPS_CLIENT_SECRET,

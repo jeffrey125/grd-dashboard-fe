@@ -61,12 +61,14 @@ export function AppShell({
   onSignOut,
   signOutPending = false,
   signOutError,
+  quoteComparisonEnabled = false,
 }: {
   children: ReactNode;
   user?: AppShellUser;
   onSignOut?: () => void;
   signOutPending?: boolean;
   signOutError?: string | null;
+  quoteComparisonEnabled?: boolean;
 }) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -119,22 +121,24 @@ export function AppShell({
         </ListItem>
         <Collapse in={shipmentsOpen} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
-            {shipmentNavigation.map(({ href, label, Icon }) => (
-              <ListItem key={href} disablePadding sx={{ mb: 0.5 }}>
-                <ListItemButton
-                  component={Link}
-                  to={href}
-                  selected={pathname.startsWith(href)}
-                  onClick={() => setMobileOpen(false)}
-                  sx={{ borderRadius: 1.5, minHeight: 40, pl: 4 }}
-                >
-                  <ListItemIcon sx={{ minWidth: 36 }}>
-                    <Icon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText primary={label} />
-                </ListItemButton>
-              </ListItem>
-            ))}
+            {shipmentNavigation
+              .filter(({ href }) => quoteComparisonEnabled || href !== '/quotes')
+              .map(({ href, label, Icon }) => (
+                <ListItem key={href} disablePadding sx={{ mb: 0.5 }}>
+                  <ListItemButton
+                    component={Link}
+                    to={href}
+                    selected={pathname.startsWith(href)}
+                    onClick={() => setMobileOpen(false)}
+                    sx={{ borderRadius: 1.5, minHeight: 40, pl: 4 }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      <Icon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText primary={label} />
+                  </ListItemButton>
+                </ListItem>
+              ))}
           </List>
         </Collapse>
       </List>
@@ -148,22 +152,24 @@ export function AppShell({
             </Typography>
           </Stack>
           <List component="nav" aria-label="Administration" disablePadding>
-            {adminNavigation.map(({ href, label, Icon }) => (
-              <ListItem key={href} disablePadding sx={{ mb: 0.5 }}>
-                <ListItemButton
-                  component="a"
-                  href={href}
-                  selected={pathname.startsWith(href)}
-                  onClick={() => setMobileOpen(false)}
-                  sx={{ borderRadius: 1.5, minHeight: 44 }}
-                >
-                  <ListItemIcon sx={{ minWidth: 40 }}>
-                    <Icon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText primary={label} />
-                </ListItemButton>
-              </ListItem>
-            ))}
+            {adminNavigation
+              .filter(({ href }) => quoteComparisonEnabled || href !== '/admin/shipping-providers')
+              .map(({ href, label, Icon }) => (
+                <ListItem key={href} disablePadding sx={{ mb: 0.5 }}>
+                  <ListItemButton
+                    component="a"
+                    href={href}
+                    selected={pathname.startsWith(href)}
+                    onClick={() => setMobileOpen(false)}
+                    sx={{ borderRadius: 1.5, minHeight: 44 }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 40 }}>
+                      <Icon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText primary={label} />
+                  </ListItemButton>
+                </ListItem>
+              ))}
           </List>
         </>
       ) : null}

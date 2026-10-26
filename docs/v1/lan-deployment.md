@@ -220,3 +220,15 @@ database. Compose volume deletion is never part of a normal upgrade. Application
 rollback means loading a previously retained archive and restoring its image tags
 in `.env`; a database rollback requires a compatible migration plan or a tested
 backup restore, not merely an older application image.
+
+## Tracking-only deployment
+
+Set `QUOTE_COMPARISON_ENABLED=false` in the deployment environment and restart
+both API and worker. Both Compose services receive this single flag. The frontend
+reads `/api/v1/features` at runtime; no Vite build flag is required. Quote pages
+and provider settings are hidden and blocked, quote APIs return 404 after normal
+authentication, and quote-related workers do not claim work. Tracking remains
+active and stored quotes remain intact. The default is `false`; set the value to
+`true` to opt in to quote comparison. Invalid values fail startup. Set the same
+value on both DigitalOcean API and worker components
+when deploying there. This does not provision DigitalOcean resources.

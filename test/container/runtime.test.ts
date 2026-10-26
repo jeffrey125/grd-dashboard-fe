@@ -170,6 +170,9 @@ test('LAN image and Compose lifecycle', { timeout: 900_000 }, async (t) => {
       assert.equal(health.status, 200);
       assert.equal(health.body, 'ok');
       assert.equal(apiHealth.status, 200);
+      const features = await request(httpsPort, '/api/v1/features');
+      assert.equal(features.status, 200);
+      assert.deepEqual(JSON.parse(features.body), { quoteComparisonEnabled: false });
       assert.equal(protectedApi.status, 401);
       assert.equal(deepLink.status, 200);
       assert.match(deepLink.body, /<div id="root"><\/div>/);
