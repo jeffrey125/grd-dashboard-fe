@@ -217,7 +217,7 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
             aria-describedby={rules.refresh ? 'refresh-reason' : undefined}
             onClick={() => command.execute(row, 'refresh')}
           >
-            Refresh
+            {row.monitoringReason === 'failure_threshold' ? 'Retry now' : 'Refresh'}
           </Button>
           {rules.pause && (
             <Button
@@ -390,8 +390,15 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
                   'Last attempt': businessTimestamp(row.lastAttemptedAt),
                   'Next check': businessTimestamp(row.nextCheckAt),
                   'Consecutive not found': String(row.consecutiveNotFoundCount),
+                  'Consecutive lookup failures': String(row.consecutiveFailureCount),
                 }}
               />
+              {row.monitoringReason === 'failure_threshold' && (
+                <Typography sx={{ mt: 2 }}>
+                  Paused after repeated lookup failures. Retry now checks once. Monitoring resumes
+                  only if tracking data is found; a failed or not-found result leaves it paused.
+                </Typography>
+              )}
               {row.monitoringReason === 'not_found_threshold' && (
                 <Typography sx={{ mt: 2 }}>
                   Paused after repeated not-found results. Use Refresh to check again; monitoring

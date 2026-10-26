@@ -73,10 +73,13 @@ export const shipmentSchema = z.object({
   recordUpdatedBy: employeeSummarySchema.nullable(),
   verificationUrl: z.string().nullable(),
   monitoringStatus: z.enum(['active', 'paused', 'completed']),
-  monitoringReason: z.enum(['manual', 'not_found_threshold', 'delivered']).nullable(),
+  monitoringReason: z
+    .enum(['manual', 'not_found_threshold', 'failure_threshold', 'delivered'])
+    .nullable(),
   lastAttemptedAt: timestamp.nullable(),
   nextCheckAt: timestamp.nullable(),
   consecutiveNotFoundCount: z.number().int().nonnegative(),
+  consecutiveFailureCount: z.number().int().nonnegative(),
   createdAt: timestamp,
   updatedAt: timestamp,
   currentTracking: trackingSnapshotSchema.nullable(),

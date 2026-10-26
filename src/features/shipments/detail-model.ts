@@ -25,6 +25,7 @@ export function verificationLink(value: string | null) {
 export function monitoringLabel(row: Shipment) {
   if (row.monitoringStatus === 'completed') return 'Delivered';
   if (row.monitoringStatus === 'active') return 'Active';
+  if (row.monitoringReason === 'failure_threshold') return 'Paused: repeated lookup failures';
   return row.monitoringReason === 'manual' ? 'Paused manually' : 'Paused: not found';
 }
 export function salesRepLabel(row: Shipment) {

@@ -23,6 +23,7 @@ export function shipmentFixture(index = 1, overrides: Partial<Shipment> = {}): S
     lastAttemptedAt: null,
     nextCheckAt: null,
     consecutiveNotFoundCount: 0,
+    consecutiveFailureCount: 0,
     createdAt: '2026-10-16T14:00:00.000Z',
     updatedAt: '2026-10-16T14:00:00.000Z',
     currentTracking: null,

@@ -205,7 +205,7 @@ test('LAN image and Compose lifecycle', { timeout: 900_000 }, async (t) => {
         )
       ).stdout.trim();
 
-      assert.equal(migrationCount, '17');
+      assert.equal(migrationCount, '18');
       assert.equal(carrierCount, '3');
       assert.equal((await compose('ps', '-q', 'worker')).stdout.trim(), '');
       await compose(

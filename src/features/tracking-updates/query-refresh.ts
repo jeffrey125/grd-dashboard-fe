@@ -31,6 +31,7 @@ function matches(value: Registration, event: LiveEvent) {
   if (event.type === 'resync') return true;
   if (event.type === 'run.changed')
     return (
+      carrierDependent(value) ||
       target.kind === 'shipments' ||
       target.kind === 'shipment' ||
       (target.kind === 'run' && target.externalId === event.externalId)

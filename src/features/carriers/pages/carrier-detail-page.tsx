@@ -75,6 +75,15 @@ function CarrierDetail({ carrierId }: { carrierId: string }) {
               value={carrier.externalId}
               slotProps={{ input: { readOnly: true } }}
             />
+            {carrier.autoDisabledReason === 'session_failures' && (
+              <Alert severity="warning">
+                Automatically disabled after repeated login or session-check failures. Resolve the
+                connection or account issue, then edit the carrier and set Active to resume.
+              </Alert>
+            )}
+            <Typography>
+              Consecutive session failures: {carrier.consecutiveSessionFailures}
+            </Typography>
             {editing ? (
               <CarrierEditor
                 carrier={carrier}
@@ -102,7 +111,9 @@ function CarrierDetail({ carrierId }: { carrierId: string }) {
                           ? 'Not set'
                           : typeof value === 'boolean'
                             ? value
-                              ? 'Active'
+                              ? key === 'isActive'
+                                ? 'Active'
+                                : 'Enabled'
                               : 'Disabled'
                             : value}
                       </Typography>

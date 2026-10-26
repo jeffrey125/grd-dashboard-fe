@@ -61,7 +61,12 @@ export function CarriersPage() {
               <CardContent>
                 {link(carrier.externalId, carrier.name)}
                 <Typography>
-                  {carrier.code} · {carrier.isActive ? 'Active' : 'Disabled'}
+                  {carrier.code} ·{' '}
+                  {carrier.isActive
+                    ? 'Active'
+                    : carrier.autoDisabledReason === 'session_failures'
+                      ? 'Automatically disabled: session failures'
+                      : 'Disabled'}
                 </Typography>
                 <Typography>
                   Fetch mode: {carrier.fetchMode} · Configured interval:{' '}
@@ -86,7 +91,13 @@ export function CarriersPage() {
                   <TableRow key={carrier.externalId}>
                     <TableCell>{link(carrier.externalId, carrier.name)}</TableCell>
                     <TableCell>{carrier.code}</TableCell>
-                    <TableCell>{carrier.isActive ? 'Active' : 'Disabled'}</TableCell>
+                    <TableCell>
+                      {carrier.isActive
+                        ? 'Active'
+                        : carrier.autoDisabledReason === 'session_failures'
+                          ? 'Automatically disabled: session failures'
+                          : 'Disabled'}
+                    </TableCell>
                     <TableCell>{carrier.fetchMode}</TableCell>
                     <TableCell>{carrier.pollIntervalMinutes} minutes</TableCell>
                   </TableRow>

@@ -32,7 +32,9 @@ function attentionReason(row: Shipment) {
     row.monitoringStatus === 'paused' &&
       (row.monitoringReason === 'not_found_threshold'
         ? 'Monitoring paused after repeated not-found results'
-        : 'Monitoring paused manually'),
+        : row.monitoringReason === 'failure_threshold'
+          ? 'Monitoring paused after repeated lookup failures'
+          : 'Monitoring paused manually'),
   ]
     .filter(Boolean)
     .join(' · ');

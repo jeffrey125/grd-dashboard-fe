@@ -9,7 +9,9 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import Stack from '@mui/material/Stack';
+import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -190,6 +192,58 @@ export function CarrierEditor({
           <option value="true">Active</option>
           <option value="false">Disabled</option>
         </TextField>
+        <Typography component="h3" variant="subtitle1">
+          Monitoring safeguards
+        </Typography>
+        {(
+          [
+            [
+              'failurePauseEnabled',
+              'failurePauseThreshold',
+              'Pause only the shipment after consecutive lookup failures. Login and session-check failures are counted separately.',
+            ],
+            [
+              'sessionFailureDisableEnabled',
+              'sessionFailureDisableThreshold',
+              'Disable this carrier after consecutive failed logins or session checks. An admin must re-enable it before monitoring can continue.',
+            ],
+          ] as const
+        ).map(([enabled, threshold, description]) => (
+          <Stack key={enabled} spacing={1}>
+            <FormControlLabel
+              label={settingLabels[enabled]}
+              control={
+                <Switch
+                  checked={draft[enabled]}
+                  disabled={locked}
+                  onChange={(_event, checked) => {
+                    form.setValue(enabled, checked, { shouldDirty: true, shouldValidate: true });
+                    markEdited();
+                  }}
+                />
+              }
+            />
+            <Typography variant="body2" color="text.secondary">
+              {description}
+            </Typography>
+            <TextField
+              label={settingLabels[threshold]}
+              type="number"
+              disabled={locked || !draft[enabled]}
+              {...form.register(threshold, { valueAsNumber: true, onChange: markEdited })}
+              error={!!form.formState.errors[threshold]}
+              helperText={
+                form.formState.errors[threshold]?.message ??
+                '1–10 consecutive failures. Default: 2.'
+              }
+              slotProps={{ htmlInput: { min: 1, max: 10, step: 1 } }}
+            />
+          </Stack>
+        ))}
+        <Typography variant="caption" color="text.secondary">
+          Re-enabling a safeguard resets its counter. Existing pauses and carrier disables remain in
+          place.
+        </Typography>
         <TextField
           label="Fetch mode"
           select

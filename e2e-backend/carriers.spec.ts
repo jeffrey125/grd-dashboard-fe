@@ -44,6 +44,10 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
         { notFoundPauseThreshold: null },
         { pollIntervalMinutes: null },
         { rateLimitPerMinute: 0 },
+        { failurePauseThreshold: 0 },
+        { sessionFailureDisableThreshold: 11 },
+        { failurePauseEnabled: 'false' },
+        { consecutiveSessionFailures: 0 },
         { rateLimitPerMinute: 32768 },
         { rateLimitPerMinute: 1.5 },
         { notFoundPauseThreshold: 1 },
@@ -84,6 +88,10 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
       await page.getByRole('link', { name: ups.name, exact: true }).click();
       await page.getByRole('button', { name: 'Edit carrier' }).click();
       await page.getByLabel('Name', { exact: true }).fill('UPS browser edited');
+      await page.getByRole('switch', { name: 'Auto-Failure Pause Monitoring' }).uncheck();
+      await page
+        .getByLabel('Consecutive session failures before disable', { exact: true })
+        .fill('3');
       await page.getByLabel('Requests per minute', { exact: true }).fill('');
       await page.getByLabel('Active', { exact: true }).selectOption('false');
       await page.getByRole('button', { name: 'Save changes' }).click();
@@ -95,6 +103,8 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
       expect(saved).toMatchObject({
         ...settings(ups),
         name: 'UPS browser edited',
+        failurePauseEnabled: false,
+        sessionFailureDisableThreshold: 3,
         isActive: false,
         rateLimitPerMinute: null,
       });

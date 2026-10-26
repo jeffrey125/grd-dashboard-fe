@@ -433,3 +433,26 @@ test('dark theme and maximum-length content remain usable; sidebar navigation pr
   await page.getByRole('button', { name: 'Discard changes', exact: true }).click();
   await expect(page).toHaveURL('/');
 });
+
+test('failure-paused shipments explain Retry now and still respect carrier disablement', async ({
+  page,
+}) => {
+  const state = await setup(page, {
+    monitoringStatus: 'paused',
+    monitoringReason: 'failure_threshold',
+    consecutiveFailureCount: 2,
+  });
+  await open(page, state);
+  await expect(
+    page.getByText('Paused: repeated lookup failures', { exact: true }).first(),
+  ).toBeVisible();
+  await expect(
+    page.getByText('Paused after repeated lookup failures.', { exact: false }),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Retry now', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Resume monitoring', exact: true })).toHaveCount(0);
+  state.row.carrier.isActive = false;
+  await emit(page, state.row.externalId);
+  await expect(page.getByRole('button', { name: 'Retry now', exact: true })).toBeDisabled();
+  await expect(page.getByText('Carrier is disabled.', { exact: true })).toBeVisible();
+});

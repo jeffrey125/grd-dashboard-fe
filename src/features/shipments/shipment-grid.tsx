@@ -94,7 +94,7 @@ function RowActions({
         </RouterMenuItem>
         <MenuItem disabled={!!rules.refresh || mutation.pending} onClick={() => command('refresh')}>
           <Stack>
-            <span>Refresh</span>
+            <span>{row.monitoringReason === 'failure_threshold' ? 'Retry now' : 'Refresh'}</span>
             {rules.refresh && <Typography variant="caption">{rules.refresh}</Typography>}
             {!rules.refresh &&
               row.latestRun &&
@@ -161,7 +161,7 @@ function MobileActions({
           onClick={() => command('refresh')}
           sx={{ minHeight: 44 }}
         >
-          Refresh
+          {row.monitoringReason === 'failure_threshold' ? 'Retry now' : 'Refresh'}
         </Button>
         {rules.pause && (
           <Button

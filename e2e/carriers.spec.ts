@@ -254,3 +254,42 @@ test('Staff direct URLs, invalid IDs, missing carriers and revoked sessions are 
   await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toBeVisible();
   await expect(page.getByLabel('Name', { exact: true })).toHaveCount(0);
 });
+
+test('admin safeguards save independently and display automatic disable reasons', async ({
+  page,
+}) => {
+  const state = await setup(page);
+  state.row.isActive = false;
+  state.row.autoDisabledReason = 'session_failures';
+  state.row.consecutiveSessionFailures = 2;
+  await detail(page);
+  await expect(
+    page.getByText('Automatically disabled after repeated login or session-check failures.', {
+      exact: false,
+    }),
+  ).toBeVisible();
+  const shipmentSwitch = page.getByRole('switch', { name: 'Auto-Failure Pause Monitoring' });
+  const carrierSwitch = page.getByRole('switch', { name: 'Auto-Disable After Session Failures' });
+  await expect(shipmentSwitch).toBeChecked();
+  await expect(carrierSwitch).toBeChecked();
+  await shipmentSwitch.uncheck();
+  await expect(
+    page.getByLabel('Consecutive lookup failures before pause', { exact: true }),
+  ).toBeDisabled();
+  await page.getByLabel('Consecutive session failures before disable', { exact: true }).fill('3');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByRole('button', { name: 'Edit carrier' })).toBeVisible();
+  expect(state.patches).toEqual([
+    { failurePauseEnabled: false, sessionFailureDisableThreshold: 3 },
+  ]);
+  expect(state.row.isActive).toBe(false);
+  await page.getByRole('button', { name: 'Edit carrier' }).click();
+  await shipmentSwitch.check();
+  await carrierSwitch.uncheck();
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByRole('button', { name: 'Edit carrier' })).toBeVisible();
+  expect(state.patches[1]).toEqual({
+    failurePauseEnabled: true,
+    sessionFailureDisableEnabled: false,
+  });
+});
