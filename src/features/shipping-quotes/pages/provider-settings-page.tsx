@@ -147,8 +147,8 @@ function ProviderSettingsForm({
             </Button>
           )}
           {provider.code === 'amazon' && (
-            <Alert severity="warning">
-              Sandbox mode — test data only, not live commercial Amazon prices.
+            <Alert severity="info">
+              Production API — requests shipping quotes only; does not book shipments.
             </Alert>
           )}
           {!provider.enabled && (
@@ -223,7 +223,7 @@ function ProviderSettingsForm({
           </Button>
           <Typography variant="body2">
             {provider.code === 'amazon'
-              ? 'Checks sandbox API authentication. Does not request a sample rate.'
+              ? 'Checks production API authentication. Does not request a sample rate.'
               : 'Checks login, account defaults, and quote readiness. Does not request a sample rate.'}
           </Typography>
           {pending && <Alert severity="info">Connection test pending…</Alert>}

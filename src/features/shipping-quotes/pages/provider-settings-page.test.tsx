@@ -77,14 +77,14 @@ beforeEach(() => {
   ]);
 });
 
-it('locks Amazon to API mode, warns about sandbox data, and removes default refresh', async () => {
+it('locks Amazon to API mode, describes production quoting, and removes default refresh', async () => {
   const user = userEvent.setup();
   const apiResult = { ...failure, executionMode: 'api', state: 'succeeded', failureSummary: null };
   mocks.test.mockResolvedValue(apiResult);
   mocks.result.mockResolvedValue(apiResult);
   mount();
 
-  await screen.findByText(/Sandbox mode — test data only/);
+  await screen.findByText(/Production API — requests shipping quotes only/);
   const mode = screen.getByRole('combobox', { name: 'Execution mode' });
   expect(mode).toHaveTextContent('API');
   await user.click(mode);
