@@ -117,7 +117,7 @@ jobs:
 
   deploy:
     name: Deploy App Platform fe
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.APP_PLATFORM_DEPLOY_ENABLED == 'true'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: [quality, secrets, container]
     runs-on: ubuntu-24.04
     timeout-minutes: 30

@@ -30,7 +30,6 @@ build; failure is closed and cannot publish mismatched source.
 
 | Location | Setting | Purpose |
 | --- | --- | --- |
-| Repository variable | `APP_PLATFORM_DEPLOY_ENABLED` | Leave unset until the production setup is approved; set to `true` to enable the deploy job. |
 | Production environment variable | `DIGITALOCEAN_PROJECT_ID` | Intended project UUID. |
 | Production environment secret | `DIGITALOCEAN_ACCESS_TOKEN` | Permission to manage the frontend App Platform app. |
 | Production environment variable | `VITE_GOOGLE_PLACES_API_KEY` | Optional public browser key; restrict it to the app domain and required APIs. Never use a private server key. |
@@ -38,8 +37,10 @@ build; failure is closed and cannot publish mismatched source.
 Connect DigitalOcean's GitHub integration to `jeffrey125/grd-dashboard-fe` so the
 platform can fetch the source. No GHCR pull credential is needed for this static
 site. Define the `production` GitHub environment and restrict it to main.
-The enable flag must be a repository variable because it is evaluated before the
-production environment is loaded. Both app names are fixed in their specs; verify
+Pushes to `main` and manual workflow runs on `main` deploy automatically after
+quality, secret-scan and production-build jobs succeed. Pull requests and other
+branches cannot deploy. No separate enable variable is required.
+Both app names are fixed in their specs; verify
 that they do not identify an unrelated existing app before the first invocation.
 
 The API origin is fixed at build time. All `VITE_*` values are public browser
