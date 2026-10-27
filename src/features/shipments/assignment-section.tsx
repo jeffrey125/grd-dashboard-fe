@@ -46,11 +46,7 @@ export function AssignmentSection({
       followUpOn: shipment.followUpOn ?? '',
     },
   });
-  const draftRep = form.watch('salesRepExternalId');
-  const draftFollowUp = form.watch('followUpOn');
-  const dirty =
-    draftRep !== (shipment.salesRep?.externalId ?? '') ||
-    draftFollowUp !== (shipment.followUpOn ?? '');
+  const dirty = form.formState.isDirty;
   const mutation = useMutation({
     mutationKey: ['shipment-assignment', shipment.externalId],
     mutationFn: (input: AssignmentInput) =>
@@ -59,7 +55,11 @@ export function AssignmentSection({
         followUpOn: input.followUpOn || null,
       }),
     retry: false,
-    onSuccess: async () => {
+    onSuccess: async (updated) => {
+      form.reset({
+        salesRepExternalId: updated.salesRep?.externalId ?? '',
+        followUpOn: updated.followUpOn ?? '',
+      });
       await Promise.all([
         queries.invalidateQueries({ queryKey: ['shipment', shipment.externalId] }),
         queries.invalidateQueries({ queryKey: ['shipments'] }),
@@ -134,7 +134,12 @@ export function AssignmentSection({
           }}
           disabled={disabled || mutation.isPending}
           error={!!form.formState.errors.followUpOn}
-          helperText={form.formState.errors.followUpOn?.message ?? 'Optional'}
+          helperText={
+            form.formState.errors.followUpOn?.message ??
+            (shipment.currentTracking?.deliveredOn
+              ? 'A future date keeps delivered shipments monitored until that date starts in New York. Clearing the date stops monitoring. Explicit pauses remain paused.'
+              : 'Optional')
+          }
         />
         <Stack direction="row" sx={{ justifyContent: 'flex-end' }}>
           <Button

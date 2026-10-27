@@ -33,7 +33,7 @@ these are not deployed by this plan.
 | Auth      | `POST /auth/sign-in`, `GET /auth/me`, `POST /auth/sign-out`, `POST /auth/change-password`. Profile responses and HttpOnly cookies, not tokens.                                                                                                                                                  |
 | Accounts  | Admin GET list/detail, POST create, PATCH account, POST password under `/admin/accounts`. No account DELETE or emailed invitation/reset.                                                                                                                                                        |
 | Carriers  | GET `/carriers`, GET/PATCH `/carriers/:externalId`; PATCH Admin-only. No create/delete/restore.                                                                                                                                                                                                 |
-| Shipments | GET `/shipments/search` returns paginated/filterable rows and tab counts; GET `/shipments/:externalId/history` returns normalized snapshot history; legacy GET `/shipments` returns an unpaginated array; detail GET; single-item POST; notes-only PATCH; soft DELETE; per-shipment POST pause/resume. |
+| Shipments | GET `/shipments/search` returns paginated/filterable rows and tab counts; GET `/shipments/:externalId/history` returns normalized snapshot history; legacy GET `/shipments` returns an unpaginated array; detail GET; single-item POST; notes/assignment/follow-up PATCH; soft DELETE; per-shipment POST pause/resume. |
 | Dashboard | GET `/dashboard/overview` returns consistent state counts and bounded attention, upcoming-delivery, and recent-change panels.                                                                                                                                                                   |
 | Refresh   | POST `/shipments/:externalId/refresh` → 202 run; GET `/tracking-runs/:externalId` → run/attempt outcomes. Current/latest lookup/run also appear on Shipment responses.                                                                                                                          |
 | SSE       | GET `/events`: `resync`, `shipment.changed`, `tracking.changed`, `run.changed`, `heartbeat`; invalidation events, no replay.                                                                                                                                                                    |
@@ -62,10 +62,10 @@ Existing Shipment JSON has `externalId`, Carrier summary, `trackingReference`,
   sends null. Reject unknown fields. Existing nondeleted duplicates return 200 with
   `outcome: "existing"` and remain unchanged; new records return 201 with
   `outcome: "created"`. Validation details use allowlisted field names.
-- Notes are the only editable Shipment field. Carrier/reference correction is
+- Notes, sales-rep assignment and follow-up date are editable. Carrier/reference correction is
   not a PATCH feature. Delete is soft and 204; re-add creates a new UUID.
 - Pause: active → paused/manual. Resume: paused/manual → active. Threshold-paused
-  shipments can refresh but cannot manually resume. Delivered is terminal.
+  shipments can refresh but cannot manually resume. Delivered shipments with future follow-up dates remain active until that date starts in New York time.
   Disabled carriers block creation/refresh but do not hide existing shipments.
 - Refresh is allowed for active or threshold-paused shipments with an eligible
   carrier; manual-paused and completed shipments cannot start a new refresh.
@@ -147,7 +147,7 @@ the new frontend uses the new route for its list.
 | `q`                                            | Optional trimmed literal case-insensitive substring of reference or notes; max 255 code units; wildcard characters treated literally. |
 | `carrierExternalId`                            | Optional carrier UUIDv4; one carrier initially.                                                                                       |
 | `estimatedDeliveryFrom`, `estimatedDeliveryTo` | Optional inclusive ISO calendar-date bounds on current ETA; valid nonzero years, ordered from ≤ through. |
-| `undeliveredOnly` | Optional `true`/`false`; true excludes completed shipments, including when tab is All. |
+| `undeliveredOnly` | Optional `true`/`false`; true excludes completed shipments and known deliveries, including active delivered shipments and the All tab. |
 | `page`, `pageSize`                             | Positive page, default 1; page sizes 25/50/100, default 25, cap 100.                                                                  |
 | `sortBy`, `sortDirection`                      | Default `createdAt`, `desc`; allowlisted `createdAt`, `trackingReference`, `estimatedDeliveryOn`; `asc`/`desc`.                       |
 
@@ -173,11 +173,11 @@ type ShipmentSearchResponse = {
 ```
 
 Tab counts apply the other query filters but ignore the selected tab. The visible
-Active, Delivered, and Attention counts partition All. The compatibility-only
+Delivered and Attention can overlap when a delivered shipment has a due follow-up. The compatibility-only
 Paused count is a subset of Attention, so consumers must not add all five fields.
 All excludes soft-deleted Shipments. Delivered means completed/delivered. Attention
 means any paused Shipment or a non-completed Shipment whose latest completed lookup
-failed. Active means actively monitored without a failed latest completed lookup.
+failed, or any Shipment with a follow-up due today or earlier. Active means actively monitored without a failed latest completed lookup or due follow-up.
 An otherwise Active shipment with a disabled carrier stays Active; show its
 disabled-carrier warning.
 
@@ -237,7 +237,7 @@ to current monitoring state, not delivered-today or a performance KPI. Use one
 consistent read snapshot; specify cache behavior (`no-store` initially). No
 on-time-rate, transit-average, or carrier-ranking calculation is added.
 
-Upcoming deliveries uses the same statement snapshot: non-completed, nondeleted
+Upcoming deliveries uses the same statement snapshot: non-completed, nondeleted, without a known delivery
 shipments whose current ETA is within `upcomingWindow`, inclusive. Disabled carriers
 remain included; null ETAs are excluded. Return at most five rows, earliest ETA,
 then creation/id ascending, plus a full total. View all uses the matching search
@@ -504,3 +504,21 @@ authenticated quote/provider API requests, including quote SSE, return 404.
 Navigation and all quote pages are unavailable. Metadata loading/failure never
 enables quote tools by default or prevents shipment tracking. No frontend rebuild
 is needed after changing the server environment and restarting both processes.
+
+
+## MON-V1-002: monitor delivered shipments until follow-up
+
+Staff/Admin **Monitor again** uses the existing Shipment PATCH with a future
+`followUpOn`. The backend atomically reactivates a completed Shipment and schedules
+checks, preserving delivery snapshots and carrier status. The dialog defaults to
+tomorrow in New York; today/past dates cannot restart monitoring. Clearing the
+follow-up stops a known delivery immediately. Future date edits preserve manual
+and safeguard pauses; the existing resume/retry actions handle those pauses.
+
+A future follow-up keeps delivered Shipments active through repeated delivery
+results. Automatic checks stop at the start of that date in `America/New_York`.
+Existing completed Shipments with future dates reactivate on the first worker
+scan. State/tab changes reconcile on scans; independent per-lookup eligibility
+checks enforce expiry even during a long-running scan. Active monitoring and the
+carrier's Delivered status are distinct. Completed deliveries return to Delivered,
+with due follow-ups also in Attention. No schema or public response changes.

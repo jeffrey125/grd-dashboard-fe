@@ -21,6 +21,7 @@ import { createLink, Link, useNavigate } from '@tanstack/react-router';
 import { useCallback, useMemo, useState } from 'react';
 import { actionRules, useShipmentCommand } from './actions';
 import { followUpDue, followUpLabel, monitoringLabel, salesRepLabel } from './detail-model';
+import { MonitorAgainDialog } from './monitor-again-dialog';
 import type { Shipment } from './schemas';
 import { type ShipmentSearch, sorts } from './search-state';
 
@@ -61,6 +62,7 @@ function RowActions({
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const mutation = useShipmentCommand(row.externalId);
+  const [monitorAgain, setMonitorAgain] = useState(false);
   const rules = actionRules(row);
   const command = (value: 'pause' | 'resume' | 'refresh') => {
     setAnchor(null);
@@ -79,6 +81,7 @@ function RowActions({
       >
         <MoreVertIcon />
       </IconButton>
+      {monitorAgain && <MonitorAgainDialog shipment={row} onClose={() => setMonitorAgain(false)} />}
       <Menu
         sx={{ zIndex: (theme) => theme.zIndex.snackbar + 1 }}
         anchorEl={anchor}
@@ -113,6 +116,17 @@ function RowActions({
             Resume monitoring
           </MenuItem>
         )}
+        {row.monitoringStatus === 'completed' && (
+          <MenuItem
+            disabled={mutation.pending}
+            onClick={() => {
+              setAnchor(null);
+              setMonitorAgain(true);
+            }}
+          >
+            Monitor again
+          </MenuItem>
+        )}
         {row.monitoringReason === 'not_found_threshold' && (
           <MenuItem disabled>Threshold pause: use Refresh to recheck</MenuItem>
         )}
@@ -130,6 +144,7 @@ function MobileActions({
   disabled: boolean;
 }) {
   const mutation = useShipmentCommand(row.externalId);
+  const [monitorAgain, setMonitorAgain] = useState(false);
   const rules = actionRules(row);
   const unavailable = disabled || mutation.pending;
   const command = (value: 'pause' | 'resume' | 'refresh') => mutation.execute(row, value);
@@ -188,6 +203,12 @@ function MobileActions({
           </Button>
         )}
       </Stack>
+      {row.monitoringStatus === 'completed' && (
+        <Button variant="outlined" disabled={unavailable} onClick={() => setMonitorAgain(true)}>
+          Monitor again
+        </Button>
+      )}
+      {monitorAgain && <MonitorAgainDialog shipment={row} onClose={() => setMonitorAgain(false)} />}
       {refreshNote && (
         <Typography variant="caption" color="text.secondary">
           {refreshNote}

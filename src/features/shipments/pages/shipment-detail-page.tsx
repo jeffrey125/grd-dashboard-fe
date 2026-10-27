@@ -11,6 +11,7 @@ import {
 } from '@features/shipments/detail-model';
 import { detailSearchSchema } from '@features/shipments/history-model';
 import { HistorySection } from '@features/shipments/history-section';
+import { MonitorAgainDialog } from '@features/shipments/monitor-again-dialog';
 import { NotesSection } from '@features/shipments/notes-section';
 import { RunPanel } from '@features/shipments/run-panel';
 import type { TrackingRun } from '@features/shipments/schemas';
@@ -70,6 +71,7 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
   const [notesDirty, setNotesDirty] = useState(false);
   const [assignmentDirty, setAssignmentDirty] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [monitorAgain, setMonitorAgain] = useState(false);
   const [requestedRun, setRequestedRun] = useState<TrackingRun | null>(null);
   const bypassNavigation = useRef(false);
   const deleting = useRef(false);
@@ -236,6 +238,18 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
             >
               Resume monitoring
             </Button>
+          )}
+          {row.monitoringStatus === 'completed' && (
+            <Button
+              variant="outlined"
+              disabled={busy || dirty}
+              onClick={() => setMonitorAgain(true)}
+            >
+              Monitor again
+            </Button>
+          )}
+          {monitorAgain && (
+            <MonitorAgainDialog shipment={row} onClose={() => setMonitorAgain(false)} />
           )}
           <Button
             color="error"
@@ -405,9 +419,15 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
                   can reactivate if the shipment is found.
                 </Typography>
               )}
+              {row.monitoringStatus === 'active' && snapshot?.deliveredOn && (
+                <Typography sx={{ mt: 2 }}>
+                  Delivered; checks continue until the start of {row.followUpOn} in New York time.
+                </Typography>
+              )}
               {row.monitoringStatus === 'completed' && (
                 <Typography sx={{ mt: 2 }}>
-                  Delivery is terminal; monitoring has finished.
+                  Monitoring has finished. Choose Monitor again and a future follow-up date to
+                  restart carrier checks.
                 </Typography>
               )}
             </Paper>

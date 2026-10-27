@@ -414,7 +414,9 @@ test('threshold, delivered and disabled carrier rows explain eligibility and pre
     await expect(
       shipmentCard(page, '0002').getByRole('button', { name: 'Refresh' }),
     ).toBeDisabled();
-    await expect(shipmentCard(page, '0002')).toContainText('Delivered shipments cannot refresh.');
+    await expect(shipmentCard(page, '0002')).toContainText(
+      'Set a future follow-up date to monitor this delivered shipment.',
+    );
     await expect(
       shipmentCard(page, '0003').getByRole('button', { name: 'Refresh' }),
     ).toBeDisabled();
@@ -429,7 +431,7 @@ test('threshold, delivered and disabled carrier rows explain eligibility and pre
     await page.keyboard.press('Escape');
     await actions(page, '0002');
     await expect(
-      page.getByRole('menuitem', { name: /Delivered shipments cannot refresh/ }),
+      page.getByRole('menuitem', { name: /Set a future follow-up date/ }),
     ).toHaveAttribute('aria-disabled', 'true');
     await page.keyboard.press('Escape');
     await actions(page, '0003');

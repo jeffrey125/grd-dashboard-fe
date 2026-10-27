@@ -32,6 +32,7 @@ export const overviewSchema = z
       data.upcomingDeliveries.items.every(
         (row) =>
           row.monitoringStatus !== 'completed' &&
+          !row.currentTracking?.deliveredOn &&
           !!row.currentTracking?.estimatedDeliveryOn &&
           row.currentTracking.estimatedDeliveryOn >= data.upcomingWindow.from &&
           row.currentTracking.estimatedDeliveryOn <= data.upcomingWindow.to,

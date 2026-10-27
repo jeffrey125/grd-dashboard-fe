@@ -349,7 +349,9 @@ test('action availability follows manual pause, threshold pause, delivery and di
   state.row.monitoringStatus = 'completed';
   state.row.monitoringReason = 'delivered';
   await emit(page, state.row.externalId);
-  await expect(page.getByText('Delivered shipments cannot refresh.')).toBeVisible();
+  await expect(
+    page.getByText('Set a future follow-up date to monitor this delivered shipment.'),
+  ).toBeVisible();
   await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeDisabled();
   state.row.monitoringStatus = 'active';
   state.row.monitoringReason = null;

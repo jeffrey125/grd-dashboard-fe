@@ -1,6 +1,7 @@
 import { SessionCancelled, safeError } from '@api/api';
 import { useNotifications } from '@components/feedback/notification-provider';
 import { useSession } from '@features/auth';
+import { businessCalendarDate } from '@lib/dates';
 import { useIsMutating, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 import { shipmentCommand } from './api';
@@ -8,17 +9,21 @@ import type { Shipment, TrackingRun } from './schemas';
 
 export function actionRules(row: Shipment) {
   const completed = row.monitoringStatus === 'completed';
+  const expired =
+    !!row.currentTracking?.deliveredOn &&
+    (!row.followUpOn || row.followUpOn <= businessCalendarDate());
   const manual = row.monitoringStatus === 'paused' && row.monitoringReason === 'manual';
   return {
-    refresh: completed
-      ? 'Delivered shipments cannot refresh.'
-      : manual
-        ? 'Resume monitoring before refreshing.'
-        : !row.carrier.isActive
-          ? 'Carrier is disabled.'
-          : undefined,
+    refresh:
+      completed || expired
+        ? 'Set a future follow-up date to monitor this delivered shipment.'
+        : manual
+          ? 'Resume monitoring before refreshing.'
+          : !row.carrier.isActive
+            ? 'Carrier is disabled.'
+            : undefined,
     pause: row.monitoringStatus === 'active',
-    resume: manual,
+    resume: manual && !expired,
   };
 }
 export function useShipmentCommand(

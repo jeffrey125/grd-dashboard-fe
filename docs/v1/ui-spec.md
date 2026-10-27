@@ -29,12 +29,12 @@ session is unrestricted. Layout follows Tom's desktop sidebar/mobile drawer patt
 ## Overview homepage
 
 Summary cards: All, Active, Delivered, Needs attention. Cards link to the
-matching shipment tab. Active, Delivered, and Needs attention partition All so
-the visible category counts total the shipment count. Counts exclude soft-deleted
+matching shipment tab. Delivered and Needs attention can overlap for due follow-ups;
+these category counts must not be summed as a total. Counts exclude soft-deleted
 shipments and are not computed from the current table page.
 
 The first panel is **Needs attention**, including every paused Shipment and active
-Shipments whose latest lookup failed. Explain the reason without claiming a
+Shipments whose latest lookup failed, plus any Shipment with a due follow-up. Explain the reason without claiming a
 shipment is late. Show reference, carrier, reason, last known tracking status, and
 a link to detail.
 
@@ -58,8 +58,8 @@ Retain stale data and its warning during retries.
 
 Default `/shipments` state: `tab=active`, page 1, 25 rows, `createdAt desc`.
 Tabs: **Active**, **Needs attention**, **Delivered**, **All Shipments**. Needs attention
-includes paused Shipments and active Shipments whose latest lookup failed; those
-failed rows are excluded from Active. Legacy `tab=paused` URLs redirect to Needs attention.
+includes paused Shipments, active Shipments whose latest lookup failed, and any
+Shipment whose follow-up is due; failed and due rows are excluded from Active. Legacy `tab=paused` URLs redirect to Needs attention.
 Respect explicit valid URL state on navigation/reload/back. Search and filters
 apply within the selected tab; filter/sort/tab changes reset page to 1. Include
 clear filters and empty-result guidance. Searches are debounced and cancelled when
@@ -315,3 +315,19 @@ phone, division) and `maxNameLength`. The union of selected providers' requireme
 applies to shared fields; myUnishippers sender names are limited to 35 characters.
 Future providers use the shared inputs; only provider-exclusive fields get their own
 section. Existing React Hook Form, MUI, Zod and standards libraries are reused.
+
+
+## MON-V1-002: Monitor again
+
+Completed delivered Shipments expose **Monitor again** in desktop row actions,
+mobile cards and details. The MUI dialog explains the New York midnight cutoff,
+defaults the editable follow-up date to tomorrow, and requires a future date.
+Saving uses the existing follow-up PATCH and refreshes detail, list and overview.
+A disabled Carrier is identified in the dialog; reactivating the record does not
+enable the Carrier. Unsaved detail edits must be resolved before opening it.
+
+Future-dated delivered Shipments show Active monitoring alongside their Delivered
+carrier status. Details explain the stopping date. Assignment controls explain
+that future dates restart completed deliveries, clearing dates stops them, and
+explicit pauses remain paused. Due dates stop monitoring and put the record in
+Delivered and Attention. Undelivered Shipments retain their existing behavior.
