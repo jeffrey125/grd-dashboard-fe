@@ -227,8 +227,13 @@ export class ReviewStore {
 
   acknowledge(id: string, snapshotId: string, expected: ReviewRecord | undefined) {
     return this.change(() => {
-      if (this.state.records[id]?.token !== expected?.token || !this.room(id)) return false;
-      if (expected?.snapshotId === snapshotId && !expected.unseen && !expected.pending.length)
+      const current = this.state.records[id];
+      // Reconciliation can replace the token while verifying this same displayed revision.
+      // A newer resolved revision or any pending event must still preserve its highlight.
+      const sameResolvedRevision = current?.snapshotId === snapshotId && !current.pending.length;
+      if ((current?.token !== expected?.token && !sameResolvedRevision) || !this.room(id))
+        return false;
+      if (current?.snapshotId === snapshotId && !current.unseen && !current.pending.length)
         return false;
       this.state.records[id] = {
         snapshotId,

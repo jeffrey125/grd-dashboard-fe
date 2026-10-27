@@ -161,6 +161,46 @@ describe('persistent review identities', () => {
     expect(hasUnseen(store.getSnapshot().records[shipment])).toBe(true);
   });
 
+  it('acknowledges the displayed revision when reconciliation finishes during the verification read', async () => {
+    const { store, controller, read } = setup();
+    await store.observe(shipment, first);
+    const pending = store.getSnapshot().records[shipment];
+    if (!pending) throw new Error('Expected pending tracking event');
+    let complete: (value: string) => void = () => undefined;
+    read.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+    );
+    const reviewing = controller.acknowledge({ shipmentId: shipment, snapshotId: first });
+    await store.resolve(shipment, first, pending, false);
+    complete(first);
+    await reviewing;
+    expect(hasUnseen(store.getSnapshot().records[shipment])).toBe(false);
+  });
+
+  it('preserves a newer resolved revision when an older verification read completes', async () => {
+    const { store, controller, read } = setup();
+    await store.observe(shipment, first);
+    let complete: (value: string) => void = () => undefined;
+    read.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+    );
+    const reviewing = controller.acknowledge({ shipmentId: shipment, snapshotId: first });
+    await store.observe(shipment, second);
+    const pending = store.getSnapshot().records[shipment];
+    if (!pending) throw new Error('Expected pending tracking event');
+    await store.resolve(shipment, second, pending, false);
+    complete(first);
+    await reviewing;
+    expect(store.getSnapshot().records[shipment]?.snapshotId).toBe(second);
+    expect(hasUnseen(store.getSnapshot().records[shipment])).toBe(true);
+  });
+
   it('does not acknowledge hidden/unmounted details, old displayed rows, or other shipments', async () => {
     vi.useFakeTimers();
     const { store, controller, read } = setup();
