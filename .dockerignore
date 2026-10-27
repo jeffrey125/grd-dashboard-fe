@@ -28,3 +28,6 @@
 !scripts/**
 !test/
 !test/**
+
+!.do/
+!.do/Dockerfile

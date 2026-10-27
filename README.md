@@ -1,5 +1,9 @@
 # GRD Dashboard frontend
 
+[App Platform Static Site preparation](docs/v1/app-platform.md) now defines the
+approved public target and CI/CD setup. Deployment remains disabled until the
+production settings and backend readiness gates are satisfied.
+
 React/TypeScript/Vite foundation for the GRD shipment-monitoring dashboard.
 FE-V1-001 supplies application composition, routing, a shared Query client, and
 validated public configuration. FE-V1-002 adds quality gates, isolated tests, staged

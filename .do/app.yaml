@@ -1,0 +1,40 @@
+# DEPLOY-V1-001: static source build; commit must match the successful CI run.
+name: grd-dashboard-fe
+region: nyc
+domains:
+- domain: app.globalresourcesdirect.com
+  type: PRIMARY
+  minimum_tls_version: '1.2'
+alerts:
+- rule: DEPLOYMENT_FAILED
+- rule: DOMAIN_FAILED
+static_sites:
+- name: frontend
+  output_dir: /app/dist
+  index_document: index.html
+  catchall_document: index.html
+  github:
+    repo: jeffrey125/grd-dashboard-fe
+    branch: main
+    deploy_on_push: false
+  dockerfile_path: .do/Dockerfile
+  envs:
+  - key: EXPECTED_COMMIT
+    scope: BUILD_TIME
+    value: ${EXPECTED_COMMIT}
+  - key: BUILD_COMMIT
+    scope: BUILD_TIME
+    value: ${_self.COMMIT_HASH}
+  - key: VITE_API_ORIGIN
+    scope: BUILD_TIME
+    value: https://api.globalresourcesdirect.com
+  - key: VITE_GOOGLE_PLACES_API_KEY
+    scope: BUILD_TIME
+    value: ${VITE_GOOGLE_PLACES_API_KEY}
+ingress:
+  rules:
+  - match:
+      path:
+        prefix: /
+    component:
+      name: frontend

@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   pull_request:
@@ -82,3 +82,97 @@ jobs:
           tar -xzf gitleaks.tar.gz gitleaks
       - name: Scan all committed history
         run: '"${{ runner.temp }}/gitleaks" git --redact --no-banner --log-opts="--all" .'
+
+  container:
+    name: Build production frontend image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          file: .do/Dockerfile
+          push: false
+          load: true
+          tags: grd-frontend:ci
+          build-args: |
+            EXPECTED_COMMIT=${{ github.sha }}
+            BUILD_COMMIT=${{ github.sha }}
+            VITE_API_ORIGIN=https://api.globalresourcesdirect.com
+          cache-from: type=gha,scope=ci-image
+          cache-to: type=gha,mode=max,scope=ci-image
+      - name: Check extracted static artifact
+        run: |
+          set -euo pipefail
+          container=$(docker create grd-frontend:ci /bin/true)
+          trap 'docker rm "$container" >/dev/null' EXIT
+          docker cp "$container:/app/dist" "$RUNNER_TEMP/site"
+          test -s "$RUNNER_TEMP/site/index.html"
+          test -d "$RUNNER_TEMP/site/assets"
+          test ! -e "$RUNNER_TEMP/site/.env"
+
+  deploy:
+    name: Deploy App Platform fe
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.APP_PLATFORM_DEPLOY_ENABLED == 'true'
+    needs: [quality, secrets, container]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: https://app.globalresourcesdirect.com
+    concurrency:
+      group: app-platform-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Skip superseded releases
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          main_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          if [[ "$main_sha" == "$GITHUB_SHA" ]]; then
+            echo 'current=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'current=false' >> "$GITHUB_OUTPUT"
+            echo 'Deployment skipped: revision superseded on main.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Validate production inputs
+        if: steps.release.outputs.current == 'true'
+        env:
+          DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          DIGITALOCEAN_PROJECT_ID: ${{ vars.DIGITALOCEAN_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          for key in DIGITALOCEAN_ACCESS_TOKEN DIGITALOCEAN_PROJECT_ID; do
+            [[ -n "${!key}" ]] || { echo "::error::Missing production setting: $key"; exit 1; }
+          done
+      - name: Build the verified commit and wait for deployment
+        id: deploy
+        if: steps.release.outputs.current == 'true'
+        uses: digitalocean/app_action/deploy@cc55bc9b848d25f9c1c9f831cf843fbab3fbfb15 # v2
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+          VITE_GOOGLE_PLACES_API_KEY: ${{ vars.VITE_GOOGLE_PLACES_API_KEY }}
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          project_id: ${{ vars.DIGITALOCEAN_PROJECT_ID }}
+          app_spec_location: .do/app.yaml
+          print_build_logs: 'false'
+          print_deploy_logs: 'false'
+      - name: Verify public deployment
+        if: steps.release.outputs.current == 'true'
+        run: bash scripts/check-app-platform.sh https://app.globalresourcesdirect.com
+      - name: Record successful release
+        if: steps.release.outputs.current == 'true'
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+          VITE_GOOGLE_PLACES_API_KEY: ${{ vars.VITE_GOOGLE_PLACES_API_KEY }}
+        run: printf 'Verified %s at %s\n' "$EXPECTED_COMMIT" 'https://app.globalresourcesdirect.com' >> "$GITHUB_STEP_SUMMARY"
