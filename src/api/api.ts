@@ -65,6 +65,10 @@ type Request = Omit<AxiosRequestConfig, 'baseURL' | 'withCredentials' | 'signal'
 export class ApiClient {
   private generation = 0;
   private controller = new AbortController();
+  onRequestError?: (
+    error: unknown,
+    details: { method?: string; route?: string; status: number; failedRequestId?: string },
+  ) => void;
   onAuthError?: (status: number) => void;
   readonly http: AxiosInstance;
   readonly baseUrl: string;
@@ -94,6 +98,18 @@ export class ApiClient {
         throw new SessionCancelled();
       }
       const normalized = safeError(error);
+      try {
+        this.onRequestError?.(error, {
+          method: config.method ?? 'GET',
+          route: config.url,
+          status: normalized.status,
+          failedRequestId: axios.isAxiosError(error)
+            ? error.response?.headers['x-request-id']
+            : undefined,
+        });
+      } catch {
+        /* Diagnostics must not interfere with session handling. */
+      }
       if (!auth && (normalized.status === 401 || normalized.status === 403)) {
         this.onAuthError?.(normalized.status);
       }

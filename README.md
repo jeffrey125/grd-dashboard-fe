@@ -448,3 +448,21 @@ pending. See [AGENTS.md](AGENTS.md) and
 Public hosting, registry publishing, and automated deployment remain deferred. The
 approved manual LAN deployment is documented separately. Local auth integration
 evidence is recorded in the FE-V1-004 implementation summary.
+
+## Frontend debugging (OBS-V1-001)
+
+Signed-in browser, React and failed API events are sent to the authenticated backend
+telemetry endpoint. No raw exception messages, payloads, user counts or login-page
+telemetry are collected. Reports are bounded and best effort; offline reports are
+not persisted. `X-Request-Id` links failed API calls to backend logs.
+
+Builds keep hidden source maps outside the public `dist` directory at
+`.private-source-maps/<release>/assets`. Keep the maps from the exact release build
+in private storage; never publish that directory. `BUILD_COMMIT` supplies the release
+SHA in App Platform. Git HEAD is the local fallback, then `development` when Git
+is unavailable. Local uncommitted builds are not release evidence.
+
+Resolve a frame with `pnpm debug:frame /private/archive/<release> assets/<bundle>.js:<line>:<column>`.
+The backend [debugging guide](../grd-dashboard-be/docs/v1/frontend-debugging.md)
+describes OpenSearch dashboards, privacy controls and the separate release archive
+step. Production deployment and CI/CD changes are not part of this implementation.

@@ -18,3 +18,5 @@ test-results/
 .agents/
 .aws/
 .codex/
+
+.private-source-maps/

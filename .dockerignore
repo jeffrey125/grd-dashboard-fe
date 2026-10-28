@@ -31,3 +31,5 @@
 
 !.do/
 !.do/Dockerfile
+
+.private-source-maps/
