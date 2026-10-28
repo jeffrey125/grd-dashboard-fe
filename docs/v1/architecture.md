@@ -248,3 +248,12 @@ strings. Do not serialize calendar dates through UTC timestamps.
 Shipment results share queries, URL state and row-command behavior across the
 desktop Data Grid and MUI cards below 900px. The breakpoint changes presentation,
 not pagination/filter ownership or action eligibility.
+
+## Monitoring scope preference
+
+`features/monitoring-scope` owns the approved Zustand persist store. Its versioned
+localStorage value contains only account UUID-to-Mine/Everyone preferences, with
+Zod validation and in-memory fallback when storage is unavailable. Each page
+selects the signed-in account's preference, defaulting to Mine; there is no stored
+active account, session, or shipment data. Overview and shipment query keys include
+account and scope. Existing TanStack Query prefix invalidation remains effective.

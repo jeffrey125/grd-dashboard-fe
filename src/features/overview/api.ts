@@ -1,4 +1,5 @@
 import { type ApiClient, ApiError } from '@api/api';
+import type { MonitoringScope } from '@features/monitoring-scope';
 import { shipmentSchema } from '@features/shipments/contracts';
 import { parseCalendarDate } from '@lib/dates';
 import { z } from 'zod';
@@ -41,9 +42,13 @@ export const overviewSchema = z
   );
 export type Overview = z.infer<typeof overviewSchema>;
 
-export async function getOverview(client: ApiClient, signal: AbortSignal) {
+export async function getOverview(client: ApiClient, signal: AbortSignal, scope?: MonitoringScope) {
   const result = overviewSchema.safeParse(
-    await client.request({ url: '/dashboard/overview', signal }),
+    await client.request({
+      url: '/dashboard/overview',
+      signal,
+      params: scope ? { scope } : undefined,
+    }),
   );
   if (!result.success)
     throw new ApiError(0, 'The server returned an unexpected overview response. Try again.');

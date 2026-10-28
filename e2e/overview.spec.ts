@@ -13,7 +13,7 @@ async function setup(page: Page) {
     reads: 0,
     hold: undefined as Promise<void> | undefined,
   };
-  await page.route('**/api/v1/dashboard/overview', async (route) => {
+  await page.route('**/api/v1/dashboard/overview?*', async (route) => {
     state.reads++;
     await state.hold;
     await route.fulfill({

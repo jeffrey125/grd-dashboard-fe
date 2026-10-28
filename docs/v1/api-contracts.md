@@ -558,3 +558,10 @@ include Other in Needs attention even when delivered or disabled. Views overlap.
 
 Admins may toggle only Other's Active state. Disabling blocks creation, while
 existing records remain editable. Automatic polling controls do not apply.
+
+## Monitoring creator scope (FILTER-V1-002)
+
+Search and overview accept `scope=mine|everyone`. The UI always sends its saved
+scope; an omitted API scope retains Everyone for compatibility. The server resolves
+Mine from the current session, and applies it before pagination/counts/panels.
+See the backend's [scope contract](../../../grd-dashboard-be/docs/v1/frontend-handoff.md#monitoring-creator-scope-filter-v1-002).

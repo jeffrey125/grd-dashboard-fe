@@ -320,3 +320,19 @@ On 2026-10-17 the user also approved an explicit HTTP-only Compose override for 
 trusted isolated LAN. It uses a separate Caddyfile, publishes only port 80, sets
 the API to development cookie mode, and is opt-in through `--scheme http`; HTTPS
 and the internal-CA flow remain the default and recommended deployment.
+
+## FILTER-V1-002 monitoring creator scope (2026-10-29)
+
+The user approved Zustand as a new production dependency, with its persist
+middleware and localStorage for per-account Mine/Everyone preferences. Mine is
+the initial value only when no valid preference exists; subsequent visits retain
+the last selection. This supersedes the earlier visit-reset proposal. Only
+account UUIDs and scope values are stored; auth and server data retain their
+existing owners. Reuse MUI, TanStack Query/Router, Zod and TypeORM for this feature.
+
+The same selection applies on Overview and Shipments, including all counts,
+attention and upcoming deliveries. Switching scope preserves other filters and
+resets pagination. Every staff member can still view and manage Everyone.
+Mine means original creator, not last editor or assigned sales rep. Null creators
+appear in Everyone only. Duplicate creation retains the original creator and
+provides a direct View existing monitoring action. No migration or deployment.

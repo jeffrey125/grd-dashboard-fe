@@ -1,4 +1,5 @@
 import { type ApiClient, ApiError } from '@api/api';
+import type { MonitoringScope } from '@features/monitoring-scope';
 import { z } from 'zod';
 import { type CreateShipmentInput, shipmentValidationError } from './create-schema';
 import {
@@ -20,7 +21,7 @@ function parse<T>(schema: z.ZodType<T>, value: unknown): T {
 }
 export async function searchShipments(
   client: ApiClient,
-  search: ShipmentSearch,
+  search: ShipmentSearch & { scope?: MonitoringScope },
   signal: AbortSignal,
 ) {
   return parse(

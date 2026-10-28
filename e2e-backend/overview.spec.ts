@@ -17,6 +17,7 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
     await page.getByLabel('Password', { exact: true }).fill('staff fixture password');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Everyone', exact: true }).click();
     const response = await context.request.get(`${api}/dashboard/overview`);
     expect(response.ok()).toBe(true);
     expect(response.headers()['cache-control']).toBe('no-store');

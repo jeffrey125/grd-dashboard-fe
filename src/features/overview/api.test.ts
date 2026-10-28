@@ -8,7 +8,7 @@ it('requests the aggregate endpoint with cancellation and preserves server total
   const request = vi.spyOn(client, 'request').mockResolvedValue(overviewFixture());
   const signal = new AbortController().signal;
   const data = await getOverview(client, signal);
-  expect(request).toHaveBeenCalledWith({ url: '/dashboard/overview', signal });
+  expect(request).toHaveBeenCalledWith({ url: '/dashboard/overview', signal, params: undefined });
   expect(data.counts.all).toBe(1200);
   expect(data.attention.items).toHaveLength(1);
   expect(data.attention.items[0]?.trackingReference).toBe('000012345678901234567890');

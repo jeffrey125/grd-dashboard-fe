@@ -1,6 +1,7 @@
 import { safeError } from '@api/api';
 import { PageHeader } from '@components/layout/page-header';
 import { useSession } from '@features/auth';
+import { MonitoringScopeToggle, useMonitoringScope } from '@features/monitoring-scope';
 import { getOverview } from '@features/overview/api';
 import type { Shipment } from '@features/shipments/contracts';
 import { liveQuery } from '@features/tracking-updates';
@@ -43,9 +44,10 @@ function attentionReason(row: Shipment) {
 
 export function OverviewPage() {
   const { session } = useSession();
+  const { scope, accountId, setScope } = useMonitoringScope();
   const query = useQuery({
-    queryKey: ['overview'],
-    queryFn: ({ signal }) => getOverview(session.client, signal),
+    queryKey: ['overview', accountId, scope],
+    queryFn: ({ signal }) => getOverview(session.client, signal, scope),
     retry: false,
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
@@ -55,6 +57,7 @@ export function OverviewPage() {
   return (
     <Stack spacing={3} sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
       <PageHeader title="Overview" description="Operational shipment monitoring at a glance." />
+      <MonitoringScopeToggle scope={scope} onChange={setScope} />
       {query.isError && (
         <Alert
           severity={data ? 'warning' : 'error'}

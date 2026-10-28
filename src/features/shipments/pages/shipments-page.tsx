@@ -2,6 +2,7 @@ import { safeError } from '@api/api';
 import { useNotifications } from '@components/feedback/notification-provider';
 import { PageHeader } from '@components/layout/page-header';
 import { useSession } from '@features/auth';
+import { MonitoringScopeToggle, useMonitoringScope } from '@features/monitoring-scope';
 import {
   createShipment,
   getCarriers,
@@ -31,7 +32,7 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate, useSearch } from '@tanstack/react-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export function ShipmentsPage() {
   const [clearRevision, setClearRevision] = useState(0);
@@ -39,6 +40,7 @@ export function ShipmentsPage() {
   const navigate = useNavigate({ from: '/shipments/' });
   const returnTo = useLocation({ select: (location) => location.href });
   const { session } = useSession();
+  const { scope, accountId, setScope } = useMonitoringScope();
   const queries = useQueryClient();
   const { showNotification } = useNotifications();
   const parsed = searchSchema.safeParse(raw);
@@ -52,12 +54,22 @@ export function ShipmentsPage() {
   );
   const onSearch = useCallback((q: string) => update(changeSearch(raw, { q })), [raw, update]);
   const query = useQuery({
-    queryKey: ['shipments', search ?? raw],
-    queryFn: ({ signal }) => searchShipments(session.client, searchSchema.parse(raw), signal),
+    queryKey: ['shipments', accountId, scope, search ?? raw],
+    queryFn: ({ signal }) =>
+      searchShipments(session.client, { ...searchSchema.parse(raw), scope }, signal),
     enabled: !!search,
-    placeholderData: keepPreviousData,
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[1] === accountId && previousQuery?.queryKey[2] === scope
+        ? keepPreviousData(previous)
+        : undefined,
     ...liveQuery({ target: { kind: 'shipments' }, carrierDependent: true }),
   });
+  const previousScope = useRef(scope);
+  useEffect(() => {
+    if (previousScope.current === scope) return;
+    previousScope.current = scope;
+    update({ ...raw, page: '1' }, true);
+  }, [scope, raw, update]);
   const carriers = useQuery({
     queryKey: ['carriers'],
     queryFn: ({ signal }) => getCarriers(session.client, signal),
@@ -132,6 +144,7 @@ export function ShipmentsPage() {
         breadcrumbs={[{ label: 'Overview', href: '/' }, { label: 'Shipments' }]}
       />
       <Stack spacing={2} sx={{ minWidth: 0 }}>
+        <MonitoringScopeToggle scope={scope} onChange={setScope} />
         <ReviewControls
           disabled={query.isPlaceholderData || query.isError || query.isFetching || !search}
           displayed={(data?.items ?? []).flatMap((row) =>
@@ -168,8 +181,13 @@ export function ShipmentsPage() {
               ...(result.outcome === 'existing'
                 ? {
                     action: {
-                      label: 'All shipments',
-                      onClick: () => update(changeSearch(raw, { tab: 'all' })),
+                      label: 'View existing monitoring',
+                      onClick: () =>
+                        void navigate({
+                          to: '/shipments/$shipmentId',
+                          params: { shipmentId: result.shipment.externalId },
+                          search: { returnTo },
+                        }),
                     },
                   }
                 : {}),

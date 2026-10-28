@@ -12,7 +12,7 @@ test('reports signed-in failures without private values or recursive reporting',
     events.push(route.request().postDataJSON());
     return route.fulfill({ status: 503 });
   });
-  await page.route('**/api/v1/dashboard/overview', (route) =>
+  await page.route('**/api/v1/dashboard/overview?*', (route) =>
     route.fulfill({
       status: 503,
       headers: {

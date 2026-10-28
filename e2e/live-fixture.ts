@@ -19,7 +19,7 @@ export async function installLiveFixture(surface: BrowserContext | Page) {
   await surface.route('**/api/v1/features', (route) =>
     route.fulfill({ json: { quoteComparisonEnabled: true } }),
   );
-  await surface.route('**/api/v1/dashboard/overview', (route) =>
+  await surface.route('**/api/v1/dashboard/overview?*', (route) =>
     route.fulfill({ json: emptyOverview }),
   );
   await surface.route('**/api/v1/shipments/search?*', (route) =>
