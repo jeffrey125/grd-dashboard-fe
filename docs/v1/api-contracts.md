@@ -522,3 +522,18 @@ scan. State/tab changes reconcile on scans; independent per-lookup eligibility
 checks enforce expiry even during a long-running scan. Active monitoring and the
 carrier's Delivered status are distinct. Completed deliveries return to Delivered,
 with due follow-ups also in Attention. No schema or public response changes.
+
+## Multi-rep shipment filtering
+
+Shipment search uses `salesRepExternalIds`, a comma-separated string of UUIDv4
+values and/or `unassigned`. Empty/omitted means any rep; selected values match
+with OR and combine with all other filters using AND. Counts and pagination use
+the same filter. The old singular search parameter is rejected; assignment
+requests still use singular `salesRepExternalId`.
+
+`GET /api/v1/sales-reps/filter-options` is available to Staff and returns active
+and inactive reps as `{ externalId, firstName, lastName, active }`, active first.
+Assignment continues to use the active-only `GET /api/v1/sales-reps` endpoint.
+The filter uses MUI Autocomplete with checkboxes and chips, retains Apply filters,
+and persists the selection in the URL. Applying resets the page. Unknown or invalid
+URL values remain visible for explicit correction; they are never silently removed.

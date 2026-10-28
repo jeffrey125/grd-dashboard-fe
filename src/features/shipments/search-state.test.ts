@@ -31,6 +31,10 @@ describe('shipment URL contract', () => {
     expect(searchSchema.parse({ sortBy: 'lastAttemptedAt' }).sortBy).toBe('createdAt');
   });
   it.each([
+    { salesRepExternalId: 'unassigned' },
+    { salesRepExternalIds: 'bad' },
+    { salesRepExternalIds: 'unassigned,' },
+    { salesRepExternalIds: ',unassigned' },
     { lookupOutcome: 'failed' },
     { createdFrom: '2026-10-20' },
     { createdTo: '2026-10-20' },
@@ -83,5 +87,17 @@ describe('shipment URL contract', () => {
       '/\\evil.example',
     ])
       expect(listReturnTo(value)).toBe('/shipments');
+  });
+});
+
+it('preserves multiple rep URL selections and resets pagination when applying', () => {
+  const selection = '00000000-0000-4000-8000-000000000001,unassigned';
+  expect(searchSchema.parse({ salesRepExternalIds: selection }).salesRepExternalIds).toBe(
+    selection,
+  );
+  expect(searchSchema.parse({ salesRepExternalIds: '' }).salesRepExternalIds).toBeUndefined();
+  expect(changeSearch({ page: '3' }, { salesRepExternalIds: selection })).toEqual({
+    page: '1',
+    salesRepExternalIds: selection,
   });
 });

@@ -1,17 +1,19 @@
 import Alert from '@mui/material/Alert';
+import Autocomplete from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { useDebouncedCallback } from 'use-debounce';
 import { changeSearch, type SearchState, searchErrors } from './search-state';
 
 const filterLabels = {
   carrierExternalId: 'Carrier',
-  salesRepExternalId: 'Sales Rep',
+  salesRepExternalIds: 'Sales Reps',
   undeliveredOnly: 'Monitoring Status',
 };
 export function SearchBox({
@@ -127,25 +129,64 @@ export function ShipmentFilters({
             </option>
           ))}
         </TextField>
-        <TextField
-          label={filterLabels.salesRepExternalId}
-          select
-          {...form.register('salesRepExternalId')}
-          defaultValue={raw.salesRepExternalId ?? ''}
-          slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
-          error={!!errors.salesRepExternalId}
-          helperText={errors.salesRepExternalId}
-        >
-          <option value="">Any</option>
-          <option value="unassigned">Unassigned</option>
-          {salesReps
-            .filter((rep) => rep.active)
-            .map((rep) => (
-              <option key={rep.externalId} value={rep.externalId}>
-                {rep.firstName} {rep.lastName}
-              </option>
-            ))}
-        </TextField>
+        <Controller
+          name="salesRepExternalIds"
+          control={form.control}
+          defaultValue=""
+          render={({ field }) => {
+            const selected = field.value ? field.value.split(',') : [];
+            const options = [
+              'unassigned',
+              ...[...salesReps]
+                .sort((a, b) => Number(b.active) - Number(a.active))
+                .map((rep) => rep.externalId),
+              ...selected.filter(
+                (id) => id !== 'unassigned' && !salesReps.some((rep) => rep.externalId === id),
+              ),
+            ];
+            const label = (id: string) => {
+              if (id === 'unassigned') return 'Unassigned';
+              const rep = salesReps.find((item) => item.externalId === id);
+              return rep
+                ? `${rep.firstName} ${rep.lastName}${rep.active ? '' : ' (inactive)'}`
+                : `${id} (unavailable or invalid)`;
+            };
+            return (
+              <Autocomplete
+                multiple
+                disableCloseOnSelect
+                options={[...new Set(options)]}
+                value={[...new Set(selected)]}
+                getOptionLabel={label}
+                getOptionKey={(id) => id}
+                onBlur={field.onBlur}
+                onChange={(_, values) => {
+                  field.onChange(values.join(','));
+                  setDirty(true);
+                }}
+                renderOption={(props, id, { selected: checked }) => {
+                  const { key, ...optionProps } = props;
+                  return (
+                    <li key={key} {...optionProps}>
+                      <Checkbox checked={checked} tabIndex={-1} disableRipple sx={{ mr: 1 }} />
+                      {label(id)}
+                    </li>
+                  );
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    inputRef={field.ref}
+                    label={filterLabels.salesRepExternalIds}
+                    placeholder={selected.length ? undefined : 'Any sales rep'}
+                    error={!!errors.salesRepExternalIds}
+                    helperText={errors.salesRepExternalIds}
+                  />
+                )}
+              />
+            );
+          }}
+        />
         <TextField
           label={filterLabels.undeliveredOnly}
           select

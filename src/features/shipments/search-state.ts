@@ -42,7 +42,16 @@ export const searchSchema = z
         .refine((value) => !value.includes('\0'), 'Remove null characters.'),
     ),
     carrierExternalId: optionalText(z.uuidv4()),
-    salesRepExternalId: optionalText(z.union([z.uuidv4(), z.literal('unassigned')])),
+    salesRepExternalIds: optionalText(
+      z
+        .string()
+        .refine(
+          (value) =>
+            z.array(z.union([z.uuidv4(), z.literal('unassigned')])).safeParse(value.split(','))
+              .success,
+          'Choose valid Sales Reps or Unassigned.',
+        ),
+    ),
     estimatedDeliveryFrom: optionalText(calendarDate),
     estimatedDeliveryTo: optionalText(calendarDate),
     undeliveredOnly: optionalText(z.enum(['true', 'false'])).transform((value) =>

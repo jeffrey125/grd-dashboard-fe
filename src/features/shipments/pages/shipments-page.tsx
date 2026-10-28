@@ -5,6 +5,7 @@ import { useSession } from '@features/auth';
 import {
   createShipment,
   getCarriers,
+  getSalesRepFilterOptions,
   getSalesReps,
   searchShipments,
 } from '@features/shipments/api';
@@ -65,6 +66,11 @@ export function ShipmentsPage() {
   const salesReps = useQuery({
     queryKey: ['sales-reps'],
     queryFn: ({ signal }) => getSalesReps(session.client, signal),
+    staleTime: 5 * 60_000,
+  });
+  const salesRepFilterOptions = useQuery({
+    queryKey: ['sales-reps', 'filter-options'],
+    queryFn: ({ signal }) => getSalesRepFilterOptions(session.client, signal),
     staleTime: 5 * 60_000,
   });
   const createMutation = useMutation({
@@ -190,11 +196,16 @@ export function ShipmentsPage() {
                 Carrier options could not refresh. Existing selections are retained.
               </Alert>
             )}
+            {salesRepFilterOptions.isError && (
+              <Alert severity="warning">
+                Sales Rep filter options could not load. Existing selections are retained.
+              </Alert>
+            )}
             <ShipmentFilters
               key={filterKey}
               raw={raw}
               carriers={carriers.data ?? []}
-              salesReps={salesReps.data ?? []}
+              salesReps={salesRepFilterOptions.data ?? []}
               onApply={update}
               onClear={() => {
                 setClearRevision((value) => value + 1);

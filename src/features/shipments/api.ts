@@ -34,6 +34,12 @@ export async function getCarriers(client: ApiClient, signal: AbortSignal) {
 export async function getSalesReps(client: ApiClient, signal: AbortSignal) {
   return parse(z.array(salesRepSchema), await client.request({ url: '/sales-reps', signal }));
 }
+export async function getSalesRepFilterOptions(client: ApiClient, signal: AbortSignal) {
+  return parse(
+    z.array(salesRepSchema),
+    await client.request({ url: '/sales-reps/filter-options', signal }),
+  );
+}
 export async function getShipment(client: ApiClient, id: string, signal: AbortSignal) {
   return parse(shipmentSchema, await client.request({ url: `/shipments/${id}`, signal }));
 }

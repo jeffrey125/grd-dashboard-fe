@@ -6,6 +6,8 @@ import { installLiveFixture } from './live-fixture';
 async function setup(page: Page) {
   await installLiveFixture(page);
   await page.route('**/api/v1/auth/me', (route) => route.fulfill({ json: accountFixture }));
+  await page.route('**/api/v1/sales-reps', (route) => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/sales-reps/filter-options', (route) => route.fulfill({ json: [] }));
   await page.route('**/api/v1/carriers', (route) =>
     route.fulfill({ json: [shipmentFixture().carrier] }),
   );
@@ -29,6 +31,9 @@ async function setup(page: Page) {
     let rows = state.rows.filter(
       (row) => !params.get('q') || row.trackingReference.includes(params.get('q') ?? ''),
     );
+    const reps = params.get('salesRepExternalIds')?.split(',');
+    if (reps?.length)
+      rows = rows.filter((row) => reps.includes(row.salesRep?.externalId ?? 'unassigned'));
     const counts = {
       all: rows.length,
       active: rows.filter(
@@ -607,4 +612,74 @@ test('responsive cards retain all details, wrap long text, and preserve state ac
   await expect(page).toHaveURL(/\/shipments(?:\?|$)/);
   await page.getByRole('link', { name: reference, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/shipments/${state.rows[0]?.externalId}`));
+});
+
+test('multi-rep filter applies OR selection, persists URLs and clears on desktop/mobile', async ({
+  page,
+}) => {
+  const state = await setup(page);
+  const reps = [
+    {
+      externalId: '30000000-0000-4000-8000-000000000001',
+      firstName: 'Alice',
+      lastName: 'Active',
+      active: true,
+    },
+    {
+      externalId: '30000000-0000-4000-8000-000000000002',
+      firstName: 'Bob',
+      lastName: 'Former',
+      active: false,
+    },
+    {
+      externalId: '30000000-0000-4000-8000-000000000003',
+      firstName: 'Other',
+      lastName: 'Rep',
+      active: true,
+    },
+  ];
+  state.rows = [
+    shipmentFixture(1, { salesRep: reps[0] }),
+    shipmentFixture(2, { salesRep: reps[1] }),
+    shipmentFixture(3),
+    shipmentFixture(4, { salesRep: reps[2] }),
+  ];
+  await page.route('**/api/v1/sales-reps/filter-options', (route) => route.fulfill({ json: reps }));
+  await page.goto('/shipments');
+  await expectShipmentView(page, 'active', 'Active (4)');
+  const input = page.getByRole('combobox', { name: 'Sales Reps', exact: true });
+  await input.fill('Alice');
+  await page.getByRole('option', { name: 'Alice Active', exact: true }).click();
+  await input.fill('Bob');
+  await page.getByRole('option', { name: 'Bob Former (inactive)', exact: true }).click();
+  await input.fill('');
+  await page
+    .getByRole('listbox', { name: 'Sales Reps' })
+    .getByRole('option', { name: 'Unassigned', exact: true })
+    .click();
+  await page.keyboard.press('Escape');
+  expect(new URL(page.url()).searchParams.has('salesRepExternalIds')).toBe(false);
+  await page.getByRole('button', { name: 'Apply filters', exact: true }).click();
+  await expectShipmentView(page, 'active', 'Active (3)');
+  expect(new URL(page.url()).searchParams.get('salesRepExternalIds')).toBe(
+    `${reps[0]?.externalId},${reps[1]?.externalId},unassigned`,
+  );
+  await page.reload();
+  await expect(
+    page.getByRole('button', { name: 'Bob Former (inactive)', exact: true }),
+  ).toBeVisible();
+  await expectShipmentView(page, 'active', 'Active (3)');
+  await page.getByRole('button', { name: 'Bob Former (inactive)', exact: true }).press('Backspace');
+  await input.click();
+  await page
+    .getByRole('listbox', { name: 'Sales Reps' })
+    .getByRole('option', { name: 'Unassigned', exact: true })
+    .click();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Apply filters', exact: true }).click();
+  await expectShipmentView(page, 'active', 'Active (1)');
+  await page.getByRole('button', { name: 'Clear filters', exact: true }).click();
+  await expectShipmentView(page, 'active', 'Active (4)');
+  expect(new URL(page.url()).searchParams.has('salesRepExternalIds')).toBe(false);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
