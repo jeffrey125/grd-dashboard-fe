@@ -49,8 +49,8 @@ export function MonitoringScopeToggle({
       aria-label="Monitoring created by"
       sx={{ alignSelf: 'flex-start' }}
     >
-      <ToggleButton value="mine">Mine</ToggleButton>
-      <ToggleButton value="everyone">Everyone</ToggleButton>
+      <ToggleButton value="mine">Personal</ToggleButton>
+      <ToggleButton value="everyone">Team</ToggleButton>
     </ToggleButtonGroup>
   );
 }

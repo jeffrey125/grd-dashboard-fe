@@ -4,7 +4,7 @@ import { emptyOverview } from '@test/overview-fixture';
 import { emptyShipments, shipmentFixture } from '@test/shipment-fixture';
 import { installLiveFixture } from './live-fixture';
 
-test('Mine default, saved preference, shared views, pagination reset and creator isolation', async ({
+test('Personal default, saved preference, shared views, pagination reset and creator isolation', async ({
   page,
 }) => {
   await installLiveFixture(page);
@@ -58,41 +58,41 @@ test('Mine default, saved preference, shared views, pagination reset and creator
   );
 
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Mine', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: 'Personal', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
   await expect(page.getByRole('link', { name: 'All shipments: 1' })).toBeVisible();
-  await page.getByRole('button', { name: 'Everyone', exact: true }).click();
+  await page.getByRole('button', { name: 'Team', exact: true }).click();
   await expect(page.getByRole('link', { name: 'All shipments: 30' })).toBeVisible();
   await page.getByRole('link', { name: 'All shipments: 30' }).click();
-  await expect(page.getByRole('button', { name: 'Everyone', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: 'Team', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
   await expect(page.getByText(other.trackingReference, { exact: true })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Everyone', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: 'Team', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
   await page.goto('/shipments?tab=all&page=2&q=kept');
   await expect.poll(() => searches.at(-1)?.get('page')).toBe('2');
-  await page.getByRole('button', { name: 'Mine', exact: true }).click();
+  await page.getByRole('button', { name: 'Personal', exact: true }).click();
   await expect(page.getByText(other.trackingReference, { exact: true })).toHaveCount(0);
   await expect.poll(() => searches.at(-1)?.get('scope')).toBe('mine');
   await expect.poll(() => searches.at(-1)?.get('page')).toBe('1');
   expect(searches.at(-1)?.get('tab')).toBe('all');
   expect(searches.at(-1)?.get('q')).toBe('kept');
-  await page.getByRole('button', { name: 'Mine', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Mine', exact: true })).toHaveAttribute(
+  await page.getByRole('button', { name: 'Personal', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Personal', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
-  await page.getByRole('button', { name: 'Everyone', exact: true }).click();
+  await page.getByRole('button', { name: 'Team', exact: true }).click();
   await expect(page.getByText(other.trackingReference, { exact: true })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Mine', exact: true }).click();
+  await page.getByRole('button', { name: 'Personal', exact: true }).click();
   const form = page.getByRole('form', { name: 'Add shipment' });
   await form.getByLabel('Carrier', { exact: true }).selectOption(own.carrier.externalId);
   await form.getByLabel('Tracking reference', { exact: true }).fill(other.trackingReference);
@@ -102,23 +102,23 @@ test('Mine default, saved preference, shared views, pagination reset and creator
     page.getByRole('heading', { name: other.trackingReference, exact: true }),
   ).toBeVisible();
   await page.getByRole('link', { name: 'Back to results' }).click();
-  await expect(page.getByRole('button', { name: 'Mine', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: 'Personal', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
-  await page.getByRole('button', { name: 'Everyone', exact: true }).click();
+  await page.getByRole('button', { name: 'Team', exact: true }).click();
 
   // A different authenticated account on the same browser starts with its own default.
   account = { ...accountFixture, externalId: '22222222-2222-4222-8222-222222222222' };
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Mine', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: 'Personal', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
   await expect(page.getByText(other.trackingReference, { exact: true })).toHaveCount(0);
   account = accountFixture;
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Everyone', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: 'Team', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
