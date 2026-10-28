@@ -4,8 +4,8 @@ import { emptyOverview, overviewFixture } from '@test/overview-fixture';
 import { installLiveFixture } from './live-fixture';
 
 test.use({ timezoneId: 'America/Los_Angeles' });
-async function setup(page: Page) {
-  await installLiveFixture(page);
+async function setup(page: Page, initialResync = true) {
+  await installLiveFixture(page, { initialResync });
   await page.route('**/api/v1/auth/me', (route) => route.fulfill({ json: accountFixture }));
   const state = {
     data: overviewFixture(),
@@ -98,7 +98,8 @@ test('server counts, problem-first layout, keyboard drill-downs, return navigati
 });
 
 test('loading, initial error, retry and genuine empty data stay distinct', async ({ page }) => {
-  const state = await setup(page);
+  // Exercise manual Retry without an automatic startup recovery racing the click.
+  const state = await setup(page, false);
   let release = () => {};
   state.hold = new Promise<void>((resolve) => {
     release = resolve;
@@ -110,9 +111,11 @@ test('loading, initial error, retry and genuine empty data stay distinct', async
   release();
   await expect(page.getByText(/Overview could not be loaded/)).toBeVisible();
   await expect(page.getByRole('link', { name: /^All shipments:/ })).toHaveCount(0);
+  const readsBeforeRetry = state.reads;
   state.failure = false;
   state.data = structuredClone(emptyOverview);
   await page.getByRole('button', { name: 'Retry' }).click();
+  await expect.poll(() => state.reads).toBeGreaterThan(readsBeforeRetry);
   await expect(page.getByRole('link', { name: 'All shipments: 0' })).toBeVisible();
   await expect(page.getByText('No shipments need attention.')).toBeVisible();
   await expect(page.getByRole('region', { name: 'Upcoming deliveries' })).toContainText(

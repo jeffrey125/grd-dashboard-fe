@@ -4,8 +4,8 @@ import { carrierFixture } from '@test/carrier-fixture';
 import { emptyShipments, shipmentFixture } from '@test/shipment-fixture';
 import { installLiveFixture } from './live-fixture';
 
-async function setup(page: Page) {
-  await installLiveFixture(page);
+async function setup(page: Page, initialResync = true) {
+  await installLiveFixture(page, { initialResync });
   const state = {
     row: { ...carrierFixture },
     role: 'admin',
@@ -231,7 +231,8 @@ test('failed saves and pending writes preserve input and prevent duplicate submi
 test('Staff direct URLs, invalid IDs, missing carriers and revoked sessions are guarded', async ({
   page,
 }) => {
-  const state = await setup(page);
+  // Exercise manual Retry without an automatic startup recovery racing the click.
+  const state = await setup(page, false);
   state.role = 'staff';
   for (const path of ['/admin/carriers', `/admin/carriers/${carrierFixture.externalId}`]) {
     await page.goto(path);
@@ -244,8 +245,10 @@ test('Staff direct URLs, invalid IDs, missing carriers and revoked sessions are 
   state.readStatus = 404;
   await page.goto(`/admin/carriers/${carrierFixture.externalId}`);
   await expect(page.getByText(/requested record is not available/)).toBeVisible();
+  const readsBeforeRetry = state.reads;
   state.readStatus = 200;
   await page.getByRole('button', { name: 'Retry', exact: true }).click();
+  await expect.poll(() => state.reads).toBeGreaterThan(readsBeforeRetry);
   await page.getByRole('button', { name: 'Edit carrier' }).click();
   await page.getByLabel('Name', { exact: true }).fill('Private draft');
   state.revoked = true;
