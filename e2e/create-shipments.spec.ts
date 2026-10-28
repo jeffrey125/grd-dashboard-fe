@@ -75,7 +75,9 @@ test('warns immediately when the submitted shipment already exists', async ({ pa
       .getByRole('alert')
       .filter({ hasText: 'Shipment already exists. Existing notes and status were retained.' }),
   ).toBeVisible();
-  await expect(page.getByRole('button', { name: 'All shipments', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'View existing monitoring', exact: true }),
+  ).toBeVisible();
 });
 
 test('keeps the draft on validation, connectivity, and carrier-race failures', async ({ page }) => {
