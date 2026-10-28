@@ -213,14 +213,16 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
               Verify with carrier ↗
             </Button>
           )}
-          <Button
-            variant="contained"
-            disabled={busy || !!rules.refresh}
-            aria-describedby={rules.refresh ? 'refresh-reason' : undefined}
-            onClick={() => command.execute(row, 'refresh')}
-          >
-            {row.monitoringReason === 'failure_threshold' ? 'Retry now' : 'Refresh'}
-          </Button>
+          {row.carrier.code !== 'other' && (
+            <Button
+              variant="contained"
+              disabled={busy || !!rules.refresh}
+              aria-describedby={rules.refresh ? 'refresh-reason' : undefined}
+              onClick={() => command.execute(row, 'refresh')}
+            >
+              {row.monitoringReason === 'failure_threshold' ? 'Retry now' : 'Refresh'}
+            </Button>
+          )}
           {rules.pause && (
             <Button
               variant="outlined"
@@ -239,7 +241,7 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
               Resume monitoring
             </Button>
           )}
-          {row.monitoringStatus === 'completed' && (
+          {row.carrier.code !== 'other' && row.monitoringStatus === 'completed' && (
             <Button
               variant="outlined"
               disabled={busy || dirty}
@@ -267,7 +269,9 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
         )}
         {!row.carrier.isActive && (
           <Alert severity="warning">
-            Carrier is disabled. Existing tracking remains available.
+            {row.carrier.code === 'other'
+              ? 'Other is disabled for new entries. This shipment remains editable.'
+              : 'Carrier is disabled. Existing tracking remains available.'}
           </Alert>
         )}
         {query.isError && (
@@ -398,15 +402,21 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
               <Typography id="monitoring-title" component="h2" variant="h6" sx={{ mb: 2 }}>
                 Monitoring
               </Typography>
-              <Fields
-                values={{
-                  State: monitoringLabel(row),
-                  'Last attempt': businessTimestamp(row.lastAttemptedAt),
-                  'Next check': businessTimestamp(row.nextCheckAt),
-                  'Consecutive not found': String(row.consecutiveNotFoundCount),
-                  'Consecutive lookup failures': String(row.consecutiveFailureCount),
-                }}
-              />
+              {row.carrier.code === 'other' ? (
+                <Typography>
+                  Updated manually by staff. Follow-up dates control Needs attention.
+                </Typography>
+              ) : (
+                <Fields
+                  values={{
+                    State: monitoringLabel(row),
+                    'Last attempt': businessTimestamp(row.lastAttemptedAt),
+                    'Next check': businessTimestamp(row.nextCheckAt),
+                    'Consecutive not found': String(row.consecutiveNotFoundCount),
+                    'Consecutive lookup failures': String(row.consecutiveFailureCount),
+                  }}
+                />
+              )}
               {row.monitoringReason === 'failure_threshold' && (
                 <Typography sx={{ mt: 2 }}>
                   Paused after repeated lookup failures. Retry now checks once. Monitoring resumes
@@ -424,48 +434,50 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
                   Delivered; checks continue until the start of {row.followUpOn} in New York time.
                 </Typography>
               )}
-              {row.monitoringStatus === 'completed' && (
+              {row.carrier.code !== 'other' && row.monitoringStatus === 'completed' && (
                 <Typography sx={{ mt: 2 }}>
                   Monitoring has finished. Choose Monitor again and a future follow-up date to
                   restart carrier checks.
                 </Typography>
               )}
             </Paper>
-            <Paper
-              component="section"
-              aria-labelledby="lookup-title"
-              variant="outlined"
-              sx={{ p: 2 }}
-            >
-              <Stack spacing={2}>
-                <Typography id="lookup-title" component="h2" variant="h6">
-                  Latest lookup &amp; run
-                </Typography>
-                <Fields
-                  values={{
-                    'Latest completed lookup':
-                      outcomes[row.latestLookup?.outcome ?? 'never_checked'],
-                    'Lookup completed': businessTimestamp(row.latestLookup?.completedAt ?? null),
-                  }}
-                />
-                {row.latestLookup && diagnosticMessage(row.latestLookup.reasonCode) && (
-                  <Typography>{diagnosticMessage(row.latestLookup.reasonCode)}</Typography>
-                )}
-                <Typography variant="body2">
-                  Run success describes processing. It does not confirm a found shipment or
-                  delivery.
-                </Typography>
-                {row.latestRun && row.latestRun.externalId !== requestedRun?.externalId && (
-                  <RunPanel
-                    key={row.latestRun.externalId}
-                    run={row.latestRun}
-                    shipmentId={id}
-                    title="Latest run"
+            {row.carrier.code !== 'other' && (
+              <Paper
+                component="section"
+                aria-labelledby="lookup-title"
+                variant="outlined"
+                sx={{ p: 2 }}
+              >
+                <Stack spacing={2}>
+                  <Typography id="lookup-title" component="h2" variant="h6">
+                    Latest lookup &amp; run
+                  </Typography>
+                  <Fields
+                    values={{
+                      'Latest completed lookup':
+                        outcomes[row.latestLookup?.outcome ?? 'never_checked'],
+                      'Lookup completed': businessTimestamp(row.latestLookup?.completedAt ?? null),
+                    }}
                   />
-                )}
-                {!row.latestRun && !requestedRun && <Typography>No run available.</Typography>}
-              </Stack>
-            </Paper>
+                  {row.latestLookup && diagnosticMessage(row.latestLookup.reasonCode) && (
+                    <Typography>{diagnosticMessage(row.latestLookup.reasonCode)}</Typography>
+                  )}
+                  <Typography variant="body2">
+                    Run success describes processing. It does not confirm a found shipment or
+                    delivery.
+                  </Typography>
+                  {row.latestRun && row.latestRun.externalId !== requestedRun?.externalId && (
+                    <RunPanel
+                      key={row.latestRun.externalId}
+                      run={row.latestRun}
+                      shipmentId={id}
+                      title="Latest run"
+                    />
+                  )}
+                  {!row.latestRun && !requestedRun && <Typography>No run available.</Typography>}
+                </Stack>
+              </Paper>
+            )}
           </Box>
           <Paper component="section" aria-labelledby="audit-title" variant="outlined" sx={{ p: 2 }}>
             <Typography id="audit-title" component="h2" variant="h6" sx={{ mb: 2 }}>
@@ -477,8 +489,8 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
                 'Added at': businessTimestamp(row.createdAt),
                 'Last database update': businessTimestamp(row.updatedAt),
                 'Last database update by': employeeName(row.updatedBy),
-                'Assignment/follow-up update': businessTimestamp(row.recordUpdatedAt),
-                'Assignment/follow-up updated by': employeeName(row.recordUpdatedBy),
+                'Record update': businessTimestamp(row.recordUpdatedAt),
+                'Record updated by': employeeName(row.recordUpdatedBy),
               }}
             />
           </Paper>

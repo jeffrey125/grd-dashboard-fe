@@ -1,5 +1,6 @@
 import { ApiError } from '@api/api';
 import { z } from 'zod';
+import { manualTrackingDraftSchema } from './manual-tracking';
 
 const literal = (max: number) =>
   z
@@ -9,6 +10,7 @@ const literal = (max: number) =>
     .refine((value) => !value.includes('\0'), 'Remove null characters.');
 
 export const createShipmentSchema = z.strictObject({
+  manualTracking: manualTrackingDraftSchema.optional(),
   carrierExternalId: z
     .uuidv4('Choose an enabled carrier.')
     .transform((value) => value.toLowerCase()),

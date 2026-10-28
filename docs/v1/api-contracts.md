@@ -143,7 +143,7 @@ the new frontend uses the new route for its list.
 
 | Query field                                    | Target rules                                                                                                                          |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `tab`                                          | `all`, `active` (default), `paused`, `delivered`, `attention`                                                                         |
+| `tab`                                          | `all`, `active` (default), `paused`, `delivered`, `attention`, `other`                                                                         |
 | `q`                                            | Optional trimmed literal case-insensitive substring of reference or notes; max 255 code units; wildcard characters treated literally. |
 | `carrierExternalId`                            | Optional carrier UUIDv4; one carrier initially.                                                                                       |
 | `estimatedDeliveryFrom`, `estimatedDeliveryTo` | Optional inclusive ISO calendar-date bounds on current ETA; valid nonzero years, ordered from ≤ through. |
@@ -537,3 +537,24 @@ Assignment continues to use the active-only `GET /api/v1/sales-reps` endpoint.
 The filter uses MUI Autocomplete with checkboxes and chips, retains Apply filters,
 and persists the selection in the URL. Applying resets the page. Unknown or invalid
 URL values remain visible for explicit correction; they are never silently removed.
+
+## MON-V1-004: manual Other carrier
+
+Other uses code `other` and no automated checks. The Add shipment form reveals
+manual fields only when Other is selected; the existing detail assignment form
+also edits manual tracking using Save changes. Creation requires a reference,
+defaults to Pending Pickup and permits blank dates. Dates retain the existing
+Pickup/estimated Delivery table meaning.
+
+Create/update bodies accept `manualTracking: { carrierStatus, pickedUpOn,
+estimatedDeliveryOn }` only for Other. Status is one of Pending Pickup, Pickedup,
+Out for delivery, Delivered; dates are nullable ISO dates. Delivered records today's
+New York date internally; reopening clears it in a new history snapshot. No Refresh,
+pause/resume or Monitor again action is offered for Other.
+
+The `other` tab/count and homepage Other count include all manual shipments, also
+included in All Shipments. Active and Delivered exclude Other. Due follow-ups
+include Other in Needs attention even when delivered or disabled. Views overlap.
+
+Admins may toggle only Other's Active state. Disabling blocks creation, while
+existing records remain editable. Automatic polling controls do not apply.

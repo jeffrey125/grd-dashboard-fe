@@ -101,6 +101,7 @@ export const searchResponseSchema = z.object({
   pageSize: z.union([z.literal(25), z.literal(50), z.literal(100)]),
   total: z.number().int().nonnegative(),
   tabCounts: z.object({
+    other: z.number().int().nonnegative().default(0),
     all: z.number().int().nonnegative(),
     active: z.number().int().nonnegative(),
     paused: z.number().int().nonnegative(),

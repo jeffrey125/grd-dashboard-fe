@@ -18,9 +18,13 @@ import {
   type ShipmentDraft,
   ShipmentValidationError,
 } from './create-schema';
+import { manualStatuses } from './manual-tracking';
 import type { carrierSchema } from './schemas';
 
-const emptyShipment = (carrierExternalId = ''): ShipmentDraft => ({
+const emptyShipment = (carrierExternalId = '', manual = false): ShipmentDraft => ({
+  manualTracking: manual
+    ? { carrierStatus: 'Pending Pickup', pickedUpOn: '', estimatedDeliveryOn: '' }
+    : undefined,
   carrierExternalId,
   trackingReference: '',
   notes: '',
@@ -43,7 +47,7 @@ export function CreateShipmentForm({
   onSaved: (result: CreateShipmentResult) => void;
   onCarrierError: () => void;
 }) {
-  const { register, handleSubmit, setError, reset, formState } = useForm<
+  const { register, watch, handleSubmit, setError, reset, formState } = useForm<
     ShipmentDraft,
     unknown,
     CreateShipmentInput
@@ -53,6 +57,10 @@ export function CreateShipmentForm({
     mode: 'onSubmit',
     reValidateMode: 'onChange',
   });
+  const selectedCarrier = carriers.find(
+    (carrier) => carrier.externalId === watch('carrierExternalId'),
+  );
+  const manual = selectedCarrier?.code === 'other';
   const [failure, setFailure] = useState('');
   const busy = useRef(false);
   const { errors, isSubmitting: pending } = formState;
@@ -67,8 +75,11 @@ export function CreateShipmentForm({
       return;
     }
     try {
-      const result = await onCreate(input);
-      reset(emptyShipment(input.carrierExternalId));
+      const result = await onCreate({
+        ...input,
+        manualTracking: selected.code === 'other' ? input.manualTracking : undefined,
+      });
+      reset(emptyShipment(input.carrierExternalId, selected.code === 'other'));
       onSaved(result);
     } catch (error) {
       if (error instanceof SessionCancelled) return;
@@ -188,6 +199,42 @@ export function CreateShipmentForm({
           error={!!errors.followUpOn}
           helperText={errors.followUpOn?.message}
         />
+        {manual && (
+          <>
+            <TextField
+              select
+              label="Carrier Status"
+              defaultValue="Pending Pickup"
+              {...register('manualTracking.carrierStatus', { shouldUnregister: true })}
+              slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+              disabled={pending}
+            >
+              {manualStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </TextField>
+            {(
+              [
+                ['pickedUpOn', 'Pickup date'],
+                ['estimatedDeliveryOn', 'Delivery date'],
+              ] as const
+            ).map(([field, label]) => (
+              <TextField
+                key={field}
+                type="date"
+                label={`${label} (optional)`}
+                defaultValue=""
+                {...register(`manualTracking.${field}`, { shouldUnregister: true })}
+                slotProps={{ inputLabel: { shrink: true } }}
+                disabled={pending}
+                error={!!errors.manualTracking?.[field]}
+                helperText={errors.manualTracking?.[field]?.message}
+              />
+            ))}
+          </>
+        )}
         <Button
           type="submit"
           variant="contained"

@@ -23,6 +23,7 @@ export function verificationLink(value: string | null) {
   }
 }
 export function monitoringLabel(row: Shipment) {
+  if (row.carrier.code === 'other') return 'Manual';
   if (row.monitoringStatus === 'completed') return 'Delivered';
   if (row.monitoringStatus === 'active') return 'Active';
   if (row.monitoringReason === 'failure_threshold') return 'Paused: repeated lookup failures';

@@ -79,6 +79,11 @@ export async function updateShipment(
   client: ApiClient,
   id: string,
   input: {
+    manualTracking?: {
+      carrierStatus: 'Pending Pickup' | 'Pickedup' | 'Out for delivery' | 'Delivered';
+      pickedUpOn: string | null;
+      estimatedDeliveryOn: string | null;
+    };
     salesRepExternalId?: string | null;
     followUpOn?: string | null;
   },

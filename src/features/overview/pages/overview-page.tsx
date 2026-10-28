@@ -24,6 +24,7 @@ const labels = {
   active: 'Active',
   delivered: 'Delivered',
   attention: 'Needs attention',
+  other: 'Other',
 };
 
 function attentionReason(row: Shipment) {
@@ -83,7 +84,7 @@ export function OverviewPage() {
               gap: 2,
               gridTemplateColumns: {
                 xs: 'repeat(2, minmax(0, 1fr))',
-                md: 'repeat(4, minmax(0, 1fr))',
+                md: 'repeat(5, minmax(0, 1fr))',
               },
             }}
           >
@@ -106,9 +107,9 @@ export function OverviewPage() {
             ))}
           </Box>
           <Typography variant="caption" color="text.secondary">
-            Active, Delivered, and Needs attention total All shipments. Needs attention includes
-            paused shipments and failed lookups. Delivered is the current completed count, not
-            deliveries today.
+            Other contains manual shipments and can overlap Needs attention. Needs attention
+            includes paused shipments and failed lookups. Delivered is the current completed count,
+            not deliveries today.
           </Typography>
           <Paper
             component="section"

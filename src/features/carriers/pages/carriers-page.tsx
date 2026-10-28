@@ -69,8 +69,14 @@ export function CarriersPage() {
                       : 'Disabled'}
                 </Typography>
                 <Typography>
-                  Fetch mode: {carrier.fetchMode} · Configured interval:{' '}
-                  {carrier.pollIntervalMinutes} minutes
+                  {carrier.code === 'other' ? (
+                    'Manual entries — no automatic checks'
+                  ) : (
+                    <>
+                      Fetch mode: {carrier.fetchMode} · Configured interval:{' '}
+                      {carrier.pollIntervalMinutes} minutes
+                    </>
+                  )}
                 </Typography>
               </CardContent>
             </Card>
@@ -98,8 +104,12 @@ export function CarriersPage() {
                           ? 'Automatically disabled: session failures'
                           : 'Disabled'}
                     </TableCell>
-                    <TableCell>{carrier.fetchMode}</TableCell>
-                    <TableCell>{carrier.pollIntervalMinutes} minutes</TableCell>
+                    <TableCell>{carrier.code === 'other' ? 'Manual' : carrier.fetchMode}</TableCell>
+                    <TableCell>
+                      {carrier.code === 'other'
+                        ? 'Not applicable'
+                        : `${carrier.pollIntervalMinutes} minutes`}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

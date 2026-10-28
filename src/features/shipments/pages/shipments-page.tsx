@@ -155,6 +155,8 @@ export function ShipmentsPage() {
             void carriers.refetch();
           }}
           onSaved={(result) => {
+            if (result.shipment.carrier.code === 'other')
+              update(changeSearch(raw, { tab: 'other' }));
             void queries.invalidateQueries({ queryKey: ['shipments'] });
             void queries.invalidateQueries({ queryKey: ['overview'] });
             showNotification({
@@ -252,10 +254,10 @@ export function ShipmentsPage() {
           ))}
         </Tabs>
         <Typography variant="caption">
-          Active, Delivered, and Needs attention are independent views. Needs attention includes
-          paused shipments, failed lookups, and shipments due for follow-up; a delivered shipment
-          can also need attention. Timestamps: America/New_York. Carrier delivery dates are calendar
-          dates.
+          Active, Delivered, Other, and Needs attention are independent views. Needs attention
+          includes paused shipments, failed lookups, and shipments due for follow-up; a delivered
+          shipment can also need attention. Timestamps: America/New_York. Carrier delivery dates are
+          calendar dates.
         </Typography>
         {search && query.isError && (
           <Alert

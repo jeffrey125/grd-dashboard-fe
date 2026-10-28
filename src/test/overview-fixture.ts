@@ -4,7 +4,7 @@ import { shipmentFixture } from './shipment-fixture';
 export const emptyOverview: Overview = {
   asOf: '2026-10-16T14:00:00.000Z',
   timezone: 'America/New_York',
-  counts: { all: 0, active: 0, paused: 0, delivered: 0, attention: 0 },
+  counts: { other: 0, all: 0, active: 0, paused: 0, delivered: 0, attention: 0 },
   attention: { total: 0, items: [] },
   upcomingWindow: { from: '2026-10-16', to: '2026-10-22' },
   upcomingDeliveries: { total: 0, items: [] },
@@ -35,7 +35,7 @@ export function overviewFixture(): Overview {
   if (!row.currentTracking) throw new Error('Overview fixture requires tracking.');
   return {
     ...emptyOverview,
-    counts: { all: 1200, active: 1100, paused: 80, delivered: 20, attention: 1 },
+    counts: { other: 0, all: 1200, active: 1100, paused: 80, delivered: 20, attention: 1 },
     attention: { total: 1, items: [row] },
     upcomingDeliveries: { total: 1, items: [row] },
   };

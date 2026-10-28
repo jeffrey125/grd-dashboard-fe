@@ -10,6 +10,7 @@ export const overviewSchema = z
     asOf: z.iso.datetime({ offset: true }),
     timezone: z.literal('America/New_York'),
     counts: z.object({
+      other: count.default(0),
       all: count,
       active: count,
       paused: count,

@@ -95,17 +95,22 @@ function RowActions({
         >
           View details
         </RouterMenuItem>
-        <MenuItem disabled={!!rules.refresh || mutation.pending} onClick={() => command('refresh')}>
-          <Stack>
-            <span>{row.monitoringReason === 'failure_threshold' ? 'Retry now' : 'Refresh'}</span>
-            {rules.refresh && <Typography variant="caption">{rules.refresh}</Typography>}
-            {!rules.refresh &&
-              row.latestRun &&
-              ['queued', 'running'].includes(row.latestRun.status) && (
-                <Typography variant="caption">May join the queued or running refresh</Typography>
-              )}
-          </Stack>
-        </MenuItem>
+        {row.carrier.code !== 'other' && (
+          <MenuItem
+            disabled={!!rules.refresh || mutation.pending}
+            onClick={() => command('refresh')}
+          >
+            <Stack>
+              <span>{row.monitoringReason === 'failure_threshold' ? 'Retry now' : 'Refresh'}</span>
+              {rules.refresh && <Typography variant="caption">{rules.refresh}</Typography>}
+              {!rules.refresh &&
+                row.latestRun &&
+                ['queued', 'running'].includes(row.latestRun.status) && (
+                  <Typography variant="caption">May join the queued or running refresh</Typography>
+                )}
+            </Stack>
+          </MenuItem>
+        )}
         {rules.pause && (
           <MenuItem disabled={mutation.pending} onClick={() => command('pause')}>
             Pause monitoring
@@ -116,7 +121,7 @@ function RowActions({
             Resume monitoring
           </MenuItem>
         )}
-        {row.monitoringStatus === 'completed' && (
+        {row.carrier.code !== 'other' && row.monitoringStatus === 'completed' && (
           <MenuItem
             disabled={mutation.pending}
             onClick={() => {
@@ -168,16 +173,18 @@ function MobileActions({
         >
           View details
         </RouterButton>
-        <Button
-          variant="outlined"
-          size="small"
-          fullWidth
-          disabled={unavailable || !!rules.refresh}
-          onClick={() => command('refresh')}
-          sx={{ minHeight: 44 }}
-        >
-          {row.monitoringReason === 'failure_threshold' ? 'Retry now' : 'Refresh'}
-        </Button>
+        {row.carrier.code !== 'other' && (
+          <Button
+            variant="outlined"
+            size="small"
+            fullWidth
+            disabled={unavailable || !!rules.refresh}
+            onClick={() => command('refresh')}
+            sx={{ minHeight: 44 }}
+          >
+            {row.monitoringReason === 'failure_threshold' ? 'Retry now' : 'Refresh'}
+          </Button>
+        )}
         {rules.pause && (
           <Button
             variant="outlined"
@@ -203,7 +210,7 @@ function MobileActions({
           </Button>
         )}
       </Stack>
-      {row.monitoringStatus === 'completed' && (
+      {row.carrier.code !== 'other' && row.monitoringStatus === 'completed' && (
         <Button variant="outlined" disabled={unavailable} onClick={() => setMonitorAgain(true)}>
           Monitor again
         </Button>

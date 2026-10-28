@@ -172,13 +172,15 @@ export function CarrierEditor({
             </Typography>
           </Alert>
         )}
-        <TextField
-          label="Name"
-          {...form.register('name', { onChange: markEdited })}
-          disabled={locked}
-          error={!!form.formState.errors.name}
-          helperText={form.formState.errors.name?.message}
-        />
+        {carrier.code !== 'other' && (
+          <TextField
+            label="Name"
+            {...form.register('name', { onChange: markEdited })}
+            disabled={locked}
+            error={!!form.formState.errors.name}
+            helperText={form.formState.errors.name?.message}
+          />
+        )}
         <TextField
           label="Active"
           select
@@ -192,104 +194,117 @@ export function CarrierEditor({
           <option value="true">Active</option>
           <option value="false">Disabled</option>
         </TextField>
-        <Typography component="h3" variant="subtitle1">
-          Monitoring safeguards
-        </Typography>
-        {(
-          [
-            [
-              'failurePauseEnabled',
-              'failurePauseThreshold',
-              'Pause only the shipment after consecutive lookup failures. Login and session-check failures are counted separately.',
-            ],
-            [
-              'sessionFailureDisableEnabled',
-              'sessionFailureDisableThreshold',
-              'Disable this carrier after consecutive failed logins or session checks. An admin must re-enable it before monitoring can continue.',
-            ],
-          ] as const
-        ).map(([enabled, threshold, description]) => (
-          <Stack key={enabled} spacing={1}>
-            <FormControlLabel
-              label={settingLabels[enabled]}
-              control={
-                <Switch
-                  checked={draft[enabled]}
-                  disabled={locked}
-                  onChange={(_event, checked) => {
-                    form.setValue(enabled, checked, { shouldDirty: true, shouldValidate: true });
-                    markEdited();
-                  }}
+        {carrier.code !== 'other' && (
+          <>
+            <Typography component="h3" variant="subtitle1">
+              Monitoring safeguards
+            </Typography>
+            {(
+              [
+                [
+                  'failurePauseEnabled',
+                  'failurePauseThreshold',
+                  'Pause only the shipment after consecutive lookup failures. Login and session-check failures are counted separately.',
+                ],
+                [
+                  'sessionFailureDisableEnabled',
+                  'sessionFailureDisableThreshold',
+                  'Disable this carrier after consecutive failed logins or session checks. An admin must re-enable it before monitoring can continue.',
+                ],
+              ] as const
+            ).map(([enabled, threshold, description]) => (
+              <Stack key={enabled} spacing={1}>
+                <FormControlLabel
+                  label={settingLabels[enabled]}
+                  control={
+                    <Switch
+                      checked={draft[enabled]}
+                      disabled={locked}
+                      onChange={(_event, checked) => {
+                        form.setValue(enabled, checked, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                        markEdited();
+                      }}
+                    />
+                  }
                 />
-              }
-            />
-            <Typography variant="body2" color="text.secondary">
-              {description}
+                <Typography variant="body2" color="text.secondary">
+                  {description}
+                </Typography>
+                <TextField
+                  label={settingLabels[threshold]}
+                  type="number"
+                  disabled={locked || !draft[enabled]}
+                  {...form.register(threshold, { valueAsNumber: true, onChange: markEdited })}
+                  error={!!form.formState.errors[threshold]}
+                  helperText={
+                    form.formState.errors[threshold]?.message ??
+                    '1–10 consecutive failures. Default: 2.'
+                  }
+                  slotProps={{ htmlInput: { min: 1, max: 10, step: 1 } }}
+                />
+              </Stack>
+            ))}
+            <Typography variant="caption" color="text.secondary">
+              Re-enabling a safeguard resets its counter. Existing pauses and carrier disables
+              remain in place.
             </Typography>
             <TextField
-              label={settingLabels[threshold]}
-              type="number"
-              disabled={locked || !draft[enabled]}
-              {...form.register(threshold, { valueAsNumber: true, onChange: markEdited })}
-              error={!!form.formState.errors[threshold]}
+              label="Fetch mode"
+              select
+              {...form.register('fetchMode', { onChange: markEdited })}
+              disabled={locked || carrier.code === 'ups'}
+              slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
               helperText={
-                form.formState.errors[threshold]?.message ??
-                '1–10 consecutive failures. Default: 2.'
+                carrier.code === 'ups'
+                  ? 'UPS supports request mode only.'
+                  : 'Browser mode requires the operator-configured browser integration.'
               }
-              slotProps={{ htmlInput: { min: 1, max: 10, step: 1 } }}
-            />
-          </Stack>
-        ))}
-        <Typography variant="caption" color="text.secondary">
-          Re-enabling a safeguard resets its counter. Existing pauses and carrier disables remain in
-          place.
-        </Typography>
-        <TextField
-          label="Fetch mode"
-          select
-          {...form.register('fetchMode', { onChange: markEdited })}
-          disabled={locked || carrier.code === 'ups'}
-          slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
-          helperText={
-            carrier.code === 'ups'
-              ? 'UPS supports request mode only.'
-              : 'Browser mode requires the operator-configured browser integration.'
-          }
-        >
-          <option value="request">Request</option>
-          {['echoship', 'ffe'].includes(carrier.code) && <option value="browser">Browser</option>}
-        </TextField>
-        {(['notFoundPauseThreshold', 'pollIntervalMinutes', 'rateLimitPerMinute'] as const).map(
-          (field) => (
-            <TextField
-              key={field}
-              label={settingLabels[field]}
-              type="number"
-              disabled={locked}
-              {...form.register(field, {
-                onChange: markEdited,
-                setValueAs: (value: string | number | null) =>
-                  value === '' || value === null
-                    ? field === 'rateLimitPerMinute'
-                      ? null
-                      : Number.NaN
-                    : Number(value),
-              })}
-              slotProps={{
-                inputLabel: { shrink: true },
-                htmlInput: { min: field === 'notFoundPauseThreshold' ? 2 : 1, max: 32767, step: 1 },
-              }}
-              error={!!form.formState.errors[field]}
-              helperText={
-                form.formState.errors[field]?.message ??
-                (field === 'rateLimitPerMinute'
-                  ? 'Leave blank to clear the configured RPM limit. Provider limits still apply.'
-                  : field === 'notFoundPauseThreshold'
-                    ? 'Consecutive confirmed not-found results before monitoring pauses. Technical failures do not count.'
-                    : 'Approximate interval; carrier minimums and worker timing still apply.')
-              }
-            />
-          ),
+            >
+              <option value="request">Request</option>
+              {['echoship', 'ffe'].includes(carrier.code) && (
+                <option value="browser">Browser</option>
+              )}
+            </TextField>
+            {(['notFoundPauseThreshold', 'pollIntervalMinutes', 'rateLimitPerMinute'] as const).map(
+              (field) => (
+                <TextField
+                  key={field}
+                  label={settingLabels[field]}
+                  type="number"
+                  disabled={locked}
+                  {...form.register(field, {
+                    onChange: markEdited,
+                    setValueAs: (value: string | number | null) =>
+                      value === '' || value === null
+                        ? field === 'rateLimitPerMinute'
+                          ? null
+                          : Number.NaN
+                        : Number(value),
+                  })}
+                  slotProps={{
+                    inputLabel: { shrink: true },
+                    htmlInput: {
+                      min: field === 'notFoundPauseThreshold' ? 2 : 1,
+                      max: 32767,
+                      step: 1,
+                    },
+                  }}
+                  error={!!form.formState.errors[field]}
+                  helperText={
+                    form.formState.errors[field]?.message ??
+                    (field === 'rateLimitPerMinute'
+                      ? 'Leave blank to clear the configured RPM limit. Provider limits still apply.'
+                      : field === 'notFoundPauseThreshold'
+                        ? 'Consecutive confirmed not-found results before monitoring pauses. Technical failures do not count.'
+                        : 'Approximate interval; carrier minimums and worker timing still apply.')
+                  }
+                />
+              ),
+            )}
+          </>
         )}
         <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
           <Button disabled={pending} onClick={onClose}>

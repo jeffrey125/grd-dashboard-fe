@@ -14,6 +14,7 @@ describe('shipment URL contract', () => {
       ['active', 'Active'],
       ['attention', 'Needs attention'],
       ['delivered', 'Delivered'],
+      ['other', 'Other'],
       ['all', 'All Shipments'],
     ]);
   });

@@ -8,6 +8,8 @@ import { shipmentCommand } from './api';
 import type { Shipment, TrackingRun } from './schemas';
 
 export function actionRules(row: Shipment) {
+  if (row.carrier.code === 'other')
+    return { refresh: 'Updated manually by staff.', pause: false, resume: false };
   const completed = row.monitoringStatus === 'completed';
   const expired =
     !!row.currentTracking?.deliveredOn &&

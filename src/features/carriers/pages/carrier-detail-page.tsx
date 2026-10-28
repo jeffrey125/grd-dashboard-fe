@@ -81,9 +81,11 @@ function CarrierDetail({ carrierId }: { carrierId: string }) {
                 connection or account issue, then edit the carrier and set Active to resume.
               </Alert>
             )}
-            <Typography>
-              Consecutive session failures: {carrier.consecutiveSessionFailures}
-            </Typography>
+            {carrier.code !== 'other' && (
+              <Typography>
+                Consecutive session failures: {carrier.consecutiveSessionFailures}
+              </Typography>
+            )}
             {editing ? (
               <CarrierEditor
                 carrier={carrier}
@@ -101,27 +103,29 @@ function CarrierDetail({ carrierId }: { carrierId: string }) {
                     gap: 2,
                   }}
                 >
-                  {Object.entries(settings(carrier)).map(([key, value]) => (
-                    <Box key={key}>
-                      <Typography component="dt" color="text.secondary">
-                        {settingLabels[key as keyof typeof settingLabels]}
-                      </Typography>
-                      <Typography component="dd" sx={{ m: 0 }}>
-                        {value === null
-                          ? 'Not set'
-                          : typeof value === 'boolean'
-                            ? value
-                              ? key === 'isActive'
-                                ? 'Active'
-                                : 'Enabled'
-                              : 'Disabled'
-                            : value}
-                      </Typography>
-                    </Box>
-                  ))}
+                  {Object.entries(settings(carrier))
+                    .filter(([key]) => carrier.code !== 'other' || key === 'isActive')
+                    .map(([key, value]) => (
+                      <Box key={key}>
+                        <Typography component="dt" color="text.secondary">
+                          {settingLabels[key as keyof typeof settingLabels]}
+                        </Typography>
+                        <Typography component="dd" sx={{ m: 0 }}>
+                          {value === null
+                            ? 'Not set'
+                            : typeof value === 'boolean'
+                              ? value
+                                ? key === 'isActive'
+                                  ? 'Active'
+                                  : 'Enabled'
+                                : 'Disabled'
+                              : value}
+                        </Typography>
+                      </Box>
+                    ))}
                 </Box>
                 <Button
-                  disabled={blocked || !['ups', 'echoship', 'ffe'].includes(carrier.code)}
+                  disabled={blocked || !['ups', 'echoship', 'ffe', 'other'].includes(carrier.code)}
                   onClick={() => setEditing(true)}
                 >
                   Edit carrier
@@ -129,12 +133,18 @@ function CarrierDetail({ carrierId }: { carrierId: string }) {
               </>
             )}
             <Typography variant="body2" color="text.secondary">
-              Polling is approximate.{' '}
-              {carrier.code === 'ups'
-                ? 'UPS has a minimum interval of 30 minutes in production or 60 minutes in its test environment.'
-                : 'EchoShip and FFE have a minimum interval of 5 minutes.'}{' '}
-              The worker scans once per minute and processes carriers sequentially; rate limits and
-              existing work may delay checks.
+              {carrier.code === 'other' ? (
+                'Manual entries only. Disabling blocks new shipments; existing records remain editable.'
+              ) : (
+                <>
+                  Polling is approximate.{' '}
+                  {carrier.code === 'ups'
+                    ? 'UPS has a minimum interval of 30 minutes in production or 60 minutes in its test environment.'
+                    : 'EchoShip and FFE have a minimum interval of 5 minutes.'}{' '}
+                  The worker scans once per minute and processes carriers sequentially; rate limits
+                  and existing work may delay checks.
+                </>
+              )}
             </Typography>
           </Stack>
         </Paper>

@@ -4,6 +4,7 @@ export const tabs = {
   active: 'Active',
   attention: 'Needs attention',
   delivered: 'Delivered',
+  other: 'Other',
   all: 'All Shipments',
 } as const;
 export const outcomes = {
@@ -32,7 +33,7 @@ export const searchSchema = z
   .strictObject({
     tab: z.preprocess(
       (value) => (value === 'paused' ? 'attention' : value),
-      z.enum(['all', 'active', 'delivered', 'attention']).default('active'),
+      z.enum(['all', 'active', 'delivered', 'attention', 'other']).default('active'),
     ),
     q: optionalText(
       z

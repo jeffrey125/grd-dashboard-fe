@@ -58,7 +58,7 @@ export function settingsVersion(carrier: Settings) {
 export function settingsFor(code: string) {
   return settingsSchema.superRefine((value, context) => {
     if (
-      !['ups', 'echoship', 'ffe'].includes(code) ||
+      !['ups', 'echoship', 'ffe', 'other'].includes(code) ||
       (code === 'ups' && value.fetchMode !== 'request')
     )
       context.addIssue({
