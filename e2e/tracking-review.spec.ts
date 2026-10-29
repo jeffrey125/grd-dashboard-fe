@@ -70,15 +70,23 @@ async function setup(context: BrowserContext) {
     const row = state.rows.find((item) => route.request().url().endsWith(item.externalId));
     return route.fulfill({ status: row ? 200 : 404, json: row ?? {} });
   });
-  await context.route('**/api/v1/shipments/search?*', (route) => {
-    const params = new URL(route.request().url()).searchParams;
+  await context.route(/\/api\/v1\/shipments\/search(?:\?|$)/, (route) => {
+    const body = route.request().method() === 'POST' ? route.request().postDataJSON() : {};
+    const params =
+      route.request().method() === 'POST'
+        ? new URLSearchParams(body)
+        : new URL(route.request().url()).searchParams;
+    const priority = new Set<string>(body.priorityShipmentIds ?? []);
     const items = state.rows.filter(
       (row) => params.get('tab') === 'all' || row.monitoringStatus === 'active',
     );
     return route.fulfill({
       json: {
         ...emptyShipments,
-        items,
+        items: [...items]
+          .sort((a, b) => Number(priority.has(b.externalId)) - Number(priority.has(a.externalId)))
+          .slice((Number(params.get('page') ?? 1) - 1) * 25, Number(params.get('page') ?? 1) * 25),
+        page: Number(params.get('page') ?? 1),
         total: items.length,
         tabCounts: {
           all: state.rows.length,
@@ -205,9 +213,15 @@ test('clicking anywhere reviews the row while only the Tracking Number link open
     await card.getByRole('link', { name: 'View details' }).click({ modifiers: ['Control'] });
   } else {
     await expect(page.getByRole('gridcell', { name: 'Tracking 4', exact: true })).toBeVisible();
+    await page.locator('.MuiDataGrid-virtualScroller').evaluate((element) => {
+      element.scrollLeft = element.scrollWidth;
+    });
     await page.getByRole('button', { name: 'Actions for 0001', exact: true }).click();
     await expect(page.getByRole('menuitem', { name: 'View details' })).toBeVisible();
     await page.keyboard.press('Escape');
+    await page.locator('.MuiDataGrid-virtualScroller').evaluate((element) => {
+      element.scrollLeft = 0;
+    });
   }
   await expect(marks(page)).toHaveCount(0);
   await expect(page).toHaveURL(/\/shipments(?:\?|$)/);
@@ -446,4 +460,33 @@ test('logout clears transient alerts and another account starts without prior ma
   await expect(marks(page)).toHaveCount(0);
   await expect(page.getByRole('switch', { name: 'Tracking sound' })).not.toBeChecked();
   await expect(page.locator('.MuiSnackbar-root')).toHaveCount(0);
+});
+
+test('unseen off-page tracking updates rise first and acknowledgement restores the selected sort', async ({
+  page,
+  context,
+}) => {
+  const state = await setup(context);
+  state.rows = Array.from({ length: 26 }, (_, index) =>
+    shipmentFixture(index + 1, { currentTracking: snapshot(index + 1) }),
+  );
+  await open(page, '/shipments?tab=all&sortBy=trackingReference&sortDirection=asc');
+  const first = row(state, 0);
+  const last = row(state, 25);
+  await expect(page.getByRole('link', { name: last.trackingReference, exact: true })).toHaveCount(
+    0,
+  );
+  last.currentTracking = snapshot(100);
+  await emit(page, last.externalId, 100);
+  const references = page.getByRole('link', { name: /^000\d+$/ });
+  await expect(references.first()).toHaveText(last.trackingReference);
+  await expect(marks(page)).toHaveCount(1);
+  await page.reload();
+  await expect(references.first()).toHaveText(last.trackingReference);
+  await page.getByRole('button', { name: 'Mark displayed changes as seen' }).click();
+  await expect(references.first()).toHaveText(first.trackingReference);
+  await expect(page.getByRole('link', { name: last.trackingReference, exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page).toHaveURL(/sortBy=trackingReference&sortDirection=asc/);
 });

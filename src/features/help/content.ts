@@ -86,6 +86,7 @@ export const guides: Record<HelpCategory, Guide[]> = {
         },
       ],
       tips: [
+        'Unacknowledged tracking updates temporarily appear first across pages within your current tab and filters. Clicking a shipment or marking displayed changes seen returns it to your selected sort. Your default remains Created, newest first. Acknowledgment is specific to your account and browser.',
         'PO#, Customer and Vendor are typed text, limited to 255 characters. Leading zeros and case are preserved. Duplicate PO values are allowed.',
         'Adding an existing carrier/tracking-reference pair opens the existing record without overwriting its saved information.',
         'For a carrier without automated tracking, use Other when enabled and maintain its status and dates manually.',

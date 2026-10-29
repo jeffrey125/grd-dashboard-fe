@@ -23,10 +23,27 @@ export async function searchShipments(
   client: ApiClient,
   search: ShipmentSearch & { scope?: MonitoringScope },
   signal: AbortSignal,
+  priorityShipmentIds: string[] = [],
 ) {
   return parse(
     searchResponseSchema,
-    await client.request({ url: '/shipments/search', params: search, signal }),
+    await client.request(
+      priorityShipmentIds.length
+        ? {
+            url: '/shipments/search',
+            method: 'POST',
+            signal,
+            data: {
+              ...Object.fromEntries(
+                Object.entries(search)
+                  .filter(([, value]) => value !== undefined)
+                  .map(([key, value]) => [key, String(value)]),
+              ),
+              priorityShipmentIds,
+            },
+          }
+        : { url: '/shipments/search', params: search, signal },
+    ),
   );
 }
 export async function getCarriers(client: ApiClient, signal: AbortSignal) {

@@ -20,7 +20,7 @@ import {
   tabs,
 } from '@features/shipments/search-state';
 import { ShipmentGrid } from '@features/shipments/shipment-grid';
-import { liveQuery, ReviewControls } from '@features/tracking-updates';
+import { liveQuery, ReviewControls, useTrackingReview } from '@features/tracking-updates';
 import { businessCalendarDate } from '@lib/dates';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -41,6 +41,8 @@ export function ShipmentsPage() {
   const returnTo = useLocation({ select: (location) => location.href });
   const { session } = useSession();
   const { scope, accountId, setScope } = useMonitoringScope();
+  const { state: review, isUnseen } = useTrackingReview();
+  const priorityShipmentIds = Object.keys(review.records).filter(isUnseen).sort();
   const queries = useQueryClient();
   const { showNotification } = useNotifications();
   const parsed = searchSchema.safeParse(raw);
@@ -54,9 +56,14 @@ export function ShipmentsPage() {
   );
   const onSearch = useCallback((q: string) => update(changeSearch(raw, { q })), [raw, update]);
   const query = useQuery({
-    queryKey: ['shipments', accountId, scope, search ?? raw],
+    queryKey: ['shipments', accountId, scope, search ?? raw, priorityShipmentIds],
     queryFn: ({ signal }) =>
-      searchShipments(session.client, { ...searchSchema.parse(raw), scope }, signal),
+      searchShipments(
+        session.client,
+        { ...searchSchema.parse(raw), scope },
+        signal,
+        priorityShipmentIds,
+      ),
     enabled: !!search,
     placeholderData: (previous, previousQuery) =>
       previousQuery?.queryKey[1] === accountId && previousQuery?.queryKey[2] === scope

@@ -361,3 +361,19 @@ To refresh screenshots after changing the UI: build the frontend, run
 format `src/features/help/captures.json`, rebuild and run
 `pnpm exec playwright test e2e/help.spec.ts`. The capture test is skipped unless
 explicitly enabled. Review images, marker positions and guide wording together.
+
+
+## Temporary unseen-update priority (FE-V1-011)
+
+Monitoring preserves the selected sort (default Created, newest first). Unseen
+tracking updates temporarily precede acknowledged rows across result pages,
+respecting the current tab, filters and Personal/Team scope. Within each group,
+use the selected sort. Clicking a row, viewing its current details, or marking
+displayed changes seen uses the existing revision-safe acknowledgment rules and
+returns that shipment to its normal position. Keep the currently selected page;
+priority records occupy the earliest pages. Review state remains per account and
+browser, with existing cross-tab synchronization. Unchanged carrier checks and
+ordinary field edits do not create tracking highlights or priority.
+
+Help explains this ordering in Add and find shipments. Existing screenshot
+markers still identify the same controls; no screenshot replacement is required.
