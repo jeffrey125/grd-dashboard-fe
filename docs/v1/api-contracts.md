@@ -565,3 +565,13 @@ Search and overview accept `scope=mine|everyone`. The UI always sends its saved
 scope; an omitted API scope retains Everyone for compatibility. The server resolves
 Mine from the current session, and applies it before pagination/counts/panels.
 See the backend's [scope contract](../../../grd-dashboard-be/docs/v1/frontend-handoff.md#monitoring-creator-scope-filter-v1-002).
+
+## SALES-V1-001: Sales Rep email
+
+Admin Sales Rep records include required unique `email`. Duplicate create/update
+requests return HTTP 409, including email reserved by inactive reps. Creation and the editor require
+a valid email (trimmed, lowercased, up to 254 characters); PATCH may update it.
+The list displays email on desktop and mobile. Backend migration
+`1793577600000-SalesRepEmails` backfills the nine confirmed representatives.
+Deploy the matching backend first and coordinate the frontend rollout: old create
+requests without email return 400. Filter-options remains unchanged.

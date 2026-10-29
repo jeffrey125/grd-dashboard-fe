@@ -101,6 +101,7 @@ export function SalesRepsPage() {
                     <Typography component="h2" variant="h6">
                       {rep.firstName} {rep.lastName}
                     </Typography>
+                    <Typography variant="body2">{rep.email}</Typography>
                     <Chip
                       size="small"
                       sx={{ alignSelf: 'flex-start' }}
@@ -140,9 +141,11 @@ export function SalesRepsPage() {
           <Table aria-label="Sales Rep configuration">
             <TableHead>
               <TableRow>
-                {['First name', 'Last name', 'Status', 'Updated', 'Actions'].map((label) => (
-                  <TableCell key={label}>{label}</TableCell>
-                ))}
+                {['First name', 'Last name', 'Email', 'Status', 'Updated', 'Actions'].map(
+                  (label) => (
+                    <TableCell key={label}>{label}</TableCell>
+                  ),
+                )}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -150,6 +153,7 @@ export function SalesRepsPage() {
                 <TableRow key={rep.externalId}>
                   <TableCell>{rep.firstName}</TableCell>
                   <TableCell>{rep.lastName}</TableCell>
+                  <TableCell>{rep.email}</TableCell>
                   <TableCell>
                     <Chip
                       size="small"

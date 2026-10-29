@@ -24,7 +24,11 @@ export function SalesRepEditor({
   const { showNotification } = useNotifications();
   const form = useForm<SalesRepInput>({
     resolver: zodResolver(salesRepInputSchema),
-    defaultValues: { firstName: rep?.firstName ?? '', lastName: rep?.lastName ?? '' },
+    defaultValues: {
+      firstName: rep?.firstName ?? '',
+      lastName: rep?.lastName ?? '',
+      email: rep?.email ?? '',
+    },
   });
   const save = form.handleSubmit(async (input) => {
     try {
@@ -62,6 +66,15 @@ export function SalesRepEditor({
         disabled={form.formState.isSubmitting}
         error={!!form.formState.errors.lastName}
         helperText={form.formState.errors.lastName?.message}
+      />
+      <TextField
+        label="Email"
+        type="email"
+        required
+        {...form.register('email')}
+        disabled={form.formState.isSubmitting}
+        error={!!form.formState.errors.email}
+        helperText={form.formState.errors.email?.message}
       />
       {form.formState.errors.root?.message && (
         <Alert severity="error">{form.formState.errors.root.message}</Alert>

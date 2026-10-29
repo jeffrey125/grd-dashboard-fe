@@ -17,6 +17,7 @@ const salesRepSchema = z.object({
 });
 
 export const adminSalesRepSchema = salesRepSchema.extend({
+  email: z.email().max(254),
   createdAt: timestamp,
   updatedAt: timestamp,
   deletedAt: timestamp.nullable(),
@@ -25,6 +26,7 @@ export const adminSalesRepSchema = salesRepSchema.extend({
 export const salesRepInputSchema = z.strictObject({
   firstName: name,
   lastName: name,
+  email: z.string().trim().toLowerCase().pipe(z.email('Enter a valid email.').max(254)),
 });
 
 export type SalesRepInput = z.infer<typeof salesRepInputSchema>;
