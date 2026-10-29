@@ -91,8 +91,10 @@ test('direct history links, truthful differences, page boundaries, URL navigatio
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await page.getByRole('tab', { name: 'History', exact: true }).focus();
   await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('Enter');
   await expect(page.getByRole('button', { name: 'Edit notes' })).toBeVisible();
+  await page.keyboard.press('ArrowRight');
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('Enter');
   await expect(page.getByRole('article')).toHaveCount(26);

@@ -19,6 +19,7 @@ it('preserves invalid URL inputs and supplies defaults only for absent values', 
     page: 1,
     pageSize: 25,
   });
+  expect(detailSearchSchema.parse(detailSearch({ tab: 'audit' })).tab).toBe('audit');
   for (const raw of [
     { tab: 'invalid' },
     { page: '0' },

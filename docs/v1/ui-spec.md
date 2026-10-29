@@ -331,3 +331,14 @@ carrier status. Details explain the stopping date. Assignment controls explain
 that future dates restart completed deliveries, clearing dates stops them, and
 explicit pauses remain paused. Due dates stop monitoring and put the record in
 Delivered and Attention. Undelivered Shipments retain their existing behavior.
+
+## SHIP-V1-002: shipment detail organization
+
+Shipment details have Overview, Audit and History tabs. Overview places Tracking
+and Shipment details in two equal-height desktop columns, with Notes full width
+below. Audit places Monitoring, Latest lookup & run and Shipment audit in three
+equal-height desktop columns; requested refresh run progress is also on Audit.
+Other shipments retain their manual-carrier behavior and omit automated lookup
+information. On mobile each group stacks naturally. `tab=audit` supports direct
+links/reload. Assignment drafts survive tab switches; note drafts retain explicit
+discard confirmation. History and its pagination remain available.

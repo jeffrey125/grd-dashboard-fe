@@ -298,6 +298,7 @@ test('manual run stays visible beside newer run, duplicate requests coalesce and
   const state = await setup(page);
   await page.clock.install();
   await open(page, state);
+  await page.getByRole('tab', { name: 'Audit', exact: true }).click();
   await page.getByRole('button', { name: 'Refresh', exact: true }).click();
   const manual = page.getByRole('region', { name: /Your refresh/ });
   await expect(manual.getByText('Run: queued', { exact: true })).toBeVisible();
@@ -335,6 +336,7 @@ test('action availability follows manual pause, threshold pause, delivery and di
 }) => {
   const state = await setup(page);
   await open(page, state);
+  await page.getByRole('tab', { name: 'Audit', exact: true }).click();
   await page.getByRole('button', { name: 'Pause monitoring', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Resume monitoring', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeDisabled();
@@ -369,19 +371,21 @@ test('a finished refresh response is rendered immediately without implying deliv
   finished.status = 'succeeded';
   finished.completedAt = '2026-10-16T14:01:00.000Z';
   await open(page, state);
+  await page.getByRole('tab', { name: 'Audit', exact: true }).click();
   await page.getByRole('button', { name: 'Refresh', exact: true }).click();
   await expect(
     page.getByRole('region', { name: /Your refresh/ }).getByText('Run: succeeded', { exact: true }),
   ).toBeVisible();
   await expect(
     page
-      .getByRole('region', { name: 'Tracking', exact: true })
-      .getByText('No tracking snapshot recorded yet.'),
-  ).toBeVisible();
-  await expect(
-    page
       .getByRole('region', { name: 'Monitoring', exact: true })
       .getByText('Active', { exact: true }),
+  ).toBeVisible();
+  await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+  await expect(
+    page
+      .getByRole('region', { name: 'Tracking', exact: true })
+      .getByText('No tracking snapshot recorded yet.'),
   ).toBeVisible();
 });
 
@@ -445,6 +449,7 @@ test('failure-paused shipments explain Retry now and still respect carrier disab
     consecutiveFailureCount: 2,
   });
   await open(page, state);
+  await page.getByRole('tab', { name: 'Audit', exact: true }).click();
   await expect(
     page.getByText('Paused: repeated lookup failures', { exact: true }).first(),
   ).toBeVisible();
@@ -480,4 +485,61 @@ test('edits and clears shipment business fields', async ({ page }) => {
   await page.reload();
   await expect(page.getByLabel('PO#', { exact: true })).toHaveValue('0002-a');
   await expect(page.getByLabel('Vendor', { exact: true })).toHaveValue('');
+});
+
+test('separates Overview and Audit with equal-height desktop cards and persistent drafts', async ({
+  page,
+}, testInfo) => {
+  const state = await setup(page, { poNumber: '001-PO' });
+  await page.route('**/api/v1/sales-reps', (route) => route.fulfill({ json: [] }));
+  await open(page, state);
+  const tracking = page.getByRole('region', { name: 'Tracking', exact: true });
+  const details = page.getByRole('region', { name: 'Shipment details', exact: true });
+  await expect(tracking).toBeVisible();
+  await expect(details).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Notes', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Monitoring', exact: true })).toHaveCount(0);
+  if (testInfo.project.name === 'chromium') {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await expect
+      .poll(async () => {
+        const a = await tracking.boundingBox();
+        const b = await details.boundingBox();
+        return a && b ? Math.abs(a.height - b.height) : Infinity;
+      })
+      .toBeLessThan(2);
+    const a = await tracking.boundingBox();
+    const b = await details.boundingBox();
+    expect(a?.y).toBe(b?.y);
+  }
+  await page.getByLabel('Customer', { exact: true }).fill('Unsaved customer');
+  await page.getByRole('tab', { name: 'Audit', exact: true }).click();
+  await expect(page).toHaveURL(/tab=audit/);
+  const cards = ['Monitoring', 'Latest lookup & run', 'Shipment audit'].map((name) =>
+    page.getByRole('region', { name, exact: true }),
+  );
+  for (const card of cards) await expect(card).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Tracking', exact: true })).toHaveCount(0);
+  if (testInfo.project.name === 'chromium') {
+    const boxes = await Promise.all(cards.map((card) => card.boundingBox()));
+    if (boxes.some((box) => !box)) throw new Error('Missing audit cards');
+    const heights = boxes.map((box) => box?.height ?? 0);
+    expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(2);
+  }
+  await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+  await expect(page.getByLabel('Customer', { exact: true })).toHaveValue('Unsaved customer');
+  // Clear the draft before exercising direct-link reload.
+  await page.getByLabel('Customer', { exact: true }).fill('');
+  await page.getByRole('tab', { name: 'Audit', exact: true }).click();
+  await page.reload();
+  await expect(page.getByRole('tab', { name: 'Audit', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.getByRole('region', { name: 'Shipment audit', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({
+    path: `/tmp/grd-audit-tab-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
 });

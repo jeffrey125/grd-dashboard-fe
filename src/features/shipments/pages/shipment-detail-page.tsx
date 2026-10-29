@@ -283,20 +283,8 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
           </Alert>
         )}
       </Stack>
-      {requestedRun && (
-        <RunPanel
-          key={requestedRun.externalId}
-          run={requestedRun}
-          shipmentId={id}
-          title={
-            requestedRun.externalId === row.latestRun?.externalId
-              ? 'Your refresh · Latest run'
-              : 'Your refresh'
-          }
-        />
-      )}
       <Tabs
-        value={search.tab === 'history' ? 'history' : 'overview'}
+        value={detailState.success ? detailState.data.tab : 'overview'}
         aria-label="Shipment detail tabs"
         onChange={(_event, tab: string) =>
           void navigate({
@@ -311,6 +299,13 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
           aria-controls="overview-panel"
           value="overview"
           label="Overview"
+          disabled={notesPending || assignmentPending || removal.isPending}
+        />
+        <Tab
+          id="audit-tab"
+          aria-controls="audit-panel"
+          value="audit"
+          label="Audit"
           disabled={notesPending || assignmentPending || removal.isPending}
         />
         <Tab
@@ -343,177 +338,239 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
           }
         >
           Invalid detail URL: tab “{search.tab}”, page “{search.page}”, page size “{search.pageSize}
-          ”. Choose Overview or History and a positive page with 25, 50, or 100 observations.
+          ”. Choose Overview, Audit or History and a positive page with 25, 50, or 100 observations.
         </Alert>
-      ) : detailState.data.tab === 'history' ? (
-        <Box role="tabpanel" id="history-panel" aria-labelledby="history-tab">
-          <HistorySection
-            key={`${id}:${detailState.data.page}:${detailState.data.pageSize}`}
-            id={id}
-            page={detailState.data.page}
-            pageSize={detailState.data.pageSize}
-            onMissing={onMissing}
-          />
-        </Box>
       ) : (
-        <Stack spacing={3} role="tabpanel" id="overview-panel" aria-labelledby="overview-tab">
+        <>
           <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'repeat(3, minmax(0, 1fr))' },
-              gap: 2,
-              alignItems: 'start',
-            }}
+            role="tabpanel"
+            id="history-panel"
+            aria-labelledby="history-tab"
+            hidden={detailState.data.tab !== 'history'}
           >
-            <Paper
-              component="section"
-              aria-labelledby="tracking-title"
-              variant="outlined"
-              sx={{ p: 2 }}
-            >
-              <Typography id="tracking-title" component="h2" variant="h6" sx={{ mb: 2 }}>
-                Tracking
-              </Typography>
-              {!snapshot && (
-                <Typography sx={{ mb: 2 }}>No tracking snapshot recorded yet.</Typography>
-              )}
-              {snapshot && row.latestLookup?.outcome === 'failed' && (
-                <Alert severity="warning" sx={{ mb: 2 }}>
-                  Latest lookup failed. Last known tracking is retained below.
-                </Alert>
-              )}
-              <Fields
-                values={{
-                  'Carrier status': snapshot?.carrierStatus ?? 'Not available',
-                  'Status detail': snapshot?.carrierStatusDetail ?? 'Not available',
-                  Pickup: snapshot?.pickedUpOn ?? 'Not available',
-                  'Estimated delivery': snapshot?.estimatedDeliveryOn ?? 'Not available',
-                  'Actual delivery': snapshot?.deliveredOn ?? 'Not available',
-                  'Snapshot recorded': businessTimestamp(snapshot?.observedAt ?? null),
-                }}
+            {detailState.data.tab === 'history' && (
+              <HistorySection
+                key={`${id}:${detailState.data.page}:${detailState.data.pageSize}`}
+                id={id}
+                page={detailState.data.page}
+                pageSize={detailState.data.pageSize}
+                onMissing={onMissing}
               />
-            </Paper>
-            <Paper
-              component="section"
-              aria-labelledby="monitoring-title"
-              variant="outlined"
-              sx={{ p: 2 }}
-            >
-              <Typography id="monitoring-title" component="h2" variant="h6" sx={{ mb: 2 }}>
-                Monitoring
-              </Typography>
-              {row.carrier.code === 'other' ? (
-                <Typography>
-                  Updated manually by staff. Follow-up dates control Needs attention.
-                </Typography>
-              ) : (
-                <Fields
-                  values={{
-                    State: monitoringLabel(row),
-                    'Last attempt': businessTimestamp(row.lastAttemptedAt),
-                    'Next check': businessTimestamp(row.nextCheckAt),
-                    'Consecutive not found': String(row.consecutiveNotFoundCount),
-                    'Consecutive lookup failures': String(row.consecutiveFailureCount),
-                  }}
+            )}
+          </Box>
+          <Box
+            role="tabpanel"
+            id="audit-panel"
+            aria-labelledby="audit-tab"
+            hidden={detailState.data.tab !== 'audit'}
+          >
+            <Stack spacing={3}>
+              {requestedRun && (
+                <RunPanel
+                  key={requestedRun.externalId}
+                  run={requestedRun}
+                  shipmentId={id}
+                  title={
+                    requestedRun.externalId === row.latestRun?.externalId
+                      ? 'Your refresh · Latest run'
+                      : 'Your refresh'
+                  }
                 />
               )}
-              {row.monitoringReason === 'failure_threshold' && (
-                <Typography sx={{ mt: 2 }}>
-                  Paused after repeated lookup failures. Retry now checks once. Monitoring resumes
-                  only if tracking data is found; a failed or not-found result leaves it paused.
-                </Typography>
-              )}
-              {row.monitoringReason === 'not_found_threshold' && (
-                <Typography sx={{ mt: 2 }}>
-                  Paused after repeated not-found results. Use Refresh to check again; monitoring
-                  can reactivate if the shipment is found.
-                </Typography>
-              )}
-              {row.monitoringStatus === 'active' && snapshot?.deliveredOn && (
-                <Typography sx={{ mt: 2 }}>
-                  Delivered; checks continue until the start of {row.followUpOn} in New York time.
-                </Typography>
-              )}
-              {row.carrier.code !== 'other' && row.monitoringStatus === 'completed' && (
-                <Typography sx={{ mt: 2 }}>
-                  Monitoring has finished. Choose Monitor again and a future follow-up date to
-                  restart carrier checks.
-                </Typography>
-              )}
-            </Paper>
-            {row.carrier.code !== 'other' && (
-              <Paper
-                component="section"
-                aria-labelledby="lookup-title"
-                variant="outlined"
-                sx={{ p: 2 }}
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'repeat(3, minmax(0, 1fr))' },
+                  gap: 2,
+                  alignItems: 'stretch',
+                  '& > section': { height: '100%', boxSizing: 'border-box' },
+                }}
               >
-                <Stack spacing={2}>
-                  <Typography id="lookup-title" component="h2" variant="h6">
-                    Latest lookup &amp; run
+                <Paper
+                  component="section"
+                  aria-labelledby="monitoring-title"
+                  variant="outlined"
+                  sx={{ p: 2 }}
+                >
+                  <Typography id="monitoring-title" component="h2" variant="h6" sx={{ mb: 2 }}>
+                    Monitoring
+                  </Typography>
+                  {row.carrier.code === 'other' ? (
+                    <Typography>
+                      Updated manually by staff. Follow-up dates control Needs attention.
+                    </Typography>
+                  ) : (
+                    <Fields
+                      values={{
+                        State: monitoringLabel(row),
+                        'Last attempt': businessTimestamp(row.lastAttemptedAt),
+                        'Next check': businessTimestamp(row.nextCheckAt),
+                        'Consecutive not found': String(row.consecutiveNotFoundCount),
+                        'Consecutive lookup failures': String(row.consecutiveFailureCount),
+                      }}
+                    />
+                  )}
+                  {row.monitoringReason === 'failure_threshold' && (
+                    <Typography sx={{ mt: 2 }}>
+                      Paused after repeated lookup failures. Retry now checks once. Monitoring
+                      resumes only if tracking data is found; a failed or not-found result leaves it
+                      paused.
+                    </Typography>
+                  )}
+                  {row.monitoringReason === 'not_found_threshold' && (
+                    <Typography sx={{ mt: 2 }}>
+                      Paused after repeated not-found results. Use Refresh to check again;
+                      monitoring can reactivate if the shipment is found.
+                    </Typography>
+                  )}
+                  {row.monitoringStatus === 'active' && snapshot?.deliveredOn && (
+                    <Typography sx={{ mt: 2 }}>
+                      Delivered; checks continue until the start of {row.followUpOn} in New York
+                      time.
+                    </Typography>
+                  )}
+                  {row.carrier.code !== 'other' && row.monitoringStatus === 'completed' && (
+                    <Typography sx={{ mt: 2 }}>
+                      Monitoring has finished. Choose Monitor again and a future follow-up date to
+                      restart carrier checks.
+                    </Typography>
+                  )}
+                </Paper>
+                {row.carrier.code !== 'other' && (
+                  <Paper
+                    component="section"
+                    aria-labelledby="lookup-title"
+                    variant="outlined"
+                    sx={{ p: 2 }}
+                  >
+                    <Stack spacing={2}>
+                      <Typography id="lookup-title" component="h2" variant="h6">
+                        Latest lookup &amp; run
+                      </Typography>
+                      <Fields
+                        values={{
+                          'Latest completed lookup':
+                            outcomes[row.latestLookup?.outcome ?? 'never_checked'],
+                          'Lookup completed': businessTimestamp(
+                            row.latestLookup?.completedAt ?? null,
+                          ),
+                        }}
+                      />
+                      {row.latestLookup && diagnosticMessage(row.latestLookup.reasonCode) && (
+                        <Typography>{diagnosticMessage(row.latestLookup.reasonCode)}</Typography>
+                      )}
+                      <Typography variant="body2">
+                        Run success describes processing. It does not confirm a found shipment or
+                        delivery.
+                      </Typography>
+                      {row.latestRun && row.latestRun.externalId !== requestedRun?.externalId && (
+                        <RunPanel
+                          key={row.latestRun.externalId}
+                          run={row.latestRun}
+                          shipmentId={id}
+                          title="Latest run"
+                        />
+                      )}
+                      {!row.latestRun && !requestedRun && (
+                        <Typography>No run available.</Typography>
+                      )}
+                    </Stack>
+                  </Paper>
+                )}
+                <Paper
+                  component="section"
+                  aria-labelledby="audit-title"
+                  variant="outlined"
+                  sx={{ p: 2 }}
+                >
+                  <Typography id="audit-title" component="h2" variant="h6" sx={{ mb: 2 }}>
+                    Shipment audit
                   </Typography>
                   <Fields
                     values={{
-                      'Latest completed lookup':
-                        outcomes[row.latestLookup?.outcome ?? 'never_checked'],
-                      'Lookup completed': businessTimestamp(row.latestLookup?.completedAt ?? null),
+                      'Added by': employeeName(row.createdBy),
+                      'Added at': businessTimestamp(row.createdAt),
+                      'Last database update': businessTimestamp(row.updatedAt),
+                      'Last database update by': employeeName(row.updatedBy),
+                      'Record update': businessTimestamp(row.recordUpdatedAt),
+                      'Record updated by': employeeName(row.recordUpdatedBy),
                     }}
                   />
-                  {row.latestLookup && diagnosticMessage(row.latestLookup.reasonCode) && (
-                    <Typography>{diagnosticMessage(row.latestLookup.reasonCode)}</Typography>
-                  )}
-                  <Typography variant="body2">
-                    Run success describes processing. It does not confirm a found shipment or
-                    delivery.
-                  </Typography>
-                  {row.latestRun && row.latestRun.externalId !== requestedRun?.externalId && (
-                    <RunPanel
-                      key={row.latestRun.externalId}
-                      run={row.latestRun}
-                      shipmentId={id}
-                      title="Latest run"
-                    />
-                  )}
-                  {!row.latestRun && !requestedRun && <Typography>No run available.</Typography>}
-                </Stack>
-              </Paper>
-            )}
+                </Paper>
+              </Box>
+            </Stack>
           </Box>
-          <Paper component="section" aria-labelledby="audit-title" variant="outlined" sx={{ p: 2 }}>
-            <Typography id="audit-title" component="h2" variant="h6" sx={{ mb: 2 }}>
-              Shipment audit
-            </Typography>
-            <Fields
-              values={{
-                'Added by': employeeName(row.createdBy),
-                'Added at': businessTimestamp(row.createdAt),
-                'Last database update': businessTimestamp(row.updatedAt),
-                'Last database update by': employeeName(row.updatedBy),
-                'Record update': businessTimestamp(row.recordUpdatedAt),
-                'Record updated by': employeeName(row.recordUpdatedBy),
-              }}
-            />
-          </Paper>
-          {salesReps.isError && (
-            <Alert severity="warning">
-              Sales Rep options could not refresh. The current assignment remains available.
-            </Alert>
-          )}
-          <AssignmentSection
-            shipment={row}
-            salesReps={salesReps.data ?? []}
-            disabled={command.pending || notesPending || removal.isPending || confirmDelete}
-            onMissing={onMissing}
-            onDirty={setAssignmentDirty}
-          />
-          <NotesSection
-            shipment={row}
-            disabled={command.pending || removal.isPending || confirmDelete}
-            bypassNavigation={bypassNavigation}
-            onMissing={onMissing}
-            onDirty={setNotesDirty}
-          />
-        </Stack>
+          <Box
+            role="tabpanel"
+            id="overview-panel"
+            aria-labelledby="overview-tab"
+            hidden={detailState.data.tab !== 'overview'}
+          >
+            <Stack spacing={3}>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'repeat(2, minmax(0, 1fr))' },
+                  gap: 2,
+                  alignItems: 'stretch',
+                  '& > section': { height: '100%', boxSizing: 'border-box' },
+                }}
+              >
+                <Paper
+                  component="section"
+                  aria-labelledby="tracking-title"
+                  variant="outlined"
+                  sx={{ p: 2 }}
+                >
+                  <Typography id="tracking-title" component="h2" variant="h6" sx={{ mb: 2 }}>
+                    Tracking
+                  </Typography>
+                  {!snapshot && (
+                    <Typography sx={{ mb: 2 }}>No tracking snapshot recorded yet.</Typography>
+                  )}
+                  {snapshot && row.latestLookup?.outcome === 'failed' && (
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                      Latest lookup failed. Last known tracking is retained below.
+                    </Alert>
+                  )}
+                  <Fields
+                    values={{
+                      'Carrier status': snapshot?.carrierStatus ?? 'Not available',
+                      'Status detail': snapshot?.carrierStatusDetail ?? 'Not available',
+                      Pickup: snapshot?.pickedUpOn ?? 'Not available',
+                      'Estimated delivery': snapshot?.estimatedDeliveryOn ?? 'Not available',
+                      'Actual delivery': snapshot?.deliveredOn ?? 'Not available',
+                      'Snapshot recorded': businessTimestamp(snapshot?.observedAt ?? null),
+                    }}
+                  />
+                </Paper>
+                <Stack spacing={2} sx={{ height: '100%', '& > section': { flex: 1 } }}>
+                  {salesReps.isError && (
+                    <Alert severity="warning">
+                      Sales Rep options could not refresh. The current assignment remains available.
+                    </Alert>
+                  )}
+                  <AssignmentSection
+                    shipment={row}
+                    salesReps={salesReps.data ?? []}
+                    disabled={command.pending || notesPending || removal.isPending || confirmDelete}
+                    onMissing={onMissing}
+                    onDirty={setAssignmentDirty}
+                  />
+                </Stack>
+              </Box>{' '}
+              {detailState.data.tab === 'overview' && (
+                <NotesSection
+                  shipment={row}
+                  disabled={command.pending || removal.isPending || confirmDelete}
+                  bypassNavigation={bypassNavigation}
+                  onMissing={onMissing}
+                  onDirty={setNotesDirty}
+                />
+              )}
+            </Stack>
+          </Box>
+        </>
       )}
       <Dialog
         open={confirmDelete}

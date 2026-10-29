@@ -19,7 +19,7 @@ export function detailSearch(raw: Record<string, unknown>) {
 
 export const detailSearchSchema = z
   .object({
-    tab: z.enum(['overview', 'history']),
+    tab: z.enum(['overview', 'audit', 'history']),
     page: z
       .string()
       .regex(/^[1-9]\d*$/)
