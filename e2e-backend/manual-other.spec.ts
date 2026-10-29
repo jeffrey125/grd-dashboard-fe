@@ -52,6 +52,8 @@ for (const width of [1440, 375]) {
     await page.goto(`${origin}/shipments?tab=attention&q=${reference}`);
     await expect(page.getByRole('link', { name: reference, exact: true })).toBeVisible();
     await page.goto(`${origin}/shipments?tab=delivered&q=${reference}`);
+    await expect(page.getByRole('link', { name: reference, exact: true })).toBeVisible();
+    await page.goto(`${origin}/shipments?tab=other&q=${reference}`);
     await expect(page.getByRole('link', { name: reference, exact: true })).toHaveCount(0);
     // Separate administrator browser verifies the real enable/disable UI.
     const admin = await browser.newPage();
@@ -80,7 +82,10 @@ for (const width of [1440, 375]) {
       true,
     );
     await page.screenshot({ path: `/tmp/other-detail-${width}.png` });
+    await page.goto(`${origin}/shipments?tab=delivered&q=${reference}`);
+    await expect(page.getByRole('link', { name: reference, exact: true })).toHaveCount(0);
     await page.goto(`${origin}/shipments?tab=other`);
+    await expect(page.getByRole('link', { name: reference, exact: true })).toBeVisible();
     await expect(carrier.locator('option', { hasText: /^Other$/ })).toHaveCount(0);
     await admin.getByRole('button', { name: 'Edit carrier', exact: true }).click();
     await admin.getByLabel('Active', { exact: true }).selectOption('true');

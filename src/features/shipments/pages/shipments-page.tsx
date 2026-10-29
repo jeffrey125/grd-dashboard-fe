@@ -169,7 +169,11 @@ export function ShipmentsPage() {
           }}
           onSaved={(result) => {
             if (result.shipment.carrier.code === 'other')
-              update(changeSearch(raw, { tab: 'other' }));
+              update(
+                changeSearch(raw, {
+                  tab: result.shipment.monitoringStatus === 'completed' ? 'delivered' : 'other',
+                }),
+              );
             void queries.invalidateQueries({ queryKey: ['shipments'] });
             void queries.invalidateQueries({ queryKey: ['overview'] });
             showNotification({
