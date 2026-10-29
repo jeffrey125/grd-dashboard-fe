@@ -84,6 +84,15 @@ choices. Use pnpm and its lockfile after approval.
 - Reuse the official GRD assets and light/dark tokens. Preserve unmodified sources.
 - Hosting, Docker delivery choices, publishing, and deployment remain deferred.
 
+## Keep Help current
+
+For every backend or frontend change, assess Help impact using the shared rule in
+[the backend AGENTS.md](../grd-dashboard-be/AGENTS.md#keep-help-current). Update
+this app's Help guides and affected screenshots/markers only after explaining
+the proposed changes and obtaining the user's confirmation. Existing explicit
+approval for the same Help changes remains valid. Include Help verification,
+pending approval, or the reason no update is needed in the completion handoff.
+
 ## Completion
 
 Review the final diff, separate pre-existing user work, and run checks appropriate
