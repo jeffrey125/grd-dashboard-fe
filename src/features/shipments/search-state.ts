@@ -17,6 +17,9 @@ export const outcomes = {
 export const sorts = {
   createdAt: 'Created',
   trackingReference: 'Reference',
+  poNumber: 'PO#',
+  customer: 'Customer',
+  vendor: 'Vendor',
   estimatedDeliveryOn: 'Delivery',
   followUpOn: 'Follow Up',
 } as const;
@@ -63,7 +66,15 @@ export const searchSchema = z
     sortBy: z.preprocess(
       (value) => (value === 'lastAttemptedAt' ? 'createdAt' : value),
       z
-        .enum(['createdAt', 'trackingReference', 'estimatedDeliveryOn', 'followUpOn'])
+        .enum([
+          'createdAt',
+          'trackingReference',
+          'estimatedDeliveryOn',
+          'followUpOn',
+          'poNumber',
+          'customer',
+          'vendor',
+        ])
         .default('createdAt'),
     ),
     sortDirection: z.enum(['asc', 'desc']).default('desc'),

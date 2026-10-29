@@ -17,6 +17,7 @@ import {
   fieldErrorMessages,
   type ShipmentDraft,
   ShipmentValidationError,
+  shipmentTextFields,
 } from './create-schema';
 import { manualStatuses } from './manual-tracking';
 import type { carrierSchema } from './schemas';
@@ -27,6 +28,9 @@ const emptyShipment = (carrierExternalId = '', manual = false): ShipmentDraft =>
     : undefined,
   carrierExternalId,
   trackingReference: '',
+  poNumber: '',
+  customer: '',
+  vendor: '',
   notes: '',
   salesRepExternalId: '',
   followUpOn: '',
@@ -159,6 +163,16 @@ export function CreateShipmentForm({
           helperText={errors.trackingReference?.message}
           slotProps={{ htmlInput: { autoCapitalize: 'none', spellCheck: false } }}
         />
+        {shipmentTextFields.map(({ name, label }) => (
+          <TextField
+            key={name}
+            {...register(name)}
+            label={label}
+            disabled={pending}
+            error={!!errors[name]}
+            helperText={errors[name]?.message ?? 'Optional'}
+          />
+        ))}
         <TextField
           fullWidth
           label="Notes (optional)"

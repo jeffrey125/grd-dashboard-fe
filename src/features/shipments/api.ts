@@ -85,6 +85,9 @@ export async function updateShipment(
       pickedUpOn: string | null;
       estimatedDeliveryOn: string | null;
     };
+    poNumber?: string | null;
+    customer?: string | null;
+    vendor?: string | null;
     salesRepExternalId?: string | null;
     followUpOn?: string | null;
   },

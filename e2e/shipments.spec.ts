@@ -119,29 +119,42 @@ function mobile(page: Page) {
 function shipmentCard(page: Page, reference: string) {
   return page.getByRole('article', { name: `Shipment ${reference}`, exact: true });
 }
-async function expectGridWithoutHorizontalScroll(page: Page) {
+async function expectGridContainedInPage(page: Page) {
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   const grid = page.getByRole('grid', { name: 'Shipments' });
-  const headersFit = await grid.evaluate((element) => {
-    const headers = Array.from(element.querySelectorAll<HTMLElement>('[role="columnheader"]'));
-    const lastHeader = headers.at(-1);
-    if (!lastHeader) return false;
-
-    return lastHeader.getBoundingClientRect().right <= element.getBoundingClientRect().right + 1;
-  });
-
-  expect(headersFit).toBe(true);
-  await expect(page.locator('.MuiDataGrid-virtualScroller')).not.toHaveClass(
-    /MuiDataGrid-virtualScroller--hasScrollX/,
-  );
+  await expect(grid).toBeVisible();
 }
 async function expectVisibleColumns(page: Page, fields: string[]) {
-  await expect
-    .poll(() =>
-      page
-        .getByRole('columnheader')
-        .evaluateAll((headers) => headers.map((header) => header.getAttribute('data-field'))),
-    )
-    .toEqual(fields);
+  if (!fields[0]) throw new Error('Expected columns must not be empty');
+  const firstField = fields[0];
+  await expect(page.getByRole('grid', { name: 'Shipments' })).toHaveAttribute(
+    'aria-colcount',
+    String(fields.length),
+  );
+  const scroller = page.locator('.MuiDataGrid-virtualScroller');
+  const headers = page.getByRole('columnheader');
+  const read = () =>
+    headers.evaluateAll((elements) =>
+      elements.map((element) => ({
+        field: element.getAttribute('data-field'),
+        index: Number(element.getAttribute('aria-colindex')),
+      })),
+    );
+  await scroller.evaluate((element) => {
+    element.scrollLeft = 0;
+  });
+  await expect(headers.first()).toHaveAttribute('data-field', firstField);
+  const first = await read();
+  await scroller.evaluate((element) => {
+    element.scrollLeft = element.scrollWidth;
+  });
+  await expect(page.locator('[role="columnheader"][data-field="actions"]')).toBeVisible();
+  const all = new Map([...first, ...(await read())].map((item) => [item.index, item.field]));
+  expect([...all].sort(([a], [b]) => a - b).map(([, field]) => field)).toEqual(fields);
+  await scroller.evaluate((element) => {
+    element.scrollLeft = 0;
+  });
+  await expect(headers.first()).toHaveAttribute('data-field', firstField);
 }
 async function expectShipmentView(page: Page, value: string, label: string) {
   if (mobile(page)) {
@@ -183,6 +196,7 @@ test('default, pagination, debounced search, sort and back/detail return retain 
   await page.evaluate(() =>
     window.scrollTo(0, Math.min(240, document.body.scrollHeight - innerHeight)),
   );
+  await page.getByLabel('Search reference or notes').scrollIntoViewIfNeeded();
   const searchScrollY = await page.evaluate(() => window.scrollY);
   await page.getByLabel('Search reference or notes').fill('00030');
   await expect(page.getByRole('link', { name: '00030', exact: true })).toBeVisible();
@@ -193,6 +207,10 @@ test('default, pagination, debounced search, sort and back/detail return retain 
   await page.evaluate(() =>
     window.scrollTo(0, Math.min(240, document.body.scrollHeight - innerHeight)),
   );
+  const sortControl = mobile(page)
+    ? page.getByRole('combobox', { name: 'Sort by', exact: true })
+    : page.getByRole('columnheader', { name: 'Tracking Number' });
+  await sortControl.scrollIntoViewIfNeeded();
   const scrollY = await page.evaluate(() => window.scrollY);
   if (await page.getByRole('combobox', { name: 'Sort by', exact: true }).count()) {
     await page
@@ -566,6 +584,9 @@ test('responsive cards retain all details, wrap long text, and preserve state ac
   await expect(page.getByRole('grid', { name: 'Shipments' })).toBeVisible();
   await expectVisibleColumns(page, [
     'salesRep',
+    'poNumber',
+    'customer',
+    'vendor',
     'trackingReference',
     'carrierStatus',
     'monitoringStatus',
@@ -574,7 +595,8 @@ test('responsive cards retain all details, wrap long text, and preserve state ac
     'followUpOn',
     'actions',
   ]);
-  await expectGridWithoutHorizontalScroll(page);
+  await expectGridContainedInPage(page);
+  await page.getByRole('columnheader', { name: 'Pickup', exact: true }).scrollIntoViewIfNeeded();
   await expect(page.getByRole('columnheader', { name: 'Pickup', exact: true })).toBeVisible();
   await expect(page.getByRole('columnheader', { name: 'Delivery', exact: true })).toBeVisible();
   await expect(page.getByRole('columnheader', { name: 'Notes', exact: true })).toHaveCount(0);
@@ -587,16 +609,23 @@ test('responsive cards retain all details, wrap long text, and preserve state ac
   await expect(page).toHaveURL(/sortDirection=asc/);
   await page.setViewportSize({ width: 1100, height: 900 });
   await expectVisibleColumns(page, [
+    'salesRep',
+    'poNumber',
+    'customer',
+    'vendor',
     'trackingReference',
     'carrierStatus',
     'monitoringStatus',
     'estimatedDeliveryOn',
     'actions',
   ]);
-  await expectGridWithoutHorizontalScroll(page);
+  await expectGridContainedInPage(page);
   await page.setViewportSize({ width: 1600, height: 1000 });
   await expectVisibleColumns(page, [
     'salesRep',
+    'poNumber',
+    'customer',
+    'vendor',
     'trackingReference',
     'carrierStatus',
     'monitoringStatus',
@@ -607,7 +636,7 @@ test('responsive cards retain all details, wrap long text, and preserve state ac
     'createdAt',
     'actions',
   ]);
-  await expectGridWithoutHorizontalScroll(page);
+  await expectGridContainedInPage(page);
   await page.getByRole('gridcell', { name: 'In transit', exact: true }).click();
   await expect(page).toHaveURL(/\/shipments(?:\?|$)/);
   await page.getByRole('link', { name: reference, exact: true }).click();
@@ -681,5 +710,42 @@ test('multi-rep filter applies OR selection, persists URLs and clears on desktop
   await page.getByRole('button', { name: 'Clear filters', exact: true }).click();
   await expectShipmentView(page, 'active', 'Active (4)');
   expect(new URL(page.url()).searchParams.has('salesRepExternalIds')).toBe(false);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('shows business fields in agreed desktop and mobile order and requests server sorting', async ({
+  page,
+}, testInfo) => {
+  const state = await setup(page);
+  state.rows = [
+    shipmentFixture(1, {
+      poNumber: '001-PO',
+      customer: 'Sample customer',
+      vendor: 'Sample vendor',
+    }),
+  ];
+  await page.goto('/shipments');
+  if (testInfo.project.name === 'chromium') {
+    const headers = page.getByRole('columnheader');
+    await expect(headers.nth(0)).toContainText('Sales Rep');
+    await expect(headers.nth(1)).toContainText('PO#');
+    await expect(headers.nth(2)).toContainText('Customer');
+    await expect(headers.nth(3)).toContainText('Vendor');
+    await headers.nth(1).click();
+    await expect.poll(() => state.queries.at(-1)?.get('sortBy')).toBe('poNumber');
+  } else {
+    await expect(page.getByText('PO#: 001-PO', { exact: true })).toBeVisible();
+    await expect(page.getByText('Customer: Sample customer', { exact: true })).toBeVisible();
+    await expect(page.getByText('Vendor: Sample vendor', { exact: true })).toBeVisible();
+    const positions = await Promise.all(
+      ['PO#: 001-PO', 'Customer: Sample customer', 'Vendor: Sample vendor'].map((text) =>
+        page.getByText(text, { exact: true }).boundingBox(),
+      ),
+    );
+    const [po, customer, vendor] = positions;
+    if (!po || !customer || !vendor) throw new Error('Business fields are not visible');
+    expect(po.y).toBeLessThan(customer.y);
+    expect(customer.y).toBeLessThan(vendor.y);
+  }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

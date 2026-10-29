@@ -20,6 +20,7 @@ import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { createLink, Link, useNavigate } from '@tanstack/react-router';
 import { useCallback, useMemo, useState } from 'react';
 import { actionRules, useShipmentCommand } from './actions';
+import { shipmentTextFields } from './create-schema';
 import { followUpDue, followUpLabel, monitoringLabel, salesRepLabel } from './detail-model';
 import { MonitorAgainDialog } from './monitor-again-dialog';
 import type { Shipment } from './schemas';
@@ -281,7 +282,7 @@ export function ShipmentGrid({
   );
   const columnVisibilityModel = useMemo(
     () => ({
-      salesRep: !condensedTable,
+      salesRep: true,
       pickedUpOn: !condensedTable,
       followUpOn: !condensedTable,
       notes: !compactTable,
@@ -303,6 +304,12 @@ export function ShipmentGrid({
           </Box>
         ),
       },
+      ...shipmentTextFields.map(({ name, label }) => ({
+        field: name,
+        headerName: label,
+        width: name === 'poNumber' ? 150 : 180,
+        valueFormatter: (value: string | null) => value ?? '—',
+      })),
       {
         field: 'trackingReference',
         headerName: 'Tracking Number',
@@ -522,6 +529,14 @@ export function ShipmentGrid({
                   </Typography>
                 </Box>
               </Stack>
+              {shipmentTextFields.map(
+                ({ name, label }) =>
+                  row[name] && (
+                    <Typography key={name} variant="body2" sx={{ overflowWrap: 'anywhere' }}>
+                      {label}: {row[name]}
+                    </Typography>
+                  ),
+              )}
               {isUnseen(row.externalId) && (
                 <Chip
                   size="small"

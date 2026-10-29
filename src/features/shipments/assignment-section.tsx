@@ -13,10 +13,14 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { updateShipment } from './api';
+import { shipmentTextDraftSchema, shipmentTextFields } from './create-schema';
 import { manualStatuses, manualTrackingDraft, manualTrackingDraftSchema } from './manual-tracking';
 import type { Shipment } from './schemas';
 
 const assignmentSchema = z.strictObject({
+  poNumber: shipmentTextDraftSchema,
+  customer: shipmentTextDraftSchema,
+  vendor: shipmentTextDraftSchema,
   manualTracking: manualTrackingDraftSchema.optional(),
   salesRepExternalId: z.union([z.uuidv4(), z.literal('')]),
   followUpOn: z.union([z.iso.date(), z.literal('')]),
@@ -45,6 +49,9 @@ export function AssignmentSection({
     resolver: zodResolver(assignmentSchema),
     defaultValues: {
       manualTracking: shipment.carrier.code === 'other' ? manualTrackingDraft(shipment) : undefined,
+      poNumber: shipment.poNumber ?? '',
+      customer: shipment.customer ?? '',
+      vendor: shipment.vendor ?? '',
       salesRepExternalId: shipment.salesRep?.externalId ?? '',
       followUpOn: shipment.followUpOn ?? '',
     },
@@ -54,14 +61,25 @@ export function AssignmentSection({
     mutationKey: ['shipment-assignment', shipment.externalId],
     mutationFn: (input: AssignmentInput) =>
       updateShipment(session.client, shipment.externalId, {
-        manualTracking: shipment.carrier.code === 'other' ? input.manualTracking : undefined,
-        salesRepExternalId: input.salesRepExternalId || null,
-        followUpOn: input.followUpOn || null,
+        manualTracking:
+          shipment.carrier.code === 'other' && form.formState.dirtyFields.manualTracking
+            ? input.manualTracking
+            : undefined,
+        poNumber: form.formState.dirtyFields.poNumber ? input.poNumber : undefined,
+        customer: form.formState.dirtyFields.customer ? input.customer : undefined,
+        vendor: form.formState.dirtyFields.vendor ? input.vendor : undefined,
+        salesRepExternalId: form.formState.dirtyFields.salesRepExternalId
+          ? input.salesRepExternalId || null
+          : undefined,
+        followUpOn: form.formState.dirtyFields.followUpOn ? input.followUpOn || null : undefined,
       }),
     retry: false,
     onSuccess: async (updated) => {
       form.reset({
         manualTracking: updated.carrier.code === 'other' ? manualTrackingDraft(updated) : undefined,
+        poNumber: updated.poNumber ?? '',
+        customer: updated.customer ?? '',
+        vendor: updated.vendor ?? '',
         salesRepExternalId: updated.salesRep?.externalId ?? '',
         followUpOn: updated.followUpOn ?? '',
       });
@@ -89,6 +107,9 @@ export function AssignmentSection({
       form.reset({
         manualTracking:
           shipment.carrier.code === 'other' ? manualTrackingDraft(shipment) : undefined,
+        poNumber: shipment.poNumber ?? '',
+        customer: shipment.customer ?? '',
+        vendor: shipment.vendor ?? '',
         salesRepExternalId: shipment.salesRep?.externalId ?? '',
         followUpOn: shipment.followUpOn ?? '',
       });
@@ -114,8 +135,18 @@ export function AssignmentSection({
     <Paper component="section" aria-labelledby="assignment-title" variant="outlined" sx={{ p: 2 }}>
       <Stack component="form" aria-label="Edit shipment assignment" spacing={2} onSubmit={save}>
         <Typography id="assignment-title" component="h2" variant="h6">
-          {shipment.carrier.code === 'other' ? 'Manual shipment details' : 'Assignment & follow-up'}
+          {shipment.carrier.code === 'other' ? 'Manual shipment details' : 'Shipment details'}
         </Typography>
+        {shipmentTextFields.map(({ name, label }) => (
+          <TextField
+            key={name}
+            label={label}
+            {...form.register(name)}
+            disabled={disabled || mutation.isPending}
+            error={!!form.formState.errors[name]}
+            helperText={form.formState.errors[name]?.message ?? 'Optional'}
+          />
+        ))}
         <TextField
           select
           label="Assigned Sales Rep"

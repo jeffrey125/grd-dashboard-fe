@@ -27,6 +27,9 @@ test('adds one shipment inline, sends the single-item contract and keeps the car
       carrierExternalId: carrier.externalId,
       trackingReference: '001aB',
       notes: null,
+      poNumber: '001-A',
+      customer: 'Customer Inc',
+      vendor: 'Vendor Inc',
       salesRepExternalId: null,
       followUpOn: null,
     });
@@ -38,6 +41,9 @@ test('adds one shipment inline, sends the single-item contract and keeps the car
   await addForm(page).getByLabel('Carrier', { exact: true }).selectOption(carrier.externalId);
   await addForm(page).getByLabel('Tracking reference', { exact: true }).fill(' 001aB ');
   await addForm(page).getByLabel('Notes (optional)', { exact: true }).fill('   ');
+  await addForm(page).getByLabel('PO#', { exact: true }).fill(' 001-A ');
+  await addForm(page).getByLabel('Customer', { exact: true }).fill('Customer Inc');
+  await addForm(page).getByLabel('Vendor', { exact: true }).fill('Vendor Inc');
   await page
     .getByRole('button', { name: 'Add shipment', exact: true })
     .evaluate((button: HTMLButtonElement) => {

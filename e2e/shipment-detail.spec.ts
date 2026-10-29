@@ -458,3 +458,26 @@ test('failure-paused shipments explain Retry now and still respect carrier disab
   await expect(page.getByRole('button', { name: 'Retry now', exact: true })).toBeDisabled();
   await expect(page.getByText('Carrier is disabled.', { exact: true })).toBeVisible();
 });
+
+test('edits and clears shipment business fields', async ({ page }) => {
+  const state = await setup(page, {
+    poNumber: '0001',
+    customer: 'Original customer',
+    vendor: 'Original vendor',
+  });
+  await page.route('**/api/v1/sales-reps', (route) => route.fulfill({ json: [] }));
+  await open(page, state);
+  await page.getByLabel('PO#', { exact: true }).fill(' 0002-a ');
+  await page.getByLabel('Customer', { exact: true }).fill(' Updated customer ');
+  await page.getByLabel('Vendor', { exact: true }).fill('   ');
+  await page.getByRole('button', { name: 'Save assignment', exact: true }).click();
+  await expect(page.getByText('Shipment changes saved.', { exact: true })).toBeVisible();
+  expect(state.patches[0]).toEqual({
+    poNumber: '0002-a',
+    customer: 'Updated customer',
+    vendor: null,
+  });
+  await page.reload();
+  await expect(page.getByLabel('PO#', { exact: true })).toHaveValue('0002-a');
+  await expect(page.getByLabel('Vendor', { exact: true })).toHaveValue('');
+});

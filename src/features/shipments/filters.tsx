@@ -46,7 +46,9 @@ export function SearchBox({
       value={draft}
       onChange={(event) => setDraft(event.target.value)}
       error={!!error}
-      helperText={error ?? 'Search applies automatically after typing.'}
+      helperText={
+        error ?? 'Search reference, notes, PO#, customer or vendor. Applies automatically.'
+      }
       fullWidth
     />
   );

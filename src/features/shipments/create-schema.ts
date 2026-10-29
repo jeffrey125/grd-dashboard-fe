@@ -9,6 +9,13 @@ const literal = (max: number) =>
     .refine((value) => value.length <= max, `Use at most ${max} characters.`)
     .refine((value) => !value.includes('\0'), 'Remove null characters.');
 
+export const shipmentTextDraftSchema = literal(255).transform((value) => value || null);
+export const shipmentTextFields = [
+  { name: 'poNumber', label: 'PO#' },
+  { name: 'customer', label: 'Customer' },
+  { name: 'vendor', label: 'Vendor' },
+] as const;
+
 export const createShipmentSchema = z.strictObject({
   manualTracking: manualTrackingDraftSchema.optional(),
   carrierExternalId: z
@@ -18,6 +25,9 @@ export const createShipmentSchema = z.strictObject({
     (value) => value.length > 0,
     'Enter a tracking reference.',
   ),
+  poNumber: shipmentTextDraftSchema.optional(),
+  customer: shipmentTextDraftSchema.optional(),
+  vendor: shipmentTextDraftSchema.optional(),
   notes: literal(500).transform((value) => value || null),
   salesRepExternalId: z
     .union([z.uuidv4(), z.literal('')])
@@ -40,6 +50,9 @@ const fieldErrorsSchema = z.object({
         field: z.enum([
           'carrierExternalId',
           'trackingReference',
+          'poNumber',
+          'customer',
+          'vendor',
           'notes',
           'salesRepExternalId',
           'followUpOn',
@@ -66,6 +79,9 @@ export function shipmentValidationError(status: number, body: unknown) {
 export const fieldErrorMessages = {
   carrierExternalId: 'Carrier is unavailable. Choose an enabled carrier.',
   trackingReference: 'Check this tracking reference.',
+  poNumber: 'Use at most 255 characters.',
+  customer: 'Use at most 255 characters.',
+  vendor: 'Use at most 255 characters.',
   notes: 'Check these notes.',
   salesRepExternalId: 'Choose an active Sales Rep.',
   followUpOn: 'Choose today or a future date.',
