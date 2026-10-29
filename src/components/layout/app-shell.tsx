@@ -4,6 +4,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutlined';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import LockResetOutlinedIcon from '@mui/icons-material/LockResetOutlined';
@@ -230,6 +231,21 @@ export function AppShell({
       </Stack>
       <Box sx={{ flex: 1, overflowY: 'auto', px: 1.5 }}>{navigation}</Box>
       <Divider />
+      <List component="nav" aria-label="Help navigation" disablePadding sx={{ px: 1.5, pt: 1 }}>
+        <ListItem disablePadding sx={{ mb: 0.5 }}>
+          <ListItemButton
+            component={Link}
+            to="/help"
+            selected={pathname.startsWith('/help')}
+            onClick={() => setMobileOpen(false)}
+          >
+            <ListItemIcon>
+              <HelpOutlineIcon />
+            </ListItemIcon>
+            <ListItemText primary="Help" />
+          </ListItemButton>
+        </ListItem>
+      </List>
       <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', p: 1.5 }}>
         <Typography color="text.secondary" sx={{ fontSize: '0.75rem' }}>
           Appearance

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './../routes/__root';
 import { Route as IndexRouteImport } from './../routes/index';
 import { Route as ChangePasswordRouteImport } from './../routes/change-password';
+import { Route as HelpRouteImport } from './../routes/help';
 import { Route as LoginRouteImport } from './../routes/login';
 import { Route as QuotesRouteImport } from './../routes/quotes';
 import { Route as ShipmentsRouteImport } from './../routes/shipments';
@@ -35,6 +36,11 @@ const IndexRoute = IndexRouteImport.update({
 const ChangePasswordRoute = ChangePasswordRouteImport.update({
   id: '/change-password',
   path: '/change-password',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any);
 const LoginRoute = LoginRouteImport.update({
@@ -116,6 +122,7 @@ const AdminSalesRepsIndexRoute = AdminSalesRepsIndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/change-password': typeof ChangePasswordRoute;
+  '/help': typeof HelpRoute;
   '/login': typeof LoginRoute;
   '/quotes': typeof QuotesRouteWithChildren;
   '/shipments': typeof ShipmentsRouteWithChildren;
@@ -135,6 +142,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/change-password': typeof ChangePasswordRoute;
+  '/help': typeof HelpRoute;
   '/login': typeof LoginRoute;
   '/admin/shipping-providers': typeof AdminShippingProvidersRoute;
   '/quotes/$comparisonId': typeof QuotesComparisonIdRoute;
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   '/': typeof IndexRoute;
   '/change-password': typeof ChangePasswordRoute;
+  '/help': typeof HelpRoute;
   '/login': typeof LoginRoute;
   '/quotes': typeof QuotesRouteWithChildren;
   '/shipments': typeof ShipmentsRouteWithChildren;
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/change-password'
+    | '/help'
     | '/login'
     | '/quotes'
     | '/shipments'
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/change-password'
+    | '/help'
     | '/login'
     | '/admin/shipping-providers'
     | '/quotes/$comparisonId'
@@ -210,6 +221,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/change-password'
+    | '/help'
     | '/login'
     | '/quotes'
     | '/shipments'
@@ -230,6 +242,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   ChangePasswordRoute: typeof ChangePasswordRoute;
+  HelpRoute: typeof HelpRoute;
   LoginRoute: typeof LoginRoute;
   QuotesRoute: typeof QuotesRouteWithChildren;
   ShipmentsRoute: typeof ShipmentsRouteWithChildren;
@@ -256,6 +269,13 @@ declare module '@tanstack/react-router' {
       path: '/change-password';
       fullPath: '/change-password';
       preLoaderRoute: typeof ChangePasswordRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/help': {
+      id: '/help';
+      path: '/help';
+      fullPath: '/help';
+      preLoaderRoute: typeof HelpRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/login': {
@@ -398,6 +418,7 @@ const ShipmentsRouteWithChildren = ShipmentsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ChangePasswordRoute: ChangePasswordRoute,
+  HelpRoute: HelpRoute,
   LoginRoute: LoginRoute,
   QuotesRoute: QuotesRouteWithChildren,
   ShipmentsRoute: ShipmentsRouteWithChildren,

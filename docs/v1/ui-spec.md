@@ -342,3 +342,22 @@ Other shipments retain their manual-carrier behavior and omit automated lookup
 information. On mobile each group stacks naturally. `tab=audit` supports direct
 links/reload. Assignment drafts survive tab switches; note drafts retain explicit
 discard confirmation. History and its pagination remain available.
+
+## HELP-V1-001: dedicated Help page
+
+`/help` is a signed-in page linked from the main sidebar. Category links use
+`?category=getting-started|shipments|tracking|quotes|administration`. Getting Started
+is the default; unknown or unavailable categories offer a safe return link.
+Administration category/content is shown only to Admins, including direct category
+links. Quote Compare help follows the runtime feature flag.
+
+Guides include responsive screenshots with numbered HTML/CSS markers, matching
+explanations, searchable category text and an enlargement dialog. Shipments help
+includes the Other view and manual tracking workflow. All screenshot data is
+fictional; no production screenshots or credentials belong in these assets.
+
+To refresh screenshots after changing the UI: build the frontend, run
+`UPDATE_HELP_SCREENSHOTS=true pnpm exec playwright test e2e/help-capture.spec.ts --project=chromium --workers=1`,
+format `src/features/help/captures.json`, rebuild and run
+`pnpm exec playwright test e2e/help.spec.ts`. The capture test is skipped unless
+explicitly enabled. Review images, marker positions and guide wording together.
