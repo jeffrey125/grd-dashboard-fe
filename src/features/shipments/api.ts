@@ -103,6 +103,9 @@ export async function updateShipment(
       estimatedDeliveryOn: string | null;
     };
     poNumber?: string | null;
+    poNumbers?: string[];
+    soNumbers?: string[];
+    products?: string[];
     customer?: string | null;
     vendor?: string | null;
     salesRepExternalId?: string | null;

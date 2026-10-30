@@ -131,7 +131,7 @@ export const guides: Record<HelpCategory, Guide[]> = {
         },
         {
           title: 'Edit business details',
-          text: 'Update PO#, Customer, Vendor, Sales Rep or follow-up date, then save. Clear an optional text field and save to remove its value.',
+          text: 'Update PO#, SO, Product, Customer, Vendor, Sales Rep or follow-up date, then save. Press Enter after each PO, SO or product to add it. Remove a reference or product chip to clear that value.',
         },
         {
           title: 'Keep useful notes',
@@ -139,6 +139,8 @@ export const guides: Record<HelpCategory, Guide[]> = {
         },
       ],
       tips: [
+        'A shipment can have several POs, and a PO can cover several tracking numbers. Leave PO# empty when there is no PO. For warehouse stock, use PO# 0 and record the sales order under SO.',
+        'SO and Product appear in shipment details only; they are not monitoring-table columns. Include every product when a shipment contains several products.',
         'Carrier and tracking reference cannot be corrected through this editor.',
         'Delete shipment removes it from active views and stops monitoring. It is a soft deletion with no restore action in the app; adding the pair again creates a new record.',
         'A future follow-up date can keep delivered shipments monitored until that date starts in New York. Use Monitor again when available to restart monitoring.',

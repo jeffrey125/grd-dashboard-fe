@@ -3,6 +3,7 @@ import { useNotifications } from '@components/feedback/notification-provider';
 import { useSession } from '@features/auth';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { businessCalendarDate } from '@lib/dates';
+import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
@@ -10,15 +11,53 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { updateShipment } from './api';
 import { shipmentTextDraftSchema, shipmentTextFields } from './create-schema';
 import { manualStatuses, manualTrackingDraft, manualTrackingDraftSchema } from './manual-tracking';
 import type { Shipment } from './schemas';
 
+const detailListSchema = z
+  .array(
+    z
+      .string()
+      .trim()
+      .min(1)
+      .max(255)
+      .refine((value) => !value.includes('\0'), 'Remove null characters.'),
+  )
+  .max(100)
+  .transform((values) => [...new Set(values)].sort());
+const orderFields = [
+  {
+    name: 'poNumbers',
+    label: 'PO#',
+    help: 'Press Enter after each PO. Use 0 for warehouse stock; leave empty if there is no PO.',
+  },
+  {
+    name: 'soNumbers',
+    label: 'SO',
+    help: 'Press Enter after each sales order. Warehouse stock uses PO# 0 and its SO.',
+  },
+  {
+    name: 'products',
+    label: 'Product',
+    help: 'Press Enter after each product. Include every product in this shipment.',
+  },
+] as const;
+function orderDefaults(shipment: Shipment) {
+  return {
+    poNumbers: shipment.poNumbers ?? (shipment.poNumber ? [shipment.poNumber] : []),
+    soNumbers: shipment.soNumbers,
+    products: shipment.products,
+  };
+}
+
 const assignmentSchema = z.strictObject({
-  poNumber: shipmentTextDraftSchema,
+  poNumbers: detailListSchema,
+  soNumbers: detailListSchema,
+  products: detailListSchema,
   customer: shipmentTextDraftSchema,
   vendor: shipmentTextDraftSchema,
   manualTracking: manualTrackingDraftSchema.optional(),
@@ -49,7 +88,7 @@ export function AssignmentSection({
     resolver: zodResolver(assignmentSchema),
     defaultValues: {
       manualTracking: shipment.carrier.code === 'other' ? manualTrackingDraft(shipment) : undefined,
-      poNumber: shipment.poNumber ?? '',
+      ...orderDefaults(shipment),
       customer: shipment.customer ?? '',
       vendor: shipment.vendor ?? '',
       salesRepExternalId: shipment.salesRep?.externalId ?? '',
@@ -65,7 +104,9 @@ export function AssignmentSection({
           shipment.carrier.code === 'other' && form.formState.dirtyFields.manualTracking
             ? input.manualTracking
             : undefined,
-        poNumber: form.formState.dirtyFields.poNumber ? input.poNumber : undefined,
+        poNumbers: form.formState.dirtyFields.poNumbers ? input.poNumbers : undefined,
+        soNumbers: form.formState.dirtyFields.soNumbers ? input.soNumbers : undefined,
+        products: form.formState.dirtyFields.products ? input.products : undefined,
         customer: form.formState.dirtyFields.customer ? input.customer : undefined,
         vendor: form.formState.dirtyFields.vendor ? input.vendor : undefined,
         salesRepExternalId: form.formState.dirtyFields.salesRepExternalId
@@ -77,7 +118,7 @@ export function AssignmentSection({
     onSuccess: async (updated) => {
       form.reset({
         manualTracking: updated.carrier.code === 'other' ? manualTrackingDraft(updated) : undefined,
-        poNumber: updated.poNumber ?? '',
+        ...orderDefaults(updated),
         customer: updated.customer ?? '',
         vendor: updated.vendor ?? '',
         salesRepExternalId: updated.salesRep?.externalId ?? '',
@@ -107,7 +148,7 @@ export function AssignmentSection({
       form.reset({
         manualTracking:
           shipment.carrier.code === 'other' ? manualTrackingDraft(shipment) : undefined,
-        poNumber: shipment.poNumber ?? '',
+        ...orderDefaults(shipment),
         customer: shipment.customer ?? '',
         vendor: shipment.vendor ?? '',
         salesRepExternalId: shipment.salesRep?.externalId ?? '',
@@ -137,16 +178,62 @@ export function AssignmentSection({
         <Typography id="assignment-title" component="h2" variant="h6">
           {shipment.carrier.code === 'other' ? 'Manual shipment details' : 'Shipment details'}
         </Typography>
-        {shipmentTextFields.map(({ name, label }) => (
-          <TextField
+        {orderFields.map(({ name, label, help }) => (
+          <Controller
             key={name}
-            label={label}
-            {...form.register(name)}
-            disabled={disabled || mutation.isPending}
-            error={!!form.formState.errors[name]}
-            helperText={form.formState.errors[name]?.message ?? 'Optional'}
+            name={name}
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Autocomplete
+                multiple
+                freeSolo
+                autoSelect
+                slotProps={{
+                  chip: {
+                    sx: {
+                      height: 'auto',
+                      maxWidth: '100%',
+                      '& .MuiChip-label': {
+                        whiteSpace: 'normal',
+                        overflowWrap: 'anywhere',
+                        py: 0.5,
+                      },
+                    },
+                  },
+                }}
+                options={[] as string[]}
+                value={field.value}
+                onChange={(_event, values) => field.onChange(values)}
+                onBlur={field.onBlur}
+                disabled={disabled || mutation.isPending}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label={label}
+                    inputRef={field.ref}
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message ?? help}
+                  />
+                )}
+              />
+            )}
           />
         ))}
+        {shipmentTextFields
+          .filter(
+            (field): field is Exclude<typeof field, { name: 'poNumber' }> =>
+              field.name !== 'poNumber',
+          )
+          .map(({ name, label }) => (
+            <TextField
+              key={name}
+              label={label}
+              {...form.register(name)}
+              disabled={disabled || mutation.isPending}
+              error={!!form.formState.errors[name]}
+              helperText={form.formState.errors[name]?.message ?? 'Optional'}
+            />
+          ))}
         <TextField
           select
           label="Assigned Sales Rep"

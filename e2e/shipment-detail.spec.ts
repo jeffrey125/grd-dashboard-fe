@@ -39,7 +39,12 @@ async function setup(page: Page, overrides: Partial<Shipment> = {}) {
       state.patches.push(route.request().postDataJSON());
       if (state.delaySave) await new Promise((done) => setTimeout(done, 400));
       if (state.saveFailure) return route.fulfill({ status: 500, json: { message: 'private' } });
-      state.row = { ...state.row, ...route.request().postDataJSON() };
+      const patch = route.request().postDataJSON();
+      state.row = {
+        ...state.row,
+        ...patch,
+        ...(patch.poNumbers ? { poNumber: patch.poNumbers.join(', ') || null } : {}),
+      };
     } else if (route.request().method() === 'DELETE') {
       state.deleteCount++;
       state.missing = true;
@@ -472,18 +477,20 @@ test('edits and clears shipment business fields', async ({ page }) => {
   });
   await page.route('**/api/v1/sales-reps', (route) => route.fulfill({ json: [] }));
   await open(page, state);
-  await page.getByLabel('PO#', { exact: true }).fill(' 0002-a ');
+  await page.getByRole('button', { name: '0001', exact: true }).press('Delete');
+  await page.getByLabel('PO#', { exact: true }).fill('0002-a');
+  await page.getByLabel('PO#', { exact: true }).press('Enter');
   await page.getByLabel('Customer', { exact: true }).fill(' Updated customer ');
   await page.getByLabel('Vendor', { exact: true }).fill('   ');
   await page.getByRole('button', { name: 'Save assignment', exact: true }).click();
   await expect(page.getByText('Shipment changes saved.', { exact: true })).toBeVisible();
   expect(state.patches[0]).toEqual({
-    poNumber: '0002-a',
+    poNumbers: ['0002-a'],
     customer: 'Updated customer',
     vendor: null,
   });
   await page.reload();
-  await expect(page.getByLabel('PO#', { exact: true })).toHaveValue('0002-a');
+  await expect(page.getByRole('button', { name: '0002-a', exact: true })).toBeVisible();
   await expect(page.getByLabel('Vendor', { exact: true })).toHaveValue('');
 });
 
@@ -542,4 +549,56 @@ test('separates Overview and Audit with equal-height desktop cards and persisten
     path: `/tmp/grd-audit-tab-${testInfo.project.name}.png`,
     fullPage: true,
   });
+});
+
+test('saves warehouse SOs and products in details, preserves PO 0, and clears lists explicitly', async ({
+  page,
+}) => {
+  const state = await setup(page, {
+    poNumber: '0',
+    poNumbers: ['0'],
+    soNumbers: ['00123'],
+    products: ['Cacao, Powder', 'Organic oats'],
+  });
+  await page.route('**/api/v1/sales-reps', (route) => route.fulfill({ json: [] }));
+  await open(page, state);
+  const details = page.getByRole('region', { name: 'Shipment details', exact: true });
+  await expect(details.getByRole('button', { name: '0', exact: true })).toBeVisible();
+  await expect(details.getByRole('button', { name: '00123', exact: true })).toBeVisible();
+  await expect(details.getByRole('button', { name: 'Cacao, Powder', exact: true })).toBeVisible();
+  await details.getByLabel('SO', { exact: true }).fill('00456');
+  await details.getByLabel('SO', { exact: true }).press('Enter');
+  await details.getByLabel('Product', { exact: true }).fill('New ingredient');
+  await details.getByLabel('Product', { exact: true }).press('Enter');
+  await details.getByRole('button', { name: 'Save assignment', exact: true }).click();
+  await expect(page.getByText('Shipment changes saved.', { exact: true })).toBeVisible();
+  expect(state.patches[0]).toEqual({
+    soNumbers: ['00123', '00456'],
+    products: ['Cacao, Powder', 'New ingredient', 'Organic oats'],
+  });
+  expect(state.row.poNumber).toBe('0');
+  await page.reload();
+  await expect(details.getByRole('button', { name: '00456', exact: true })).toBeVisible();
+  for (const value of ['00123', '00456', 'Cacao, Powder', 'New ingredient', 'Organic oats'])
+    await details.getByRole('button', { name: value, exact: true }).press('Delete');
+  await details.getByRole('button', { name: 'Save assignment', exact: true }).click();
+  await expect.poll(() => state.patches.length).toBe(2);
+  expect(state.patches[1]).toEqual({ soNumbers: [], products: [] });
+});
+
+test('keeps all PO associations when only assignment fields change', async ({ page }) => {
+  const state = await setup(page, {
+    poNumber: '001, 002',
+    poNumbers: ['001', '002'],
+    products: ['Organic oats'],
+  });
+  await page.route('**/api/v1/sales-reps', (route) => route.fulfill({ json: [] }));
+  await open(page, state);
+  await expect(page.getByRole('button', { name: '001', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '002', exact: true })).toBeVisible();
+  await page.getByLabel('Customer', { exact: true }).fill('Customer A');
+  await page.getByRole('button', { name: 'Save assignment', exact: true }).click();
+  await expect.poll(() => state.patches.length).toBe(1);
+  expect(state.patches[0]).toEqual({ customer: 'Customer A' });
+  expect(state.row.poNumbers).toEqual(['001', '002']);
 });

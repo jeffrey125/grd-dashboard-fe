@@ -15,7 +15,10 @@ test('capture fictional help screenshots', async ({ page }) => {
   const actor = { ...accountFixture, firstName: 'Jordan', lastName: 'Example' };
   const row = shipmentFixture(1, {
     trackingReference: 'DEMO-001',
-    poNumber: 'PO-001',
+    poNumber: 'PO-001, PO-002',
+    poNumbers: ['PO-001', 'PO-002'],
+    soNumbers: ['SO-001'],
+    products: ['Example organic flour', 'Example spice blend'],
     customer: 'Example Foods',
     vendor: 'Sample Ingredients',
     notes: 'Example shipment for the help guide.',
@@ -86,7 +89,19 @@ test('capture fictional help screenshots', async ({ page }) => {
     ],
   ];
   for (const [url, json] of mocks) await page.route(url, (route) => route.fulfill({ json }));
+  const region = (name: string) => page.getByRole('region', { name, exact: true });
   const captures: Record<string, unknown> = {};
+  if (process.env.HELP_CAPTURE_DETAILS_ONLY === 'true') {
+    await page.goto(`/shipments/${row.externalId}`);
+    await capture('details', [region('Tracking'), region('Shipment details'), region('Notes')]);
+    const { readFile } = await import('node:fs/promises');
+    const previous = JSON.parse(await readFile('src/features/help/captures.json', 'utf8'));
+    await writeFile(
+      'src/features/help/captures.json',
+      `${JSON.stringify({ ...previous, ...captures }, null, 2)}\n`,
+    );
+    return;
+  }
   await mkdir('public/help/screenshots', { recursive: true });
   async function capture(name: string, targets: Locator[]) {
     const main = page.getByRole('main');
@@ -115,7 +130,7 @@ test('capture fictional help screenshots', async ({ page }) => {
       element.style.minHeight = previous;
     }, previousMinHeight);
   }
-  const region = (name: string) => page.getByRole('region', { name, exact: true });
+
   await page.goto('/');
   await capture('overview', [
     page.getByRole('link', { name: 'All shipments: 1200' }),
