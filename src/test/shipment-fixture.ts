@@ -11,6 +11,8 @@ export function shipmentFixture(index = 1, overrides: Partial<Shipment> = {}): S
     },
     trackingReference: `000${index}`,
     poNumber: null,
+    soNumbers: [],
+    products: [],
     customer: null,
     vendor: null,
     notes: null,

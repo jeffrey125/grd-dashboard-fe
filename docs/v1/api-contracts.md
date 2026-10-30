@@ -575,3 +575,17 @@ The list displays email on desktop and mobile. Backend migration
 `1793577600000-SalesRepEmails` backfills the nine confirmed representatives.
 Deploy the matching backend first and coordinate the frontend rollout: old create
 requests without email return 400. Filter-options remains unchanged.
+
+## SHIP-V1-002: order details
+
+Shipment records add `poNumbers`, `soNumbers`, and `products` string arrays.
+Details PATCH sends only changed lists; omission preserves them and `[]` clears
+them. Each list accepts up to 100 trimmed, nonempty, NUL-free values of at most 255
+characters. The API sorts and deduplicates entries. Do not split product names or
+PO identifiers on punctuation. Keep the existing `poNumber` summary for the
+monitoring grid; use `poNumbers` for editing. Do not submit both PO input forms.
+Warehouse stock has PO# `0` with its SO stored separately. SO and Product appear
+only in shipment details, with the existing dirty-form and save protections.
+The frontend tolerates absent SO/Product arrays during rollout and falls back to
+one opaque legacy PO value when the API omits `poNumbers`. Deploy the new API and
+migration before enabling list edits; older APIs cannot accept the new fields.

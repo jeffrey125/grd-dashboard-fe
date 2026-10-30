@@ -27,6 +27,9 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
         carrierExternalId: carrier.externalId,
         trackingReference: `fe-detail-${origin.slice(-4)}-${Date.now()}`,
         notes: 'Original note',
+        poNumbers: ['0'],
+        soNumbers: ['00123'],
+        products: ['Cacao, Powder', 'Organic oats'],
       },
     });
     expect(creation.status()).toBe(201);
@@ -42,6 +45,27 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
       await expect(
         page.getByRole('heading', { name: shipment.trackingReference, exact: true }),
       ).toBeVisible();
+      const details = page.getByRole('region', { name: 'Shipment details', exact: true });
+      await expect(details.getByRole('button', { name: '0', exact: true })).toBeVisible();
+      await expect(
+        details.getByRole('button', { name: 'Cacao, Powder', exact: true }),
+      ).toBeVisible();
+      await details.getByLabel('SO', { exact: true }).fill('00456');
+      await details.getByLabel('SO', { exact: true }).press('Enter');
+      await details.getByLabel('Product', { exact: true }).fill('New ingredient');
+      await details.getByLabel('Product', { exact: true }).press('Enter');
+      await details.getByRole('button', { name: 'Save assignment', exact: true }).click();
+      await expect(page.getByText('Shipment changes saved.', { exact: true })).toBeVisible();
+      const persisted = await (
+        await context.request.get(`${api}/shipments/${shipment.externalId}`)
+      ).json();
+      expect(persisted).toMatchObject({
+        poNumber: '0',
+        poNumbers: ['0'],
+        soNumbers: ['00123', '00456'],
+        products: ['Cacao, Powder', 'New ingredient', 'Organic oats'],
+      });
+      await dismissToast();
       await page.getByRole('button', { name: 'Edit notes' }).click();
       await page.getByRole('textbox', { name: 'Notes', exact: true }).fill('My unsaved note');
       expect(
@@ -96,6 +120,7 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
       const accepted = await refreshResponse;
       expect(accepted.status()).toBe(202);
       const queued = await accepted.json();
+      await page.getByRole('tab', { name: 'Audit', exact: true }).click();
       await expect(
         page
           .getByRole('region', { name: /Your refresh/ })
@@ -108,6 +133,7 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
       expect((await coalesced.json()).externalId).toBe(queued.externalId);
       await dismissToast();
 
+      await page.getByRole('tab', { name: 'Overview', exact: true }).click();
       // Live 404 removes the detail and draft, without another page reload.
       await page.getByRole('button', { name: 'Edit notes' }).click();
       await page.getByRole('textbox', { name: 'Notes', exact: true }).fill('Draft before deletion');
@@ -155,7 +181,7 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
       };
       for (const status of ['running', 'succeeded', 'partially_succeeded', 'failed', 'cancelled']) {
         const row = await find(`fe-detail-${status}`);
-        await page.goto(`${origin}/shipments/${row.externalId}`);
+        await page.goto(`${origin}/shipments/${row.externalId}?tab=audit`);
         await expect(
           page
             .getByRole('region', { name: 'Latest run', exact: true })
@@ -185,6 +211,7 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
         ).status(),
       ).toBe(409);
       await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+      await page.getByRole('tab', { name: 'Audit', exact: true }).click();
       await expect(page.getByRole('region', { name: /Your refresh/ })).toBeVisible();
       const delivered = await find('fe-list-0951');
       await page.goto(`${origin}/shipments/${delivered.externalId}`);
