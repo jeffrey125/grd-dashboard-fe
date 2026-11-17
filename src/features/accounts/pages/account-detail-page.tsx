@@ -4,6 +4,7 @@ import { AccessActions } from '@features/accounts/access-actions';
 import { AccountEditor } from '@features/accounts/account-editor';
 import { getAccount } from '@features/accounts/api';
 import { useSession } from '@features/auth';
+import { UpcomingAssignments } from '@features/upcoming-shipments';
 import { businessTimestamp } from '@lib/dates';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -111,6 +112,7 @@ function AccountDetail({ accountId }: { accountId: string }) {
             </Stack>
           </Paper>
           <AccessActions account={account} disabled={editing} />
+          <UpcomingAssignments accountId={account.externalId} />
         </>
       )}
     </Stack>
