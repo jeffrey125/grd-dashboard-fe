@@ -56,8 +56,11 @@ test('overview shows first five, date selection, and stale warning; unassigned s
   await expect(section.getByText('Showing 5 of 25 orders')).toBeVisible();
   await expect(section.locator('[data-order-id]')).toHaveCount(5);
   await expect(section.getByText(/Showing the last successful data/)).toBeVisible();
+  const filledHeight = await section.evaluate((element) => element.getBoundingClientRect().height);
   await section.getByRole('button', { name: /Tue Nov 17/ }).click();
   await expect(section.getByText('No upcoming shipments for this date.')).toBeVisible();
+  const emptyHeight = await section.evaluate((element) => element.getBoundingClientRect().height);
+  expect(Math.abs(emptyHeight - filledHeight)).toBeLessThan(1);
   await installUpcomingFixture(page, { enabled: false });
   await page.reload();
   await expect(section).toHaveCount(0);

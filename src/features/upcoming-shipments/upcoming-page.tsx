@@ -8,6 +8,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
 import Paper from '@mui/material/Paper';
+import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
@@ -79,9 +80,10 @@ function UpcomingView({ mode }: { mode: 'week' | 'month' | 'admin' }) {
   const data = query.data;
   if (!data) {
     if (mode === 'week' && !access.data?.enabled) return null;
+    if (!query.isError && !access.isError) return <UpcomingSkeleton mode={mode} />;
     return (
       <Alert
-        severity={query.isError || access.isError ? 'error' : 'info'}
+        severity="error"
         action={
           <Button
             onClick={() => {
@@ -93,9 +95,7 @@ function UpcomingView({ mode }: { mode: 'week' | 'month' | 'admin' }) {
           </Button>
         }
       >
-        {query.isError || access.isError
-          ? 'Upcoming shipments could not be loaded.'
-          : 'Loading upcoming shipments…'}
+        Upcoming shipments could not be loaded.
       </Alert>
     );
   }
@@ -154,10 +154,68 @@ function UpcomingView({ mode }: { mode: 'week' | 'month' | 'admin' }) {
           setRep={setRep}
         />
         {mode === 'week' && (
-          <Button component={Link} to="/upcoming-shipments" variant="outlined">
+          <Button component={Link} to="/upcoming-shipments" variant="contained">
             Open monthly calendar
           </Button>
         )}
+      </Stack>
+    </Paper>
+  );
+}
+
+function UpcomingSkeleton({ mode }: { mode: 'week' | 'month' | 'admin' }) {
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const animation = reducedMotion ? false : 'pulse';
+  return (
+    <Paper
+      variant="outlined"
+      role="status"
+      aria-label="Loading upcoming shipments"
+      aria-busy="true"
+      sx={{ p: { xs: 2, md: 3 }, minWidth: 0 }}
+    >
+      <Stack spacing={2} aria-hidden="true">
+        <Box>
+          <Skeleton animation={animation} width="45%" height={32} />
+          <Skeleton animation={animation} width="30%" height={20} />
+        </Box>
+        <Skeleton animation={animation} width="55%" height={20} />
+        <Skeleton
+          animation={animation}
+          variant="rounded"
+          width="100%"
+          height={40}
+          sx={{ maxWidth: 320 }}
+        />
+        {mode === 'month' ? (
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 1 }}>
+            {Array.from({ length: 35 }, (_, index) => `placeholder-${index}`).map((id) => (
+              <Skeleton key={id} animation={animation} variant="rounded" height={96} />
+            ))}
+          </Box>
+        ) : (
+          <>
+            <Stack direction="row" spacing={1} sx={{ overflow: 'hidden' }}>
+              {Array.from({ length: 7 }, (_, index) => `placeholder-${index}`).map((id) => (
+                <Skeleton
+                  key={id}
+                  animation={animation}
+                  variant="rounded"
+                  width={72}
+                  height={76}
+                  sx={{ flexShrink: 0 }}
+                />
+              ))}
+            </Stack>
+            <Stack spacing={1} sx={{ height: mode === 'week' ? '34rem' : undefined }}>
+              <Skeleton animation={animation} width={140} height={20} />
+              {Array.from({ length: 5 }, (_, index) => `placeholder-${index}`).map((id) => (
+                <Skeleton key={id} animation={animation} variant="rounded" height={94} />
+              ))}
+            </Stack>
+          </>
+        )}
+        {mode === 'week' && <Skeleton animation={animation} variant="rounded" height={36} />}
       </Stack>
     </Paper>
   );
@@ -278,8 +336,7 @@ function ShipmentViews({
           sx={{
             display: 'grid',
             gap: 2,
-            gridTemplateColumns:
-              mode === 'week' && !mobile ? 'minmax(0,1fr) minmax(0,1.6fr)' : 'minmax(0,1fr)',
+            gridTemplateColumns: 'minmax(0,1fr)',
           }}
         >
           <Box sx={{ minWidth: 0 }}>
@@ -290,13 +347,20 @@ function ShipmentViews({
               selected={selected}
               onDate={setSelected}
             />
-            {mode === 'week' && !mobile && (
-              <Typography color="text.secondary" sx={{ mt: 2 }}>
-                Choose a date to see its requested shipments.
-              </Typography>
-            )}
           </Box>
-          <Box>
+          <Box
+            sx={
+              mode === 'week'
+                ? {
+                    height: '34rem',
+                    minWidth: 0,
+                    overflowY: 'auto',
+                    scrollbarGutter: 'stable',
+                    pr: 0.5,
+                  }
+                : undefined
+            }
+          >
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               Showing {mode === 'week' ? Math.min(5, selectedOrders.length) : selectedOrders.length}{' '}
               of {selectedOrders.length} orders

@@ -33,17 +33,43 @@ export function ShipmentCalendar({
         '--fc-today-bg-color': 'transparent',
         '--fc-event-text-color': 'var(--grd-palette-text-primary)',
         '& .fc': { fontFamily: 'inherit', fontSize: compact ? 12 : 14 },
-        '& .fc-daygrid-day-top': { flexDirection: 'row' },
+        '& .fc-scrollgrid': { borderRadius: 2, overflow: 'hidden' },
+        '& .fc-col-header-cell': { bgcolor: 'action.hover', py: 1 },
+        '& .fc-col-header-cell-cushion': { color: 'text.secondary', fontWeight: 600 },
+        '& .fc-daygrid-day-frame': { minHeight: compact ? 52 : 96 },
+        '& .fc-day-sat, & .fc-day-sun': { bgcolor: 'action.hover' },
+        '& .fc-day-disabled': { bgcolor: 'action.disabledBackground' },
+        '& .fc-daygrid-day-top': { flexDirection: 'row', px: compact ? 0 : 0.5 },
         '& .fc-daygrid-day-number': { width: '100%', p: 0 },
         '& .fc-daygrid-event': {
           cursor: 'pointer',
           color: 'text.primary',
           bgcolor: 'action.hover',
           border: 0,
-          p: 0.5,
+          borderLeft: '3px solid',
+          borderColor: 'primary.main',
+          borderRadius: 1,
+          mx: 0.75,
+          mb: 0.5,
+          px: 1,
+          py: 1,
+          fontSize: 12,
+          lineHeight: 1.4,
           whiteSpace: 'normal',
+          '&:hover': { bgcolor: 'action.selected' },
+          '&:focus-visible': {
+            outline: '2px solid',
+            outlineColor: 'primary.main',
+            outlineOffset: 2,
+          },
         },
-        '& .fc-daygrid-more-link': { color: 'primary.main' },
+        '& .fc-daygrid-more-link': {
+          color: 'primary.main',
+          fontWeight: 600,
+          mx: 1,
+          px: 0.5,
+          py: 0.5,
+        },
         '& .fc-daygrid-day-events': { display: compact ? 'none' : undefined },
       }}
     >
@@ -74,8 +100,35 @@ export function ShipmentCalendar({
                 title: order.customer,
                 start: order.requestedShipOn,
                 allDay: true,
+                extendedProps: {
+                  purchaseOrders: [
+                    ...new Set(
+                      order.lines
+                        .map((line) => line.purchaseOrder)
+                        .filter((po): po is string => po !== null && po !== ''),
+                    ),
+                  ],
+                },
               }))
         }
+        eventContent={({ event }) => (
+          <Box sx={{ minWidth: 0, overflow: 'hidden' }}>
+            <Typography
+              component="div"
+              sx={{ fontSize: 14, fontWeight: 700, color: 'primary.main', lineHeight: 1.5 }}
+            >
+              {event.extendedProps.purchaseOrders.length
+                ? `PO# ${event.extendedProps.purchaseOrders.join(', ')}`
+                : 'PO# not assigned'}
+            </Typography>
+            <Typography
+              component="div"
+              sx={{ fontSize: 13, lineHeight: 1.5, overflowWrap: 'anywhere' }}
+            >
+              {event.title}
+            </Typography>
+          </Box>
+        )}
         eventClick={({ event }) => {
           if (event.startStr) onDate(event.startStr);
         }}
@@ -101,9 +154,32 @@ export function ShipmentCalendar({
                 event.stopPropagation();
                 onDate(date);
               }}
-              sx={{ minWidth: 0, minHeight: 44 }}
+              sx={{
+                minWidth: 0,
+                minHeight: 44,
+                justifyContent: compact ? 'center' : 'flex-start',
+                px: compact ? 0.5 : 1,
+                color: compact && date === selected ? undefined : 'text.primary',
+                fontWeight: 600,
+                '&.Mui-disabled': { color: 'text.disabled' },
+              }}
             >
-              {info.dayNumberText}
+              <Box
+                component="span"
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  ...(date === from && !(compact && date === selected)
+                    ? { bgcolor: 'primary.main', color: 'primary.contrastText' }
+                    : {}),
+                }}
+              >
+                {info.dayNumberText}
+              </Box>
               {compact && count > 0 ? ' ·' : ''}
             </Button>
           );
