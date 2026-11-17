@@ -10,6 +10,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { useRef } from 'react';
 import type { UpcomingOrder } from './api';
+import { ShipmentFiles } from './shipment-files';
 
 export function OrderList({
   orders,
@@ -91,6 +92,7 @@ function OrderDetails({ order }: { order: UpcomingOrder }) {
           {line.origin && <Typography variant="body2">FOB: {line.origin}</Typography>}
         </Box>
       ))}
+      <ShipmentFiles key={order.id} orderId={order.id} />
       {order.notes && (
         <Box>
           <Typography sx={{ fontWeight: 650 }}>Notes</Typography>

@@ -52,6 +52,9 @@ export async function installUpcomingFixture(
   await page.route('**/api/v1/auth/me', (route) =>
     route.fulfill({ json: { ...accountFixture, role: admin ? 'admin' : 'staff' } }),
   );
+  await page.route('**/api/v1/upcoming-shipments/*/files', (route) =>
+    route.fulfill({ json: { files: [] } }),
+  );
   await page.route('**/api/v1/upcoming-shipments/access', (route) =>
     route.fulfill({ json: access }),
   );
