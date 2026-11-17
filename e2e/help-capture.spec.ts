@@ -91,6 +91,52 @@ test('capture fictional help screenshots', async ({ page }) => {
   for (const [url, json] of mocks) await page.route(url, (route) => route.fulfill({ json }));
   const region = (name: string) => page.getByRole('region', { name, exact: true });
   const captures: Record<string, unknown> = {};
+  if (process.env.HELP_CAPTURE_MONITOR_ONLY === 'true') {
+    row.monitoringStatus = 'completed';
+    row.monitoringReason = 'delivered';
+    row.nextCheckAt = null;
+    row.followUpOn = '2099-12-31';
+    if (!row.currentTracking) throw new Error('Missing fictional tracking snapshot');
+    row.currentTracking = {
+      ...row.currentTracking,
+      carrierStatus: 'Delivered',
+      deliveredOn: '2026-10-20',
+    };
+    await page.goto(`/shipments/${row.externalId}`);
+    await page.getByRole('button', { name: 'Monitor again', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Monitor again' });
+    await expect(dialog).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    const box = await dialog.boundingBox();
+    if (!box) throw new Error('Missing dialog bounds');
+    const markers = [];
+    for (const target of [
+      dialog.getByRole('heading', { name: 'Monitor again', exact: true }),
+      dialog.locator('#monitor-again-description'),
+      dialog.getByRole('button', { name: 'Check once', exact: true }),
+    ]) {
+      const b = await target.boundingBox();
+      if (!b) throw new Error('Missing monitor marker');
+      markers.push({
+        x: (32 / (box.width + 64)) * 100,
+        y: ((b.y - box.y + 12) / box.height) * 100,
+      });
+    }
+    // Leave a gutter for fixed-size markers so they cannot cover text on mobile.
+    await page.addStyleTag({ content: '#root { visibility: hidden !important; }' });
+    await page.screenshot({
+      path: 'public/help/screenshots/monitor-again.png',
+      clip: { x: box.x - 64, y: box.y, width: box.width + 64, height: box.height },
+      animations: 'disabled',
+    });
+    const { readFile } = await import('node:fs/promises');
+    const previous = JSON.parse(await readFile('src/features/help/captures.json', 'utf8'));
+    await writeFile(
+      'src/features/help/captures.json',
+      `${JSON.stringify({ ...previous, 'monitor-again': { width: box.width + 64, height: box.height, markers } }, null, 2)}\n`,
+    );
+    return;
+  }
   if (process.env.HELP_CAPTURE_DETAILS_ONLY === 'true') {
     await page.goto(`/shipments/${row.externalId}`);
     await capture('details', [region('Tracking'), region('Shipment details'), region('Notes')]);

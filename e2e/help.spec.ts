@@ -83,6 +83,16 @@ test('admins can read Administration guides; all guide screenshots load', async 
         .toBe(true);
     }
   }
+  await page.goto('/help?category=tracking');
+  const monitorGuide = page.locator('#monitor-once-content');
+  await expect(monitorGuide.getByRole('img')).toBeVisible();
+  await expect(monitorGuide.locator('figure div[aria-hidden="true"]')).toHaveText(['1', '2', '3']);
+  await expect(monitorGuide.getByText('Select Check once', { exact: true })).toBeVisible();
+  await page.screenshot({
+    path: `/tmp/grd-help-monitor-${test.info().project.name}.png`,
+    fullPage: true,
+  });
+  await page.goto('/help?category=administration');
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Administration', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

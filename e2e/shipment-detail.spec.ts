@@ -356,9 +356,7 @@ test('action availability follows manual pause, threshold pause, delivery and di
   state.row.monitoringStatus = 'completed';
   state.row.monitoringReason = 'delivered';
   await emit(page, state.row.externalId);
-  await expect(
-    page.getByText('Set a future follow-up date to monitor this delivered shipment.'),
-  ).toBeVisible();
+  await expect(page.getByText('Use Monitor again for a one-time carrier check.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeDisabled();
   state.row.monitoringStatus = 'active';
   state.row.monitoringReason = null;
@@ -602,3 +600,67 @@ test('keeps all PO associations when only assignment fields change', async ({ pa
   expect(state.patches[0]).toEqual({ customer: 'Customer A' });
   expect(state.row.poNumbers).toEqual(['001', '002']);
 });
+
+for (const reducedMotion of [false, true]) {
+  test(`Monitor again checks once, preserves delivery and supports dismissal (reduced motion: ${reducedMotion})`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: reducedMotion ? 'reduce' : 'no-preference' });
+    const state = await setup(page, {
+      monitoringStatus: 'completed',
+      monitoringReason: 'delivered',
+      followUpOn: '2099-12-31',
+      nextCheckAt: null,
+      currentTracking: {
+        externalId: '33333333-3333-4333-8333-333333333333',
+        carrierStatus: 'Delivered',
+        carrierStatusDetail: null,
+        pickedUpOn: null,
+        estimatedDeliveryOn: null,
+        deliveredOn: '2026-11-16',
+        observedAt: '2026-11-16T18:00:00Z',
+      },
+    });
+    let requests = 0;
+    await page.route('**/api/v1/shipments/*/refresh', async (route) => {
+      requests++;
+      expect(route.request().method()).toBe('POST');
+      expect(route.request().postDataJSON()).toEqual({});
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      await route.fulfill({ status: 202, json: state.runs[0] });
+    });
+    await open(page, state);
+    const button = page.getByRole('button', { name: 'Monitor again', exact: true });
+    const dialog = page.getByRole('dialog', { name: 'Monitor again' });
+    await button.click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText(/does not change the follow-up date/)).toBeVisible();
+    expect(
+      await page
+        .locator('.MuiDialog-container')
+        .evaluate((element) => (element as HTMLElement).style.transitionDuration),
+    ).toBe(reducedMotion ? '0ms' : '320ms');
+    await expect(dialog.getByLabel('Follow-up date')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(button).toBeFocused();
+    expect(requests).toBe(0);
+    await button.click();
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(dialog).toBeHidden();
+    await button.click();
+    const confirm = dialog.getByRole('button', { name: 'Check once', exact: true });
+    await confirm.click();
+    await expect(dialog.getByRole('button', { name: 'Requesting…', exact: true })).toBeDisabled();
+    await expect(dialog).toBeHidden();
+    expect(requests).toBe(1);
+    expect(state.patches).toEqual([]);
+    expect(state.row).toMatchObject({
+      monitoringStatus: 'completed',
+      followUpOn: '2099-12-31',
+      nextCheckAt: null,
+    });
+    await page.getByRole('tab', { name: 'Audit', exact: true }).click();
+    await expect(page.getByRole('region', { name: /^Your refresh/ })).toBeVisible();
+  });
+}

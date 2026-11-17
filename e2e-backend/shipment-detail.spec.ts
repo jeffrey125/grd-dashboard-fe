@@ -222,7 +222,7 @@ for (const origin of ['http://localhost:4175', 'http://localhost:4176']) {
             headers,
           })
         ).status(),
-      ).toBe(409);
+      ).toBe(202);
 
       const login = await request.post(`${api}/auth/sign-in`, {
         headers,

@@ -26,7 +26,7 @@ it('distinguishes manual pause, threshold pause, delivery and disabled carriers'
   expect(actionRules(row)).toMatchObject({ refresh: 'Carrier is disabled.', pause: true });
 });
 
-it('permits active delivered checks only before the follow-up date', () => {
+it('stops automatic checks for known delivery regardless of follow-up date', () => {
   const row = shipmentFixture();
   row.currentTracking = {
     externalId: '00000000-0000-4000-8000-000000000002',
@@ -38,9 +38,13 @@ it('permits active delivered checks only before the follow-up date', () => {
     observedAt: '2026-01-01T12:00:00.000Z',
   };
   row.followUpOn = '9999-12-31';
-  expect(actionRules(row).refresh).toBeUndefined();
+  expect(actionRules(row)).toMatchObject({
+    refresh: 'Use Monitor again for a one-time carrier check.',
+    pause: false,
+    resume: false,
+  });
   row.followUpOn = null;
-  expect(actionRules(row).refresh).toContain('future follow-up');
+  expect(actionRules(row).refresh).toContain('Monitor again');
   row.monitoringStatus = 'paused';
   row.monitoringReason = 'manual';
   expect(actionRules(row).resume).toBe(false);
