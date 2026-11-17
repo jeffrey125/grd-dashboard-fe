@@ -128,7 +128,7 @@ export function AppShell({
             {shipmentsOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </ListItemButton>
         </ListItem>
-        <Collapse in={shipmentsOpen} timeout="auto" unmountOnExit>
+        <Collapse in={shipmentsOpen} unmountOnExit>
           <List component="div" disablePadding>
             {shipmentNavigation
               .filter(
