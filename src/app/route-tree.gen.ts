@@ -15,7 +15,9 @@ import { Route as HelpRouteImport } from './../routes/help';
 import { Route as LoginRouteImport } from './../routes/login';
 import { Route as QuotesRouteImport } from './../routes/quotes';
 import { Route as ShipmentsRouteImport } from './../routes/shipments';
+import { Route as UpcomingShipmentsRouteImport } from './../routes/upcoming-shipments';
 import { Route as AdminShippingProvidersRouteImport } from './../routes/admin.shipping-providers';
+import { Route as AdminUpcomingShipmentsRouteImport } from './../routes/admin.upcoming-shipments';
 import { Route as QuotesIndexRouteImport } from './../routes/quotes.index';
 import { Route as QuotesComparisonIdRouteImport } from './../routes/quotes.$comparisonId';
 import { Route as QuotesNewRouteImport } from './../routes/quotes.new';
@@ -58,9 +60,19 @@ const ShipmentsRoute = ShipmentsRouteImport.update({
   path: '/shipments',
   getParentRoute: () => rootRouteImport,
 } as any);
+const UpcomingShipmentsRoute = UpcomingShipmentsRouteImport.update({
+  id: '/upcoming-shipments',
+  path: '/upcoming-shipments',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const AdminShippingProvidersRoute = AdminShippingProvidersRouteImport.update({
   id: '/admin/shipping-providers',
   path: '/admin/shipping-providers',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const AdminUpcomingShipmentsRoute = AdminUpcomingShipmentsRouteImport.update({
+  id: '/admin/upcoming-shipments',
+  path: '/admin/upcoming-shipments',
   getParentRoute: () => rootRouteImport,
 } as any);
 const QuotesIndexRoute = QuotesIndexRouteImport.update({
@@ -126,7 +138,9 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute;
   '/quotes': typeof QuotesRouteWithChildren;
   '/shipments': typeof ShipmentsRouteWithChildren;
+  '/upcoming-shipments': typeof UpcomingShipmentsRoute;
   '/admin/shipping-providers': typeof AdminShippingProvidersRoute;
+  '/admin/upcoming-shipments': typeof AdminUpcomingShipmentsRoute;
   '/quotes/$comparisonId': typeof QuotesComparisonIdRoute;
   '/quotes/new': typeof QuotesNewRoute;
   '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
@@ -144,7 +158,9 @@ export interface FileRoutesByTo {
   '/change-password': typeof ChangePasswordRoute;
   '/help': typeof HelpRoute;
   '/login': typeof LoginRoute;
+  '/upcoming-shipments': typeof UpcomingShipmentsRoute;
   '/admin/shipping-providers': typeof AdminShippingProvidersRoute;
+  '/admin/upcoming-shipments': typeof AdminUpcomingShipmentsRoute;
   '/quotes/$comparisonId': typeof QuotesComparisonIdRoute;
   '/quotes/new': typeof QuotesNewRoute;
   '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
@@ -165,7 +181,9 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute;
   '/quotes': typeof QuotesRouteWithChildren;
   '/shipments': typeof ShipmentsRouteWithChildren;
+  '/upcoming-shipments': typeof UpcomingShipmentsRoute;
   '/admin/shipping-providers': typeof AdminShippingProvidersRoute;
+  '/admin/upcoming-shipments': typeof AdminUpcomingShipmentsRoute;
   '/quotes/$comparisonId': typeof QuotesComparisonIdRoute;
   '/quotes/new': typeof QuotesNewRoute;
   '/shipments/$shipmentId': typeof ShipmentsShipmentIdRoute;
@@ -187,7 +205,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/quotes'
     | '/shipments'
+    | '/upcoming-shipments'
     | '/admin/shipping-providers'
+    | '/admin/upcoming-shipments'
     | '/quotes/$comparisonId'
     | '/quotes/new'
     | '/shipments/$shipmentId'
@@ -205,7 +225,9 @@ export interface FileRouteTypes {
     | '/change-password'
     | '/help'
     | '/login'
+    | '/upcoming-shipments'
     | '/admin/shipping-providers'
+    | '/admin/upcoming-shipments'
     | '/quotes/$comparisonId'
     | '/quotes/new'
     | '/shipments/$shipmentId'
@@ -225,7 +247,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/quotes'
     | '/shipments'
+    | '/upcoming-shipments'
     | '/admin/shipping-providers'
+    | '/admin/upcoming-shipments'
     | '/quotes/$comparisonId'
     | '/quotes/new'
     | '/shipments/$shipmentId'
@@ -246,7 +270,9 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute;
   QuotesRoute: typeof QuotesRouteWithChildren;
   ShipmentsRoute: typeof ShipmentsRouteWithChildren;
+  UpcomingShipmentsRoute: typeof UpcomingShipmentsRoute;
   AdminShippingProvidersRoute: typeof AdminShippingProvidersRoute;
+  AdminUpcomingShipmentsRoute: typeof AdminUpcomingShipmentsRoute;
   AdminAccountsAccountIdRoute: typeof AdminAccountsAccountIdRoute;
   AdminAccountsNewRoute: typeof AdminAccountsNewRoute;
   AdminCarriersCarrierIdRoute: typeof AdminCarriersCarrierIdRoute;
@@ -299,11 +325,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShipmentsRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/upcoming-shipments': {
+      id: '/upcoming-shipments';
+      path: '/upcoming-shipments';
+      fullPath: '/upcoming-shipments';
+      preLoaderRoute: typeof UpcomingShipmentsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/admin/shipping-providers': {
       id: '/admin/shipping-providers';
       path: '/admin/shipping-providers';
       fullPath: '/admin/shipping-providers';
       preLoaderRoute: typeof AdminShippingProvidersRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/admin/upcoming-shipments': {
+      id: '/admin/upcoming-shipments';
+      path: '/admin/upcoming-shipments';
+      fullPath: '/admin/upcoming-shipments';
+      preLoaderRoute: typeof AdminUpcomingShipmentsRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/quotes/': {
@@ -422,7 +462,9 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   QuotesRoute: QuotesRouteWithChildren,
   ShipmentsRoute: ShipmentsRouteWithChildren,
+  UpcomingShipmentsRoute: UpcomingShipmentsRoute,
   AdminShippingProvidersRoute: AdminShippingProvidersRoute,
+  AdminUpcomingShipmentsRoute: AdminUpcomingShipmentsRoute,
   AdminAccountsAccountIdRoute: AdminAccountsAccountIdRoute,
   AdminAccountsNewRoute: AdminAccountsNewRoute,
   AdminCarriersCarrierIdRoute: AdminCarriersCarrierIdRoute,

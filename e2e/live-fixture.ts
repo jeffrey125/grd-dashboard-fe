@@ -19,6 +19,21 @@ export async function installLiveFixture(
   surface: BrowserContext | Page,
   { initialResync = true }: { initialResync?: boolean } = {},
 ) {
+  await surface.route('**/api/v1/upcoming-shipments/access', (route) =>
+    route.fulfill({
+      json: {
+        enabled: false,
+        administrator: false,
+        repIds: [],
+        from: '2026-11-17',
+        month: '2026-11',
+        monthEnd: '2026-11-30',
+        weekEnd: '2026-11-22',
+        through: '2026-11-30',
+        timezone: 'America/Chicago',
+      },
+    }),
+  );
   await surface.route('**/api/v1/features', (route) =>
     route.fulfill({ json: { quoteComparisonEnabled: true } }),
   );

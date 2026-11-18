@@ -2,6 +2,7 @@ import { AppShell } from '@components/layout/app-shell';
 import { AuthLayout } from '@features/auth/pages/auth-layout';
 import { useRuntimeFeatures } from '@features/runtime-features';
 import { LiveStatus } from '@features/tracking-updates';
+import { useUpcomingAccess } from '@features/upcoming-shipments/access';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -14,6 +15,11 @@ import { useCooldown } from './use-cooldown';
 
 export function SessionBoundary({ children }: { children: ReactNode }) {
   const { session, status, account, error, retryAt, pending } = useSession();
+  const upcoming = useUpcomingAccess(
+    session.client,
+    account?.externalId,
+    status === 'authenticated',
+  );
   const features = useRuntimeFeatures(session.client, status === 'authenticated');
   const quoteComparisonEnabled =
     features.isSuccess && !features.isError && features.data.quoteComparisonEnabled;
@@ -67,6 +73,7 @@ export function SessionBoundary({ children }: { children: ReactNode }) {
       user={{ displayName: `${account.firstName} ${account.lastName}`, role: account.role }}
       onSignOut={() => void session.signOut()}
       quoteComparisonEnabled={quoteComparisonEnabled}
+      upcomingShipmentsEnabled={upcoming.data?.enabled === true && !upcoming.isError}
     >
       <LiveStatus />
       {quotePage && !quoteComparisonEnabled ? (

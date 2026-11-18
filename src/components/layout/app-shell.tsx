@@ -42,9 +42,15 @@ const primaryNavigation = [{ href: '/', label: 'Overview', Icon: DashboardOutlin
 const shipmentNavigation = [
   { href: '/shipments', label: 'Monitoring', Icon: VisibilityOutlinedIcon },
   { href: '/quotes', label: 'Quote Compare', Icon: RequestQuoteOutlinedIcon },
+  { href: '/upcoming-shipments', label: 'Upcoming shipments', Icon: LocalShippingOutlinedIcon },
 ] as const;
 
 const adminNavigation = [
+  {
+    href: '/admin/upcoming-shipments',
+    label: 'Shipment dispatch',
+    Icon: LocalShippingOutlinedIcon,
+  },
   { href: '/admin/shipping-providers', label: 'Quote providers', Icon: LocalShippingOutlinedIcon },
   { href: '/admin/accounts', label: 'Accounts', Icon: PeopleOutlineIcon },
   { href: '/admin/carriers', label: 'Carriers', Icon: Inventory2OutlinedIcon },
@@ -63,6 +69,7 @@ export function AppShell({
   signOutPending = false,
   signOutError,
   quoteComparisonEnabled = false,
+  upcomingShipmentsEnabled = false,
 }: {
   children: ReactNode;
   user?: AppShellUser;
@@ -70,6 +77,7 @@ export function AppShell({
   signOutPending?: boolean;
   signOutError?: string | null;
   quoteComparisonEnabled?: boolean;
+  upcomingShipmentsEnabled?: boolean;
 }) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -120,10 +128,14 @@ export function AppShell({
             {shipmentsOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </ListItemButton>
         </ListItem>
-        <Collapse in={shipmentsOpen} timeout="auto" unmountOnExit>
+        <Collapse in={shipmentsOpen} unmountOnExit>
           <List component="div" disablePadding>
             {shipmentNavigation
-              .filter(({ href }) => quoteComparisonEnabled || href !== '/quotes')
+              .filter(
+                ({ href }) =>
+                  (quoteComparisonEnabled || href !== '/quotes') &&
+                  (upcomingShipmentsEnabled || href !== '/upcoming-shipments'),
+              )
               .map(({ href, label, Icon }) => (
                 <ListItem key={href} disablePadding sx={{ mb: 0.5 }}>
                   <ListItemButton
@@ -154,7 +166,11 @@ export function AppShell({
           </Stack>
           <List component="nav" aria-label="Administration" disablePadding>
             {adminNavigation
-              .filter(({ href }) => quoteComparisonEnabled || href !== '/admin/shipping-providers')
+              .filter(
+                ({ href }) =>
+                  (quoteComparisonEnabled || href !== '/admin/shipping-providers') &&
+                  (upcomingShipmentsEnabled || href !== '/admin/upcoming-shipments'),
+              )
               .map(({ href, label, Icon }) => (
                 <ListItem key={href} disablePadding sx={{ mb: 0.5 }}>
                   <ListItemButton

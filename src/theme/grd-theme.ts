@@ -3,7 +3,30 @@ import type {} from '@mui/material/themeCssVarsAugmentation';
 
 export const THEME_MODE_STORAGE_KEY = 'grd-theme-mode';
 
+const motionDuration = 320;
+const motionEasing = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
+
 export const grdTheme = createTheme({
+  motion: {
+    reducedMotion: 'system',
+  },
+  transitions: {
+    duration: {
+      shortest: motionDuration,
+      shorter: motionDuration,
+      short: motionDuration,
+      standard: motionDuration,
+      complex: motionDuration,
+      enteringScreen: motionDuration,
+      leavingScreen: motionDuration,
+    },
+    easing: {
+      easeInOut: motionEasing,
+      easeOut: motionEasing,
+      easeIn: motionEasing,
+      sharp: motionEasing,
+    },
+  },
   cssVariables: {
     colorSchemeSelector: 'data-grd-color-scheme',
     cssVarPrefix: 'grd',
@@ -90,6 +113,19 @@ export const grdTheme = createTheme({
     borderRadius: 10,
   },
   components: {
+    // These components otherwise use automatic or library-level timing.
+    MuiCollapse: {
+      defaultProps: { timeout: motionDuration },
+    },
+    MuiAccordion: {
+      defaultProps: { slotProps: { transition: { timeout: motionDuration } } },
+    },
+    MuiMenu: {
+      defaultProps: { transitionDuration: motionDuration },
+    },
+    MuiPopover: {
+      defaultProps: { transitionDuration: motionDuration },
+    },
     MuiCssBaseline: {
       styleOverrides: {
         html: {

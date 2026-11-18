@@ -66,6 +66,31 @@ export const guides: Record<HelpCategory, Guide[]> = {
   ],
   shipments: [
     {
+      id: 'upcoming-files',
+      title: 'View upcoming shipment files',
+      intro:
+        'Open Upcoming shipments, select a date, then select an order to find its Files section. Desktop uses a right drawer; mobile uses a details modal.',
+      screenshot: 'upcoming-files',
+      steps: [
+        {
+          title: 'Find attached files',
+          text: 'Files lists documents attached in the order’s DOCS field, with their names, types and sizes. An empty message means no documents are attached.',
+        },
+        {
+          title: 'Preview a document',
+          text: 'Select Preview for a PDF or supported image. Use Back to order, Escape, or click outside the preview to return. If a PDF cannot display in your browser, use Download.',
+        },
+        {
+          title: 'Download a file',
+          text: 'Select Download and allow the new tab. Your browser opens or downloads the file according to its settings. Every click requests a fresh link; if it fails, select Retry.',
+        },
+      ],
+      tips: [
+        'You can access files only for upcoming orders available to your account. Reassigned, past, or removed orders may no longer be available.',
+        'Files remain in Airtable. PDF Quote attachments are not included. Preview and Download do not modify documents.',
+      ],
+    },
+    {
       id: 'add-find',
       title: 'Add and find shipments',
       screenshot: 'shipments',

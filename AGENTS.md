@@ -68,6 +68,13 @@ choices. Use pnpm and its lockfile after approval.
   API requests use `/api/v1`; Vite forwards that prefix unchanged in development. SSE uses
   the browser's credentialed EventSource, coordinated with the same auth lifecycle.
 
+## Frontend motion
+
+For new or revised frontend designs, follow the shared
+[frontend motion policy](../grd-dashboard-be/AGENTS.md#frontend-motion): subtle,
+interaction-driven transitions at **320 ms**, with reduced-motion support and
+desktop/mobile verification.
+
 ## Product invariants
 
 - `/` is the operational overview. `/shipments` defaults to Active and

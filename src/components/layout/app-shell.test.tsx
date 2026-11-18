@@ -6,7 +6,7 @@ import {
   Outlet,
   RouterProvider,
 } from '@tanstack/react-router';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GrdThemeProvider } from '@theme/theme-provider';
 import { expect, it, vi } from 'vitest';
@@ -64,8 +64,10 @@ it('expands shipment workflows by default with submenu icons and allows collapsi
   await user.click(toggle);
 
   expect(toggle).toHaveAttribute('aria-expanded', 'false');
-  expect(screen.queryAllByRole('link', { name: 'Monitoring' })).toHaveLength(0);
-  expect(screen.queryAllByRole('link', { name: 'Quote Compare' })).toHaveLength(0);
+  await waitFor(() => {
+    expect(screen.queryAllByRole('link', { name: 'Monitoring' })).toHaveLength(0);
+    expect(screen.queryAllByRole('link', { name: 'Quote Compare' })).toHaveLength(0);
+  });
 });
 
 it('shows admin navigation and invokes the supplied sign-out slot', async () => {

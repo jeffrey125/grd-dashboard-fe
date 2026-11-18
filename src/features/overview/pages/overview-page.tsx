@@ -5,6 +5,7 @@ import { MonitoringScopeToggle, useMonitoringScope } from '@features/monitoring-
 import { getOverview } from '@features/overview/api';
 import type { Shipment } from '@features/shipments/contracts';
 import { liveQuery } from '@features/tracking-updates';
+import { UpcomingWeek } from '@features/upcoming-shipments';
 import { businessTimestamp, parseCalendarDate } from '@lib/dates';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -227,6 +228,7 @@ export function OverviewPage() {
           </Paper>
         </>
       )}
+      <UpcomingWeek />
     </Stack>
   );
 }
