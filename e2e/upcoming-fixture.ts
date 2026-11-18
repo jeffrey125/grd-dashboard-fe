@@ -71,6 +71,7 @@ export async function installUpcomingFixture(
         updatedAt: '2026-11-17T18:00:00Z',
         stale,
         reps: upcomingReps.map(({ id, name }) => ({ id, name })),
+        repFilterOptions: [{ id: repA, name: 'Taylor' }],
         orders,
         total: orders.length,
       },

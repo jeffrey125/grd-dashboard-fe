@@ -47,6 +47,7 @@ const upcomingSchema = accessSchema.extend({
   stale: z.boolean(),
   total: z.number().int().nonnegative(),
   reps: z.array(rep),
+  repFilterOptions: z.array(rep).default([]),
   orders: z.array(orderSchema),
 });
 export type UpcomingOrder = z.infer<typeof orderSchema>;

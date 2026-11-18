@@ -59,6 +59,7 @@ export const guides: Record<HelpCategory, Guide[]> = {
       ],
       tips: [
         'Use Personal for shipments you created and Team for the wider team view. This is different from Sales Rep assignment.',
+        'In Upcoming shipments, the Sales rep filter lists the active reps you can view. Choose All permitted reps to include every order you can access, including orders for former reps.',
         'Use the sidebar for navigation; on mobile, open the menu button. Theme, Change password and Sign out are in the account area.',
         'An administrator creates your account. Replace your issued password when prompted. Business timestamps use America/New_York; carrier dates stay date-only.',
       ],

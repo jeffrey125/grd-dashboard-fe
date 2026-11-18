@@ -1,5 +1,19 @@
 # UPC-V1-001: Upcoming Shipments frontend
 
+## Sales rep filter update, November 18, 2026
+
+The weekly overview, monthly calendar and Admin dispatch show the permitted
+names from the API's `repFilterOptions` in the supplied order. **All permitted
+reps** still shows every order the account may see. Admins can also choose
+**Unassigned**. Mobile dispatch uses the full permitted directory to group
+orders, including those for former reps.
+The Read your dashboard Help guide explains what All permitted reps includes.
+
+`pnpm check` passed with 267 unit and component tests. The production build and
+all sixteen Upcoming Shipments, attachment and Help browser tests passed. A local
+check against Airtable verified the eleven names and the two distinct Ryan
+selections in all three views on desktop and mobile.
+
 ## Summary
 
 Implemented the approved responsive Airtable shipment views and rep assignments.
