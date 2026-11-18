@@ -55,6 +55,10 @@ export function OrderList({
   );
 }
 
+function formatPurchaseOrder(value: string | null) {
+  return value === '0' ? '0 · Warehouse stock' : (value ?? 'Not assigned');
+}
+
 function OrderDetails({ order }: { order: UpcomingOrder }) {
   return (
     <Stack spacing={2} sx={{ overflowWrap: 'anywhere' }}>
@@ -82,16 +86,23 @@ function OrderDetails({ order }: { order: UpcomingOrder }) {
         <Box key={line.lineNumber} sx={{ borderTop: 1, borderColor: 'divider', pt: 1.5 }}>
           <Typography sx={{ fontWeight: 650 }}>{line.product}</Typography>
           <Typography variant="body2">{line.vendor}</Typography>
-          <Typography variant="body2">
-            GRD PO: {line.purchaseOrder ?? 'Not assigned'}
-            {line.purchaseOrder === '0' ? ' · Warehouse stock' : ''}
-          </Typography>
+          <Typography variant="body2">GRD PO: {formatPurchaseOrder(line.purchaseOrder)}</Typography>
           <Typography variant="body2">
             {line.pounds ?? '—'} lbs · {line.units ?? '—'} units
           </Typography>
           {line.origin && <Typography variant="body2">FOB: {line.origin}</Typography>}
         </Box>
       ))}
+      {order.additionalPurchaseOrders.length > 0 && (
+        <Box>
+          <Typography sx={{ fontWeight: 650 }}>Additional linked GRD POs</Typography>
+          {order.additionalPurchaseOrders.map((line) => (
+            <Typography key={line.lineItemId} variant="body2">
+              {line.product} · {line.vendor} · GRD PO: {formatPurchaseOrder(line.purchaseOrder)}
+            </Typography>
+          ))}
+        </Box>
+      )}
       <ShipmentFiles key={order.id} orderId={order.id} />
       {order.notes && (
         <Box>

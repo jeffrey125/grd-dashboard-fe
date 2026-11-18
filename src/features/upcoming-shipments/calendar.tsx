@@ -105,6 +105,7 @@ export function ShipmentCalendar({
                     ...new Set(
                       order.lines
                         .map((line) => line.purchaseOrder)
+                        .concat(order.additionalPurchaseOrders.map((line) => line.purchaseOrder))
                         .filter((po): po is string => po !== null && po !== ''),
                     ),
                   ],

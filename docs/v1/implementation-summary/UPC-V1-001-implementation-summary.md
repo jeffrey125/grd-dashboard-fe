@@ -1,10 +1,17 @@
 # UPC-V1-001: Upcoming Shipments frontend
 
-## Calendar dates, November 19, 2026
+## Calendar dates and GRD purchase orders, November 19, 2026
 
 The desktop overflow link opens the all-day event date from FullCalendar.
 The Chicago regression verifies the drawer title and all 25 orders on the
 clicked day. Mobile keeps its existing date button and inline order list.
+
+Calendar cards include each distinct linked GRD PO. If a linked product has
+no unique match on the order header, details display its product, vendor and
+PO together. The production build, 267 component tests and 192 browser cases
+passed. Two opt-in screenshot capture cases were skipped. All ten targeted
+shipment and attachment cases passed, as did twelve additional date checks
+across four time zones, including month start and compact screens.
 
 ## Sales rep filter update, November 18, 2026
 

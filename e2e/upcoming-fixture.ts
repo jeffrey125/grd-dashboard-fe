@@ -30,6 +30,16 @@ const upcomingOrders = Array.from({ length: 26 }, (_, i) => ({
   tracking: null,
   notes: 'Fictional shipment used for UI verification.',
   pallets: 2,
+  ...(i === 0 && {
+    additionalPurchaseOrders: [
+      {
+        lineItemId: 'recCCCCCCCCCCCCCC',
+        product: 'Linked rye flour',
+        vendor: 'Example Mill',
+        purchaseOrder: '90002',
+      },
+    ],
+  }),
   lines: [
     {
       lineNumber: 1,

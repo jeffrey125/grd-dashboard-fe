@@ -2,12 +2,12 @@ import { type ApiClient, ApiError } from '@api/api';
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 
-const repId = z.string().regex(/^rec[A-Za-z0-9]{14}$/);
-const rep = z.object({ id: repId, name: z.string() });
+const recordId = z.string().regex(/^rec[A-Za-z0-9]{14}$/);
+const rep = z.object({ id: recordId, name: z.string() });
 const accessSchema = z.object({
   enabled: z.boolean(),
   administrator: z.boolean(),
-  repIds: z.array(repId),
+  repIds: z.array(recordId),
   from: z.iso.date(),
   month: z.string(),
   monthEnd: z.iso.date(),
@@ -16,16 +16,26 @@ const accessSchema = z.object({
   timezone: z.literal('America/Chicago'),
 });
 const orderSchema = z.object({
-  id: repId,
+  id: recordId,
   requestedShipOn: z.iso.date(),
   salesOrders: z.array(z.string()),
   customer: z.string(),
   customerPo: z.string().nullable(),
-  repIds: z.array(repId),
+  repIds: z.array(recordId),
   reps: z.array(z.string()),
   tracking: z.string().nullable(),
   notes: z.string().nullable(),
   pallets: z.number().nullable(),
+  additionalPurchaseOrders: z
+    .array(
+      z.object({
+        lineItemId: recordId,
+        product: z.string(),
+        vendor: z.string(),
+        purchaseOrder: z.string(),
+      }),
+    )
+    .default([]),
   lines: z.array(
     z.object({
       lineNumber: z.number().int(),
@@ -52,12 +62,15 @@ const upcomingSchema = accessSchema.extend({
 });
 export type UpcomingOrder = z.infer<typeof orderSchema>;
 export type UpcomingData = z.infer<typeof upcomingSchema>;
-const assignmentSchema = z.object({ ownRepId: repId.nullable(), assignedRepIds: z.array(repId) });
+const assignmentSchema = z.object({
+  ownRepId: recordId.nullable(),
+  assignedRepIds: z.array(recordId),
+});
 const accountAccessSchema = assignmentSchema.extend({
   configured: z.boolean(),
   directoryUnavailable: z.boolean().default(false),
   reps: z.array(rep.extend({ email: z.string().nullable() })),
-  suggestedRepIds: z.array(repId),
+  suggestedRepIds: z.array(recordId),
 });
 
 function parse<T>(schema: z.ZodType<T>, data: unknown) {
