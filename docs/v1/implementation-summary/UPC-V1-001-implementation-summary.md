@@ -1,5 +1,11 @@
 # UPC-V1-001: Upcoming Shipments frontend
 
+## Calendar dates, November 19, 2026
+
+The desktop overflow link opens the all-day event date from FullCalendar.
+The Chicago regression verifies the drawer title and all 25 orders on the
+clicked day. Mobile keeps its existing date button and inline order list.
+
 ## Sales rep filter update, November 18, 2026
 
 The weekly overview, monthly calendar and Admin dispatch show the permitted

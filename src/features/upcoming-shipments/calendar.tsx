@@ -135,8 +135,10 @@ export function ShipmentCalendar({
         dateClick={({ dateStr }) => {
           if (dateStr >= from && dateStr <= through) onDate(dateStr);
         }}
-        moreLinkClick={(info) => {
-          onDate(parseCalendarDate(from).date(info.date.getDate()).format('YYYY-MM-DD'));
+        moreLinkClick={({ hiddenSegs }) => {
+          // Each shipment is a single all-day event. Its ISO date is the clicked day in every zone.
+          const date = hiddenSegs[0]?.event.startStr;
+          if (date) onDate(date);
           return 'none';
         }}
         dayCellContent={(info) => {

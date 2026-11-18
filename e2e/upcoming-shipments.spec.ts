@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { accountFixture } from '@test/auth-fixture';
 import { installUpcomingFixture, repA, repB, upcomingReps } from './upcoming-fixture';
 
+test.use({ timezoneId: 'America/Chicago' });
+
 test('monthly date opens all orders, with mobile modal and same desktop drawer', async ({
   page,
 }, testInfo) => {
@@ -11,10 +13,14 @@ test('monthly date opens all orders, with mobile modal and same desktop drawer',
   await page.goto('/upcoming-shipments');
   await expect(page.getByRole('heading', { name: 'November 2026' })).toBeVisible();
   await expect(page.getByRole('button', { name: /next month/i })).toHaveCount(0);
-  await page.getByRole('button', { name: '2026-11-18, 25 orders', exact: true }).click();
   const mobile = testInfo.project.name.includes('mobile');
   const panel = page.getByRole('dialog');
-  if (!mobile) await expect(panel).toBeVisible();
+  if (mobile) {
+    await page.getByRole('button', { name: '2026-11-18, 25 orders', exact: true }).click();
+  } else {
+    await page.locator('td[data-date="2026-11-18"]').getByText('+22 more', { exact: true }).click();
+    await expect(panel).toHaveAccessibleName('Wednesday, Nov 18');
+  }
   await expect(page.locator('[data-order-id]')).toHaveCount(25);
   await page.locator('[data-order-id]').first().click();
   await expect(panel).toBeVisible();
