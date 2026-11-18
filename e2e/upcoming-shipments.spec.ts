@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { accountFixture } from '@test/auth-fixture';
 import { installUpcomingFixture, repA, repB, upcomingReps } from './upcoming-fixture';
 
+test.use({ timezoneId: 'America/Chicago' });
+
 test('monthly date opens all orders, with mobile modal and same desktop drawer', async ({
   page,
 }, testInfo) => {
@@ -11,10 +13,14 @@ test('monthly date opens all orders, with mobile modal and same desktop drawer',
   await page.goto('/upcoming-shipments');
   await expect(page.getByRole('heading', { name: 'November 2026' })).toBeVisible();
   await expect(page.getByRole('button', { name: /next month/i })).toHaveCount(0);
-  await page.getByRole('button', { name: '2026-11-18, 25 orders', exact: true }).click();
   const mobile = testInfo.project.name.includes('mobile');
   const panel = page.getByRole('dialog');
-  if (!mobile) await expect(panel).toBeVisible();
+  if (mobile) {
+    await page.getByRole('button', { name: '2026-11-18, 25 orders', exact: true }).click();
+  } else {
+    await page.locator('td[data-date="2026-11-18"]').getByText('+22 more', { exact: true }).click();
+    await expect(panel).toHaveAccessibleName('Wednesday, Nov 18');
+  }
   await expect(page.locator('[data-order-id]')).toHaveCount(25);
   await page.locator('[data-order-id]').first().click();
   await expect(panel).toBeVisible();
@@ -46,6 +52,21 @@ test('monthly date opens all orders, with mobile modal and same desktop drawer',
   await page.getByRole('option', { name: 'Taylor', exact: true }).click();
   await expect(page.getByText(/^13 orders ·/)).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test('calendar and order details show a PO linked to a different product', async ({
+  page,
+}, testInfo) => {
+  await installUpcomingFixture(page);
+  await page.goto('/upcoming-shipments');
+  if (!testInfo.project.name.includes('mobile')) {
+    await expect(page.getByText('PO# 0, 90002', { exact: true })).toBeVisible();
+  }
+  await page.getByRole('button', { name: '2026-11-18, 25 orders', exact: true }).click();
+  await page.locator('[data-order-id="rec00000000000001"]').click();
+  const panel = page.getByRole('dialog', { name: 'Order details' });
+  await expect(panel.getByText('GRD PO: 0 · Warehouse stock')).toBeVisible();
+  await expect(panel.getByText('Linked rye flour · Example Mill · GRD PO: 90002')).toBeVisible();
 });
 
 test('overview shows first five, date selection, and stale warning; unassigned staff hidden', async ({
