@@ -1,7 +1,3 @@
-import { SessionCancelled, safeError } from '@api/api';
-import { useNotifications } from '@components/feedback/notification-provider';
-import { useSession } from '@features/auth';
-import { businessCalendarDate, parseCalendarDate } from '@lib/dates';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -9,112 +5,72 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Stack from '@mui/material/Stack';
-import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
-import { z } from 'zod';
-import { updateShipment } from './api';
-import type { Shipment } from './schemas';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useShipmentCommand } from './actions';
+import type { Shipment, TrackingRun } from './schemas';
 
 export function MonitorAgainDialog({
   shipment,
   onClose,
+  onRefresh,
 }: {
   shipment: Shipment;
   onClose: () => void;
+  onRefresh?: (run: TrackingRun) => void;
 }) {
-  const { session } = useSession();
-  const queries = useQueryClient();
-  const { showNotification } = useNotifications();
-  const tomorrow = parseCalendarDate(businessCalendarDate()).add(1, 'day').format('YYYY-MM-DD');
-  const [followUpOn, setFollowUpOn] = useState(
-    shipment.followUpOn && shipment.followUpOn > businessCalendarDate()
-      ? shipment.followUpOn
-      : tomorrow,
-  );
-  const [error, setError] = useState<string | null>(null);
-  const submitting = useRef(false);
-  const mutation = useMutation({
-    mutationKey: ['shipment-assignment', shipment.externalId],
-    mutationFn: () => updateShipment(session.client, shipment.externalId, { followUpOn }),
-    retry: false,
-    onSettled: () => {
-      void queries.invalidateQueries({ queryKey: ['shipments'] });
-      void queries.invalidateQueries({ queryKey: ['shipment', shipment.externalId] });
-      void queries.invalidateQueries({ queryKey: ['overview'] });
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const command = useShipmentCommand(shipment.externalId, {
+    onRefresh: (run) => {
+      onRefresh?.(run);
+      onClose();
     },
   });
-  const submit = async () => {
-    if (submitting.current) return;
-    if (!z.iso.date().safeParse(followUpOn).success || followUpOn <= businessCalendarDate()) {
-      setError('Choose a follow-up date after today in New York.');
-      return;
-    }
-    submitting.current = true;
-    setError(null);
-    try {
-      const updated = await mutation.mutateAsync();
-      showNotification({
-        message:
-          updated.monitoringStatus === 'active'
-            ? `${shipment.trackingReference}: monitoring resumed until ${followUpOn} (New York time).`
-            : updated.monitoringStatus === 'paused'
-              ? 'Follow-up saved. Monitoring remains paused; use the available resume or retry action.'
-              : 'Follow-up saved. Monitoring has completed; choose a date after today to restart.',
-        severity: 'success',
-      });
-      onClose();
-    } catch (failure) {
-      if (!(failure instanceof SessionCancelled)) setError(safeError(failure).message);
-    } finally {
-      submitting.current = false;
-    }
-  };
   return (
     <Dialog
       open
-      onClose={() => !mutation.isPending && onClose()}
+      onClose={() => !command.pending && onClose()}
       fullWidth
       maxWidth="xs"
+      transitionDuration={reducedMotion ? 0 : 320}
       aria-labelledby="monitor-again-title"
+      aria-describedby="monitor-again-description"
     >
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          void submit();
+          command.execute(shipment, 'refresh');
         }}
       >
         <DialogTitle id="monitor-again-title">Monitor again</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
-            <Typography>
-              Continue checking {shipment.trackingReference} until the start of the follow-up date
-              in New York time. Its carrier status stays Delivered.
+            <Typography id="monitor-again-description">
+              Check {shipment.trackingReference} once for the latest carrier update. Confirmed
+              deliveries stay in Delivered. This does not change the follow-up date or restart
+              automatic checks.
+            </Typography>
+            <Typography variant="body2">
+              If the carrier explicitly corrects delivery back to an in-transit status, normal
+              monitoring resumes.
             </Typography>
             {!shipment.carrier.isActive && (
               <Alert severity="warning">
-                The carrier is disabled. Checks can run after an administrator enables it.
+                The carrier is disabled. An administrator must enable it before checking again.
               </Alert>
             )}
-            <TextField
-              type="date"
-              label="Follow-up date"
-              value={followUpOn}
-              onChange={(event) => setFollowUpOn(event.target.value)}
-              required
-              disabled={mutation.isPending}
-              slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: tomorrow } }}
-            />
-            {error && <Alert severity="error">{error}</Alert>}
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose} disabled={mutation.isPending}>
+          <Button onClick={onClose} disabled={command.pending}>
             Cancel
           </Button>
-          <Button type="submit" variant="contained" disabled={mutation.isPending}>
-            {mutation.isPending ? 'Saving…' : 'Start monitoring'}
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={command.pending || !shipment.carrier.isActive}
+          >
+            {command.pending ? 'Requesting…' : 'Check once'}
           </Button>
         </DialogActions>
       </form>

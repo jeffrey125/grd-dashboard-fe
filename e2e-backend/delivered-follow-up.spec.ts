@@ -49,7 +49,7 @@ function deliver(shipmentId: string) {
 }
 
 for (const mobile of [false, true]) {
-  test(`staff reopens a delivered shipment with a future follow-up (${mobile ? 'mobile' : 'desktop'})`, async ({
+  test(`staff checks a delivered shipment once without reopening monitoring (${mobile ? 'mobile' : 'desktop'})`, async ({
     page,
     context,
   }) => {
@@ -64,17 +64,26 @@ for (const mobile of [false, true]) {
     await expect(page.getByRole('heading', { name: 'Shipments', exact: true })).toBeVisible();
     const headers = { Origin: origin };
     const carriers = await (await context.request.get(`${api}/carriers`)).json();
-    const reference = `monitor-again-${mobile}-${Date.now()}`;
+    const reference = `monitor-once-${mobile}-${Date.now()}`;
     const created = await context.request.post(`${api}/shipments`, {
       headers,
-      data: { carrierExternalId: carriers[0].externalId, trackingReference: reference },
+      data: {
+        carrierExternalId: carriers[0].externalId,
+        trackingReference: reference,
+        followUpOn: '2099-12-31',
+      },
     });
     expect(created.status()).toBe(201);
     const id = (await created.json()).shipment.externalId as string;
     deliver(id);
     await page.goto(`${origin}/shipments?tab=delivered&q=${encodeURIComponent(reference)}`);
     await expect(page.getByRole('link', { name: reference, exact: true })).toBeVisible();
-    if (!mobile) await page.getByRole('button', { name: `Actions for ${reference}` }).click();
+    if (!mobile) {
+      await page.locator('.MuiDataGrid-virtualScroller').evaluate((element) => {
+        element.scrollLeft = element.scrollWidth;
+      });
+      await page.getByRole('button', { name: `Actions for ${reference}` }).click();
+    }
     const actions = mobile
       ? page.getByRole('article', { name: `Shipment ${reference}`, exact: true })
       : page;
@@ -83,59 +92,44 @@ for (const mobile of [false, true]) {
       .click();
     const dialog = page.getByRole('dialog', { name: 'Monitor again' });
     await expect(dialog).toBeVisible();
-    const date = await dialog.getByLabel('Follow-up date').inputValue();
-    expect(date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    await dialog.getByRole('button', { name: 'Start monitoring' }).click();
+    await expect(dialog.getByLabel('Follow-up date')).toHaveCount(0);
+    const queued = page.waitForResponse(
+      (r) => r.url().endsWith(`/shipments/${id}/refresh`) && r.request().method() === 'POST',
+    );
+    await dialog.getByRole('button', { name: 'Check once', exact: true }).click();
+    const response = await queued;
+    expect(response.status()).toBe(202);
+    const run = await response.json();
     await expect(dialog).toBeHidden();
-    await expect
-      .poll(
-        async () =>
-          (await (await context.request.get(`${api}/shipments/${id}`)).json()).monitoringStatus,
-      )
-      .toBe('active');
-    await page.goto(`${origin}/shipments?tab=active&q=${encodeURIComponent(reference)}`);
-    await expect(page.getByRole('link', { name: reference, exact: true })).toBeVisible();
+    const unchanged = await (await context.request.get(`${api}/shipments/${id}`)).json();
+    expect(unchanged).toMatchObject({
+      monitoringStatus: 'completed',
+      followUpOn: '2099-12-31',
+      nextCheckAt: null,
+    });
+    const joined = await context.request.post(`${api}/shipments/${id}/refresh`, {
+      headers,
+      data: {},
+    });
+    expect(joined.status()).toBe(202);
+    expect((await joined.json()).externalId).toBe(run.externalId);
+    if (!mobile)
+      await page.locator('.MuiDataGrid-virtualScroller').evaluate((element) => {
+        element.scrollLeft = 0;
+      });
     await page.getByRole('link', { name: reference, exact: true }).click();
-    await expect(
-      page.getByText(`Delivered; checks continue until the start of ${date} in New York time.`),
-    ).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Pause monitoring', exact: true })).toBeVisible();
-    // A true staff draft survives an external update; a saved/pristine form follows it.
-    await page.getByLabel('Date to Follow Up', { exact: true }).fill('2099-12-31');
-    expect(
-      (
-        await context.request.patch(`${api}/shipments/${id}`, {
-          headers,
-          data: { followUpOn: null },
-        })
-      ).status(),
-    ).toBe(200);
-    await expect(page.getByRole('button', { name: 'Monitor again', exact: true })).toBeDisabled();
-    await expect(page.getByLabel('Date to Follow Up', { exact: true })).toHaveValue('2099-12-31');
+    await expect(page.getByRole('button', { name: 'Monitor again', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Pause monitoring', exact: true })).toHaveCount(
+      0,
+    );
+    await page.getByLabel('Date to Follow Up', { exact: true }).fill('2099-12-30');
     await page.getByRole('button', { name: 'Save assignment', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Save assignment', exact: true })).toBeDisabled();
-    await expect
-      .poll(
-        async () =>
-          (await (await context.request.get(`${api}/shipments/${id}`)).json()).monitoringStatus,
-      )
-      .toBe('active');
-    const stopped = await context.request.patch(`${api}/shipments/${id}`, {
-      headers,
-      data: { followUpOn: null },
+    expect(await (await context.request.get(`${api}/shipments/${id}`)).json()).toMatchObject({
+      monitoringStatus: 'completed',
+      followUpOn: '2099-12-30',
+      nextCheckAt: null,
     });
-    expect(stopped.status()).toBe(200);
-    expect((await stopped.json()).monitoringStatus).toBe('completed');
-    await expect(page.getByLabel('Date to Follow Up', { exact: true })).toHaveValue('');
-    await expect(page.getByRole('button', { name: 'Monitor again', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Monitor again', exact: true }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Start monitoring' }).click();
-    await expect
-      .poll(
-        async () =>
-          (await (await context.request.get(`${api}/shipments/${id}`)).json()).monitoringStatus,
-      )
-      .toBe('active');
     expect((await context.request.delete(`${api}/shipments/${id}`, { headers })).status()).toBe(
       204,
     );

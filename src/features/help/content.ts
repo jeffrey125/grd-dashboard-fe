@@ -168,11 +168,36 @@ export const guides: Record<HelpCategory, Guide[]> = {
         'SO and Product appear in shipment details only; they are not monitoring-table columns. Include every product when a shipment contains several products.',
         'Carrier and tracking reference cannot be corrected through this editor.',
         'Delete shipment removes it from active views and stops monitoring. It is a soft deletion with no restore action in the app; adding the pair again creates a new record.',
-        'A future follow-up date can keep delivered shipments monitored until that date starts in New York. Use Monitor again when available to restart monitoring.',
+        'Confirmed deliveries appear in Delivered and stop automatic checks regardless of the follow-up date. Monitor again → Check once requests one carrier update without changing that date. A confirmed correction back to in transit resumes normal monitoring.',
       ],
     },
   ],
   tracking: [
+    {
+      id: 'monitor-once',
+      title: 'Check a delivered shipment again',
+      screenshot: 'monitor-again',
+      intro:
+        'Confirmed deliveries stop automatic checks regardless of the follow-up date. Use Monitor again when you need one more carrier update.',
+      steps: [
+        {
+          title: 'Open Monitor again',
+          text: 'Find the shipment in Delivered. Choose Monitor again from its row actions, mobile card or details.',
+        },
+        {
+          title: 'Review the one-time check',
+          text: 'The check keeps confirmed delivery completed and preserves your follow-up date. Cancel or press Escape to close without requesting a lookup.',
+        },
+        {
+          title: 'Select Check once',
+          text: 'The request queues one carrier lookup and may take time. Repeat clicks join pending work. The detail Audit tab shows your requested refresh and its outcome.',
+        },
+      ],
+      tips: [
+        'A disabled carrier must be enabled by an Admin before checking again. Other shipments are updated manually.',
+        'Failed or missing results preserve known delivery. An explicit carrier correction back to in transit resumes normal monitoring. Due follow-ups can still appear in Needs attention.',
+      ],
+    },
     {
       id: 'audit',
       title: 'Understand monitoring and audit',
@@ -182,7 +207,7 @@ export const guides: Record<HelpCategory, Guide[]> = {
       steps: [
         {
           title: 'Understand monitoring state',
-          text: 'Active means checks are scheduled. A manual pause stops checks until resumed. Repeated missing or failed lookups can also pause monitoring; use the available Refresh or Retry now action to check again.',
+          text: 'Active means checks are scheduled. Confirmed delivery completes monitoring regardless of the follow-up date. Use Monitor again → Check once for a single new carrier lookup. A manual pause stops checks until resumed. Repeated missing or failed lookups can also pause monitoring; use the available Refresh or Retry now action to check again.',
         },
         {
           title: 'Inspect the latest lookup and run',

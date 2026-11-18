@@ -244,14 +244,18 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
           {row.carrier.code !== 'other' && row.monitoringStatus === 'completed' && (
             <Button
               variant="outlined"
-              disabled={busy || dirty}
+              disabled={busy || dirty || !row.carrier.isActive}
               onClick={() => setMonitorAgain(true)}
             >
               Monitor again
             </Button>
           )}
           {monitorAgain && (
-            <MonitorAgainDialog shipment={row} onClose={() => setMonitorAgain(false)} />
+            <MonitorAgainDialog
+              shipment={row}
+              onClose={() => setMonitorAgain(false)}
+              onRefresh={setRequestedRun}
+            />
           )}
           <Button
             color="error"
@@ -425,14 +429,13 @@ function ShipmentDetail({ id, returnTo }: { id: string; returnTo: string }) {
                   )}
                   {row.monitoringStatus === 'active' && snapshot?.deliveredOn && (
                     <Typography sx={{ mt: 2 }}>
-                      Delivered; checks continue until the start of {row.followUpOn} in New York
-                      time.
+                      Delivery is confirmed. Automatic monitoring is stopping.
                     </Typography>
                   )}
                   {row.carrier.code !== 'other' && row.monitoringStatus === 'completed' && (
                     <Typography sx={{ mt: 2 }}>
-                      Monitoring has finished. Choose Monitor again and a future follow-up date to
-                      restart carrier checks.
+                      Monitoring has finished. Choose Monitor again for one carrier check. Confirmed
+                      deliveries stay in Delivered regardless of the follow-up date.
                     </Typography>
                   )}
                 </Paper>

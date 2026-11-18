@@ -124,7 +124,7 @@ function RowActions({
         )}
         {row.carrier.code !== 'other' && row.monitoringStatus === 'completed' && (
           <MenuItem
-            disabled={mutation.pending}
+            disabled={mutation.pending || !row.carrier.isActive}
             onClick={() => {
               setAnchor(null);
               setMonitorAgain(true);
@@ -212,7 +212,11 @@ function MobileActions({
         )}
       </Stack>
       {row.carrier.code !== 'other' && row.monitoringStatus === 'completed' && (
-        <Button variant="outlined" disabled={unavailable} onClick={() => setMonitorAgain(true)}>
+        <Button
+          variant="outlined"
+          disabled={unavailable || !row.carrier.isActive}
+          onClick={() => setMonitorAgain(true)}
+        >
           Monitor again
         </Button>
       )}
