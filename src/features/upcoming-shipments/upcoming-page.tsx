@@ -100,7 +100,8 @@ function UpcomingView({ mode }: { mode: 'week' | 'month' | 'admin' }) {
     );
   }
   const selectedRep =
-    (rep === 'unassigned' && data.administrator) || data.reps.some((item) => item.id === rep)
+    (rep === 'unassigned' && data.administrator) ||
+    data.repFilterOptions.some((item) => item.id === rep)
       ? rep
       : 'all';
   const visibleOrders = data.orders.filter(
@@ -234,6 +235,8 @@ function ShipmentViews({
 }) {
   const theme = useTheme();
   const mobile = useMediaQuery(theme.breakpoints.down('md'));
+  const showRepFilter =
+    data.administrator || (data.reps.length > 1 && data.repFilterOptions.length > 0);
   const [selected, setSelected] = useState<string | null>(
     mode === 'week' || mode === 'admin' ? null : data.from,
   );
@@ -256,7 +259,7 @@ function ShipmentViews({
   };
   return (
     <Stack spacing={2}>
-      {(data.administrator || data.reps.length > 1) && (
+      {showRepFilter && (
         <TextField
           select
           label="Sales rep"
@@ -269,7 +272,7 @@ function ShipmentViews({
           sx={{ maxWidth: 320 }}
         >
           <MenuItem value="all">All permitted reps</MenuItem>
-          {data.reps.map((item) => (
+          {data.repFilterOptions.map((item) => (
             <MenuItem value={item.id} key={item.id}>
               {item.name}
             </MenuItem>

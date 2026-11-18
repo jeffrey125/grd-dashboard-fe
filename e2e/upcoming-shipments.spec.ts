@@ -42,7 +42,8 @@ test('monthly date opens all orders, with mobile modal and same desktop drawer',
   await expect(panel).toBeHidden();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('combobox', { name: 'Sales rep' }).click();
-  await page.getByRole('option', { name: 'Taylor Example' }).click();
+  await expect(page.getByRole('option')).toHaveText(['All permitted reps', 'Taylor']);
+  await page.getByRole('option', { name: 'Taylor', exact: true }).click();
   await expect(page.getByText(/^13 orders ·/)).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -56,6 +57,9 @@ test('overview shows first five, date selection, and stale warning; unassigned s
   await expect(section.getByText('Showing 5 of 25 orders')).toBeVisible();
   await expect(section.locator('[data-order-id]')).toHaveCount(5);
   await expect(section.getByText(/Showing the last successful data/)).toBeVisible();
+  await section.getByRole('combobox', { name: 'Sales rep' }).click();
+  await page.getByRole('option', { name: 'Taylor', exact: true }).click();
+  await expect(section.getByText('Showing 5 of 13 orders')).toBeVisible();
   const filledHeight = await section.evaluate((element) => element.getBoundingClientRect().height);
   await section.getByRole('button', { name: /Tue Nov 17/ }).click();
   await expect(section.getByText('No upcoming shipments for this date.')).toBeVisible();
@@ -73,6 +77,10 @@ test('admin dispatch and explicit account assignment save', async ({ page }, tes
   if (testInfo.project.name.includes('mobile'))
     await expect(page.getByText('Taylor Example · 13', { exact: true })).toBeVisible();
   else await expect(page.getByLabel('Shipment dates')).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Example Foods 2 SO-/ })).toBeVisible();
+  await page.getByRole('combobox', { name: 'Sales rep' }).click();
+  await expect(page.getByRole('option')).toHaveText(['All permitted reps', 'Taylor', 'Unassigned']);
+  await page.getByRole('option', { name: 'Unassigned', exact: true }).click();
   const accountId = accountFixture.externalId;
   let saved: unknown;
   await page.route(`**/api/v1/admin/accounts/${accountId}`, (route) =>
