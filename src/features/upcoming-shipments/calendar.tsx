@@ -11,6 +11,7 @@ import type { UpcomingOrder } from './api';
 export function ShipmentCalendar({
   from,
   through,
+  today,
   orders,
   compact,
   selected,
@@ -18,6 +19,7 @@ export function ShipmentCalendar({
 }: {
   from: string;
   through: string;
+  today: string;
   orders: UpcomingOrder[];
   compact: boolean;
   selected: string | null;
@@ -78,7 +80,7 @@ export function ShipmentCalendar({
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
         initialDate={from}
-        now={from}
+        now={today}
         headerToolbar={false}
         firstDay={1}
         fixedWeekCount={false}
@@ -176,7 +178,7 @@ export function ShipmentCalendar({
                   width: 28,
                   height: 28,
                   borderRadius: '50%',
-                  ...(date === from && !(compact && date === selected)
+                  ...(date === today && !(compact && date === selected)
                     ? { bgcolor: 'primary.main', color: 'primary.contrastText' }
                     : {}),
                 }}

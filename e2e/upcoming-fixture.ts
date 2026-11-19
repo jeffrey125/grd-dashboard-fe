@@ -21,7 +21,7 @@ const upcomingAccess = {
 };
 const upcomingOrders = Array.from({ length: 26 }, (_, i) => ({
   id: `rec${String(i + 1).padStart(14, '0')}`,
-  requestedShipOn: i === 25 ? '2026-11-25' : '2026-11-18',
+  requestedShipOn: i === 25 ? '2026-11-05' : '2026-11-16',
   salesOrders: [`SO-${100 + i}`],
   customer: `Example Foods ${i + 1}`,
   customerPo: `PO-${i + 1}`,
@@ -70,13 +70,16 @@ export async function installUpcomingFixture(
   );
   await page.route('**/api/v1/upcoming-shipments?*', (route) => {
     const window = new URL(route.request().url()).searchParams.get('window') ?? 'month';
+    const from = window === 'month' ? '2026-11-01' : '2026-11-16';
+    const through = window === 'month' ? access.monthEnd : access.weekEnd;
     const orders = upcomingOrders.filter(
-      (order) => window === 'month' || order.requestedShipOn <= access.weekEnd,
+      (order) => order.requestedShipOn >= from && order.requestedShipOn <= through,
     );
     return route.fulfill({
       json: {
         ...access,
-        through: window === 'month' ? access.monthEnd : access.weekEnd,
+        from,
+        through,
         window,
         updatedAt: '2026-11-17T18:00:00Z',
         stale,

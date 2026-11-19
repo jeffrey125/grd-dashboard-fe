@@ -16,10 +16,10 @@ test('monthly date opens all orders, with mobile modal and same desktop drawer',
   const mobile = testInfo.project.name.includes('mobile');
   const panel = page.getByRole('dialog');
   if (mobile) {
-    await page.getByRole('button', { name: '2026-11-18, 25 orders', exact: true }).click();
+    await page.getByRole('button', { name: '2026-11-16, 25 orders', exact: true }).click();
   } else {
-    await page.locator('td[data-date="2026-11-18"]').getByText('+22 more', { exact: true }).click();
-    await expect(panel).toHaveAccessibleName('Wednesday, Nov 18');
+    await page.locator('td[data-date="2026-11-16"]').getByText('+22 more', { exact: true }).click();
+    await expect(panel).toHaveAccessibleName('Monday, Nov 16');
   }
   await expect(page.locator('[data-order-id]')).toHaveCount(25);
   await page.locator('[data-order-id]').first().click();
@@ -42,7 +42,7 @@ test('monthly date opens all orders, with mobile modal and same desktop drawer',
   await page.mouse.click(3, 100);
   await expect(panel).toBeHidden();
   if (!mobile)
-    await page.getByRole('button', { name: '2026-11-18, 25 orders', exact: true }).click();
+    await page.getByRole('button', { name: '2026-11-16, 25 orders', exact: true }).click();
   await page.locator('[data-order-id]').first().click();
   await page.keyboard.press('Escape');
   await expect(panel).toBeHidden();
@@ -62,7 +62,7 @@ test('calendar and order details show a PO linked to a different product', async
   if (!testInfo.project.name.includes('mobile')) {
     await expect(page.getByText('PO# 0, 90002', { exact: true })).toBeVisible();
   }
-  await page.getByRole('button', { name: '2026-11-18, 25 orders', exact: true }).click();
+  await page.getByRole('button', { name: '2026-11-16, 25 orders', exact: true }).click();
   await page.locator('[data-order-id="rec00000000000001"]').click();
   const panel = page.getByRole('dialog', { name: 'Order details' });
   await expect(panel.getByText('GRD PO: 0 · Warehouse stock')).toBeVisible();
@@ -75,6 +75,12 @@ test('overview shows first five, date selection, and stale warning; unassigned s
   await installUpcomingFixture(page, { stale: true });
   await page.goto('/');
   const section = page.getByRole('region', { name: 'Upcoming shipments this week' });
+  await expect(section.getByRole('button', { name: /Tue Nov 17/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(section.getByText('No upcoming shipments for this date.')).toBeVisible();
+  await section.getByRole('button', { name: 'All dates' }).click();
   await expect(section.getByText('Showing 5 of 25 orders')).toBeVisible();
   await expect(section.locator('[data-order-id]')).toHaveCount(5);
   await expect(section.getByText(/Showing the last successful data/)).toBeVisible();
@@ -82,6 +88,8 @@ test('overview shows first five, date selection, and stale warning; unassigned s
   await page.getByRole('option', { name: 'Taylor', exact: true }).click();
   await expect(section.getByText('Showing 5 of 13 orders')).toBeVisible();
   const filledHeight = await section.evaluate((element) => element.getBoundingClientRect().height);
+  await section.getByRole('button', { name: /Mon Nov 16/ }).click();
+  await expect(section.getByText('Showing 5 of 13 orders')).toBeVisible();
   await section.getByRole('button', { name: /Tue Nov 17/ }).click();
   await expect(section.getByText('No upcoming shipments for this date.')).toBeVisible();
   const emptyHeight = await section.evaluate((element) => element.getBoundingClientRect().height);

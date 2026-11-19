@@ -149,6 +149,7 @@ function UpcomingView({ mode }: { mode: 'week' | 'month' | 'admin' }) {
         )}
         <ShipmentViews
           key={`${mode}-${data.from}`}
+          today={access.data?.from ?? data.from}
           data={data}
           mode={mode}
           rep={selectedRep}
@@ -224,11 +225,13 @@ function UpcomingSkeleton({ mode }: { mode: 'week' | 'month' | 'admin' }) {
 
 function ShipmentViews({
   data,
+  today,
   mode,
   rep,
   setRep,
 }: {
   data: UpcomingData;
+  today: string;
   mode: 'week' | 'month' | 'admin';
   rep: string;
   setRep: (rep: string) => void;
@@ -237,9 +240,7 @@ function ShipmentViews({
   const mobile = useMediaQuery(theme.breakpoints.down('md'));
   const showRepFilter =
     data.administrator || (data.reps.length > 1 && data.repFilterOptions.length > 0);
-  const [selected, setSelected] = useState<string | null>(
-    mode === 'week' || mode === 'admin' ? null : data.from,
-  );
+  const [selected, setSelected] = useState<string | null>(mode === 'admin' ? null : today);
   const [drawerDate, setDrawerDate] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
   const orders = data.orders.filter(
@@ -283,6 +284,7 @@ function ShipmentViews({
       {mode === 'month' ? (
         <>
           <ShipmentCalendar
+            today={today}
             from={data.from}
             through={data.through}
             orders={orders}
