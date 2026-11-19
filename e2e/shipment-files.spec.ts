@@ -39,7 +39,7 @@ test('shipment files refresh links, preview, download, retry and empty state', a
     }),
   );
   await page.goto('/upcoming-shipments');
-  await page.getByRole('button', { name: '2026-11-18, 25 orders', exact: true }).click();
+  await page.getByRole('button', { name: '2026-11-16, 25 orders', exact: true }).click();
   await page.locator('[data-order-id]').first().click();
   const files = page.getByRole('region', { name: 'Shipment files' });
   await expect(files.getByText('Packing list.png')).toBeVisible();
