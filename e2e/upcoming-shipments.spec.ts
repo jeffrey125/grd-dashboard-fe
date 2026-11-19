@@ -75,6 +75,12 @@ test('overview shows first five, date selection, and stale warning; unassigned s
   await installUpcomingFixture(page, { stale: true });
   await page.goto('/');
   const section = page.getByRole('region', { name: 'Upcoming shipments this week' });
+  await expect(section.getByRole('button', { name: /Tue Nov 17/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(section.getByText('No upcoming shipments for this date.')).toBeVisible();
+  await section.getByRole('button', { name: 'All dates' }).click();
   await expect(section.getByText('Showing 5 of 25 orders')).toBeVisible();
   await expect(section.locator('[data-order-id]')).toHaveCount(5);
   await expect(section.getByText(/Showing the last successful data/)).toBeVisible();

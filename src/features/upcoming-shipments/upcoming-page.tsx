@@ -240,9 +240,7 @@ function ShipmentViews({
   const mobile = useMediaQuery(theme.breakpoints.down('md'));
   const showRepFilter =
     data.administrator || (data.reps.length > 1 && data.repFilterOptions.length > 0);
-  const [selected, setSelected] = useState<string | null>(
-    mode === 'week' || mode === 'admin' ? null : today,
-  );
+  const [selected, setSelected] = useState<string | null>(mode === 'admin' ? null : today);
   const [drawerDate, setDrawerDate] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
   const orders = data.orders.filter(
